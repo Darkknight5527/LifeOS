@@ -1,0 +1,43 @@
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth.js";
+import { createCrudRouter } from "../utils/crudRouter.js";
+
+import authRoutes from "./auth.js";
+
+import MoodLog from "../models/MoodLog.js";
+import SkinLog from "../models/SkinLog.js";
+import HairLog from "../models/HairLog.js";
+import GroomingBrush from "../models/GroomingBrush.js";
+import GroomingTask from "../models/GroomingTask.js";
+import WorkoutStrength from "../models/WorkoutStrength.js";
+import WorkoutCardio from "../models/WorkoutCardio.js";
+import WorkoutFlex from "../models/WorkoutFlex.js";
+import Goal from "../models/Goal.js";
+import GoalReview from "../models/GoalReview.js";
+import Project from "../models/Project.js";
+import LearningTopic from "../models/LearningTopic.js";
+import LearningSession from "../models/LearningSession.js";
+
+const router = Router();
+
+// Public routes
+router.use("/auth", authRoutes);
+
+// Everything below requires a valid JWT
+router.use(requireAuth);
+
+router.use("/mood-logs", createCrudRouter(MoodLog, { sortField: "date", sortOrder: -1 }));
+router.use("/skin-logs", createCrudRouter(SkinLog, { sortField: "date", sortOrder: -1 }));
+router.use("/hair-logs", createCrudRouter(HairLog, { sortField: "date", sortOrder: -1 }));
+router.use("/grooming-brush", createCrudRouter(GroomingBrush, { sortField: "date", sortOrder: -1 }));
+router.use("/grooming-tasks", createCrudRouter(GroomingTask, { sortField: "date", sortOrder: -1 }));
+router.use("/workout-strength", createCrudRouter(WorkoutStrength, { sortField: "date", sortOrder: -1 }));
+router.use("/workout-cardio", createCrudRouter(WorkoutCardio, { sortField: "date", sortOrder: -1 }));
+router.use("/workout-flex", createCrudRouter(WorkoutFlex, { sortField: "date", sortOrder: -1 }));
+router.use("/goals", createCrudRouter(Goal, { sortField: "updatedAt", sortOrder: -1 }));
+router.use("/goal-reviews", createCrudRouter(GoalReview, { sortField: "date", sortOrder: -1 }));
+router.use("/projects", createCrudRouter(Project, { sortField: "updatedAt", sortOrder: -1 }));
+router.use("/learning", createCrudRouter(LearningTopic, { sortField: "updatedAt", sortOrder: -1 }));
+router.use("/learning-sessions", createCrudRouter(LearningSession, { sortField: "date", sortOrder: -1 }));
+
+export default router;
