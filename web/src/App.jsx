@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes, Navigate } from "react-router-dom";
 import { getToken, setToken } from "./api";
+import { ToastProvider } from "./components/Toast.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import OverviewPage from "./pages/OverviewPage.jsx";
+import PhysicalPage from "./pages/PhysicalPage.jsx";
 import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 
 const NAV_ITEMS = [
@@ -31,6 +33,7 @@ export default function App() {
   }
 
   return (
+    <ToastProvider>
     <div className="flex min-h-screen">
       <aside className="w-56 shrink-0 border-r border-slate-200 p-4 dark:border-slate-800">
         <div className="mb-6 px-2 text-lg font-semibold">LifeOS</div>
@@ -64,7 +67,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<OverviewPage />} />
           <Route path="/mental" element={<PlaceholderPage title="Mental & Psych" />} />
-          <Route path="/physical" element={<PlaceholderPage title="Physical" />} />
+          <Route path="/physical" element={<PhysicalPage />} />
           <Route path="/goals" element={<PlaceholderPage title="Goals" />} />
           <Route path="/technical" element={<PlaceholderPage title="Technical & Projects" />} />
           <Route path="/learning" element={<PlaceholderPage title="Learning" />} />
@@ -72,5 +75,6 @@ export default function App() {
         </Routes>
       </main>
     </div>
+    </ToastProvider>
   );
 }
