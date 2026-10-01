@@ -5,12 +5,14 @@ import { ToastProvider } from "./components/Toast.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import OverviewPage from "./pages/OverviewPage.jsx";
 import PhysicalPage from "./pages/PhysicalPage.jsx";
+import FinancesPage from "./pages/FinancesPage.jsx";
 import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 
 const NAV_ITEMS = [
   { to: "/", label: "Overview", end: true },
   { to: "/mental", label: "Mental & Psych" },
   { to: "/physical", label: "Physical" },
+  { to: "/finances", label: "Finances" },
   { to: "/goals", label: "Goals" },
   { to: "/technical", label: "Technical & Projects" },
   { to: "/learning", label: "Learning" },
@@ -68,6 +70,7 @@ export default function App() {
           <Route path="/" element={<OverviewPage />} />
           <Route path="/mental" element={<PlaceholderPage title="Mental & Psych" />} />
           <Route path="/physical" element={<PhysicalPage />} />
+          <Route path="/finances" element={<FinancesPage />} />
           <Route path="/goals" element={<PlaceholderPage title="Goals" />} />
           <Route path="/technical" element={<PlaceholderPage title="Technical & Projects" />} />
           <Route path="/learning" element={<PlaceholderPage title="Learning" />} />

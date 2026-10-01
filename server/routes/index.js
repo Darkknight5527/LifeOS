@@ -17,6 +17,11 @@ import GoalReview from "../models/GoalReview.js";
 import Project from "../models/Project.js";
 import LearningTopic from "../models/LearningTopic.js";
 import LearningSession from "../models/LearningSession.js";
+import FinanceCategory from "../models/FinanceCategory.js";
+import FinanceBudget from "../models/FinanceBudget.js";
+import FinanceTransaction from "../models/FinanceTransaction.js";
+import FinanceInvestment from "../models/FinanceInvestment.js";
+import FinanceSavingsGoal from "../models/FinanceSavingsGoal.js";
 
 const router = Router();
 
@@ -39,5 +44,10 @@ router.use("/goal-reviews", createCrudRouter(GoalReview, { sortField: "date", so
 router.use("/projects", createCrudRouter(Project, { sortField: "updatedAt", sortOrder: -1 }));
 router.use("/learning", createCrudRouter(LearningTopic, { sortField: "updatedAt", sortOrder: -1 }));
 router.use("/learning-sessions", createCrudRouter(LearningSession, { sortField: "date", sortOrder: -1 }));
+router.use("/finance-categories", createCrudRouter(FinanceCategory, { sortField: "name", sortOrder: 1 }));
+router.use("/finance-budgets", createCrudRouter(FinanceBudget, { sortField: "month", sortOrder: -1 }));
+router.use("/finance-transactions", createCrudRouter(FinanceTransaction, { sortField: "date", sortOrder: -1 }));
+router.use("/finance-investments", createCrudRouter(FinanceInvestment, { sortField: "updatedAt", sortOrder: -1 }));
+router.use("/finance-savings-goals", createCrudRouter(FinanceSavingsGoal, { sortField: "updatedAt", sortOrder: -1 }));
 
 export default router;
