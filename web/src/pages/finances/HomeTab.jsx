@@ -34,8 +34,8 @@ export default function HomeTab({ onEdit, onGoTo }) {
 
   return (
     // Phones: one column. Laptops: 2–3 columns so the whole overview fits on screen.
-    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-      <div className="space-y-5">
+    <div className="grid grid-cols-1 items-start gap-5 lg:gap-4 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
+      <div className="space-y-5 lg:space-y-4">
       {/* Hero */}
       <section className="relative animate-fade-up overflow-hidden rounded-[28px] bg-gradient-to-br from-[#ff9447] via-[#f47a2c] to-[#e2580e] p-6 shadow-glow sm:p-7">
         <div className="pointer-events-none absolute -right-14 -top-16 h-56 w-56 rounded-full bg-white/10" />
@@ -110,7 +110,7 @@ export default function HomeTab({ onEdit, onGoTo }) {
       </FinCard>
 
       </div>
-      <div className="space-y-5">
+      <div className="space-y-5 lg:space-y-4">
       {/* Remaining per bucket */}
       {hasSalary && (
         <FinCard title="Remaining · this month" delay={80}>

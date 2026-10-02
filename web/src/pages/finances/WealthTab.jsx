@@ -14,7 +14,7 @@ const TYPE_LABEL = Object.fromEntries(TYPES.map((t) => [t.value, t.label]));
 export default function WealthTab() {
   return (
     // Side by side on wide screens, stacked on phones.
-    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 [&>*]:min-w-0">
+    <div className="grid grid-cols-1 items-start gap-5 lg:gap-4 lg:grid-cols-2 [&>*]:min-w-0">
       <Goals />
       <Investments />
     </div>

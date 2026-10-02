@@ -10,7 +10,7 @@ export default function InsightsTab() {
   const stats = useMonthStats(month);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 lg:space-y-4">
       <MonthNav
         label={monthLabel(month)}
         sub={month === currentMonth ? "This month" : "Past month"}
@@ -19,7 +19,7 @@ export default function InsightsTab() {
         canNext={month < currentMonth}
       />
       {/* Two cards per row on wide screens, one per row on phones */}
-      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid grid-cols-1 items-stretch gap-5 lg:gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <SpendByCategory stats={stats} month={month} />
         <BudgetVsSpent stats={stats} />
         <SpendingTrend stats={stats} month={month} />
@@ -43,7 +43,7 @@ function Tip({ children, align = "center" }) {
 function SpendByCategory({ stats, month }) {
   const [active, setActive] = useState(null);
   const total = stats.total;
-  const size = 180;
+  const size = 164;
   const stroke = 26;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -90,7 +90,7 @@ function SpendByCategory({ stats, month }) {
             <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
               <div>
                 <div className="text-[13px] text-fin-muted">{shown ? shown.b.label : "Total spent"}</div>
-                <div className="tabular text-[24px] font-extrabold">{formatMoney(shown ? shown.v : total)}</div>
+                <div className={`tabular font-extrabold ${formatMoney(Math.round(shown ? shown.v : total)).length > 9 ? "text-[18px]" : "text-[22px]"}`}>{formatMoney(Math.round(shown ? shown.v : total))}</div>
                 {shown && <div className="tabular text-[13px] text-fin-muted">{Math.round((shown.v / total) * 100)}%</div>}
               </div>
             </div>
@@ -142,13 +142,19 @@ function BudgetVsSpent({ stats }) {
     return (
       <div>
         <div className="flex items-baseline justify-between gap-2 text-[15px]">
-          <span className="flex items-center gap-2 font-semibold"><span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />{label}</span>
-          <span className="tabular text-[14px]">
+          <span className="flex min-w-0 items-baseline gap-2 font-semibold">
+            <span className="h-2.5 w-2.5 shrink-0 self-center rounded-full" style={{ background: color }} />
+            <span className="truncate">{label}</span>
+            <span className={`tabular hidden whitespace-nowrap text-[12.5px] font-medium sm:inline ${over ? "text-fin-danger" : "text-fin-muted"}`}>
+              {over ? `over by ${formatMoney(spent - budget)}` : `${formatMoney(budget - spent)} left`}
+            </span>
+          </span>
+          <span className="tabular whitespace-nowrap text-[14px]">
             <span className={`font-bold ${over ? "text-fin-danger" : ""}`}>{formatMoney(spent)}</span>
             <span className="text-fin-muted"> / {formatMoney(budget)}</span>
           </span>
         </div>
-        <div className="relative mt-2 h-3 rounded-full bg-fin-input">
+        <div className="relative mt-1.5 h-2.5 rounded-full bg-fin-input">
           <div className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700" style={{ width: `${(Math.min(spent, budget) / max) * 100}%`, background: color }} />
           {over && (
             <div
@@ -158,8 +164,9 @@ function BudgetVsSpent({ stats }) {
           )}
           {over && <div className="absolute -bottom-1 -top-1 w-0.5 rounded bg-white/80" style={{ left: `${(budget / max) * 100}%` }} title="Budget" />}
         </div>
-        <div className="mt-1 text-[13px] text-fin-muted">
-          {over ? <span className="text-fin-danger">Over by {formatMoney(spent - budget)}</span> : `${formatMoney(budget - spent)} left`}
+        {/* phones: amount left on its own line */}
+        <div className={`tabular mt-1 text-[12.5px] sm:hidden ${over ? "text-fin-danger" : "text-fin-muted"}`}>
+          {over ? `Over by ${formatMoney(spent - budget)}` : `${formatMoney(budget - spent)} left`}
         </div>
       </div>
     );
@@ -175,7 +182,7 @@ function BudgetVsSpent({ stats }) {
       {limited.length > 0 && (
         <>
           <div className="mb-3 mt-7 text-[13px] font-semibold uppercase tracking-[0.08em] text-fin-muted">Subcategory limits</div>
-          <div className="space-y-5">
+          <div className="space-y-5 lg:space-y-4">
             {limited.map((c) => (
               <Row key={c._id} label={c.name} color={BUCKET[c.bucket]?.color || "#9b9ba5"} spent={spentByCat[c.name] || 0} budget={c.limit} />
             ))}
@@ -187,7 +194,7 @@ function BudgetVsSpent({ stats }) {
 }
 
 // Vertical bar chart with hover tooltips; bars anchored to a shared baseline.
-function Bars({ data, height = 130, renderTip, highlight }) {
+function Bars({ data, height = 120, renderTip, highlight }) {
   const [hover, setHover] = useState(null);
   const max = Math.max(1, ...data.map((d) => Math.max(d.value, d.marker || 0)));
   return (
@@ -292,7 +299,7 @@ function WeekBars({ stats, month }) {
               </>
             )}
           />
-          <div className="mt-3 text-[13px] text-fin-muted">Weeks start Monday{current ? " · current week highlighted" : ""}. Tap a bar for details.</div>
+          <div className="mt-2 text-[12.5px] text-fin-muted">Weeks start Monday · tap a bar for details</div>
         </>
       ) : (
         <EmptyState icon="chart">No spending to compare yet.</EmptyState>
@@ -334,7 +341,7 @@ function MonthBars({ month }) {
               </>
             )}
           />
-          <div className="mt-3 flex items-center gap-4 text-[13px] text-fin-muted">
+          <div className="mt-2 flex items-center gap-4 text-[12.5px] text-fin-muted">
             <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-fin-accent" /> Spent</span>
             <span className="flex items-center gap-2"><span className="h-0.5 w-3 rounded bg-white/70" /> Salary</span>
           </div>
@@ -364,7 +371,7 @@ function TopSubcategories({ stats }) {
   return (
     <FinCard title="Top subcategories" delay={160}>
       {rows.length ? (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {rows.map((r, i) => {
             const b = BUCKET[r.bucket] || BUCKET.wants;
             return (
@@ -372,14 +379,14 @@ function TopSubcategories({ stats }) {
                 <div className="tabular w-5 text-center text-[14px] font-bold text-fin-faint">{i + 1}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-[15px] font-semibold">{r.name}</span>
+                    <span className="flex min-w-0 items-baseline gap-2">
+                      <span className="truncate text-[15px] font-semibold">{r.name}</span>
+                      <span className="whitespace-nowrap text-[12px] text-fin-muted">{b.label} · {r.count}×</span>
+                    </span>
                     <span className="tabular text-[15px] font-bold">{formatMoney(r.value)}</span>
                   </div>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <div className="h-2 flex-1 rounded-full bg-fin-input">
-                      <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${(r.value / max) * 100}%`, background: b.color }} />
-                    </div>
-                    <span className="w-20 shrink-0 text-right text-[12px] text-fin-muted">{b.label} · {r.count}×</span>
+                  <div className="mt-1.5 h-2 rounded-full bg-fin-input">
+                    <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${(r.value / max) * 100}%`, background: b.color }} />
                   </div>
                 </div>
               </div>

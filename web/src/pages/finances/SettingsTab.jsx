@@ -7,7 +7,7 @@ export default function SettingsTab() {
   return (
     // Phones: stacked. Laptops: split + backup on the left, subcategories on the right;
     // very wide screens: three columns.
-    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
+    <div className="grid grid-cols-1 items-start gap-5 lg:gap-4 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
       <div>
         <AdjustSplit />
       </div>
@@ -59,13 +59,13 @@ function AdjustSplit() {
 
       {mode === "ratio" ? (
         <div className="animate-fade-in">
-          <div className="mt-5 text-[15px] text-fin-muted">Quick presets</div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-4 text-[14px] text-fin-muted">Quick presets</div>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {PRESETS.map((p) => {
               const active = draft.needs === p[0] && draft.wants === p[1] && draft.savings === p[2];
               return (
-                <Pill key={p.join()} active={active} onClick={() => setDraft({ needs: p[0], wants: p[1], savings: p[2] })}>
-                  <span className="tabular">{p.join(" / ")}</span>
+                <Pill key={p.join()} active={active} className="justify-center whitespace-nowrap !px-1 !py-1.5 !text-[13px]" onClick={() => setDraft({ needs: p[0], wants: p[1], savings: p[2] })}>
+                  <span className="tabular">{p.join(" · ")}</span>
                 </Pill>
               );
             })}
@@ -73,11 +73,11 @@ function AdjustSplit() {
 
           <SplitSlider value={draft} onChange={setDraft} />
 
-          <div className="mt-2 space-y-3">
+          <div className="space-y-2">
             {BUCKETS.map((b) => (
               <div key={b.id} className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: b.color }} />
-                <span className="flex-1 text-[17px] font-semibold">{b.label}</span>
+                <span className="flex-1 text-[16px] font-semibold">{b.label}</span>
                 {rec && <span className="tabular hidden text-[14px] text-fin-muted sm:inline">{formatMoney(splitByRatio(rec.salary, draft)[b.id])}</span>}
                 <div className="flex w-[120px] items-center rounded-2xl bg-fin-input px-4 focus-within:ring-1 focus-within:ring-fin-accent/60">
                   <input
@@ -87,7 +87,7 @@ function AdjustSplit() {
                     max="100"
                     value={draft[b.id]}
                     onChange={(e) => setPct(b.id, e.target.value)}
-                    className="tabular w-full bg-transparent py-3 text-right text-[17px] font-semibold text-white outline-none"
+                    className="tabular w-full bg-transparent py-2.5 text-right text-[16px] font-semibold text-white outline-none"
                     aria-label={`${b.label} percent`}
                   />
                   <span className="pl-2 text-fin-muted">%</span>
@@ -96,12 +96,12 @@ function AdjustSplit() {
             ))}
           </div>
 
-          <div className="mt-4 text-[15px] text-fin-muted">
+          <div className="mt-3 text-[14px] text-fin-muted">
             Total <span className={`font-bold ${balanced ? "text-white" : "text-fin-danger"}`}>{total}%</span>
             {balanced ? " · balanced ✓" : ` · ${total > 100 ? "remove" : "add"} ${Math.abs(100 - total)}% to balance`}
           </div>
-          {rec && <div className="mt-1 text-[14px] text-fin-faint">Applying also re-splits {monthLabel(currentMonth)}'s salary.</div>}
-          <div className="mt-4 flex gap-3">
+          {rec && <div className="text-[13px] text-fin-faint">Applying also re-splits {monthLabel(currentMonth)}'s salary.</div>}
+          <div className="mt-3 flex gap-3">
             <GhostButton className="flex-1" disabled={!changed} onClick={() => setDraft(ratio)}>Reset</GhostButton>
             <PrimaryButton className="flex-1" disabled={!balanced || !changed} onClick={() => saveRatio(draft, currentMonth)}>Apply ratio</PrimaryButton>
           </div>
@@ -115,7 +115,7 @@ function AdjustSplit() {
             {BUCKETS.map((b) => (
               <div key={b.id} className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: b.color }} />
-                <span className="flex-1 text-[17px] font-semibold">{b.label}</span>
+                <span className="flex-1 text-[16px] font-semibold">{b.label}</span>
                 <MoneyField className="w-[160px]" value={amounts[b.id]} onChange={(v) => setAmounts((a) => ({ ...a, [b.id]: v }))} />
               </div>
             ))}
@@ -199,8 +199,8 @@ function SplitSlider({ value, onChange }) {
   ];
 
   return (
-    <div className="my-6 select-none px-3">
-      <div ref={ref} className="relative h-12" onPointerMove={onMove} onPointerUp={() => (drag.current = null)}>
+    <div className="my-4 select-none px-3">
+      <div ref={ref} className="relative h-11" title="Drag the handles to rebalance" onPointerMove={onMove} onPointerUp={() => (drag.current = null)}>
         <div className="absolute inset-x-0 top-1/2 flex h-4 -translate-y-1/2 gap-[2px] overflow-hidden rounded-full">
           {segs.map((s) => (
             <div key={s.b.id} className="h-full transition-[width] duration-75" style={{ width: `${s.to - s.from}%`, background: s.b.color }} />
@@ -233,7 +233,7 @@ function SplitSlider({ value, onChange }) {
           </div>
         ))}
       </div>
-      <div className="mt-1 text-center text-[12px] text-fin-faint">Drag the handles to rebalance</div>
+      
     </div>
   );
 }
@@ -254,7 +254,7 @@ function Subcategories() {
 
   return (
     <FinCard title="Subcategories" delay={60}>
-      <p className="-mt-2 mb-4 text-[14px] text-fin-muted">Tap a name to rename it. Limits are optional monthly caps, shown in Insights.</p>
+      <p className="-mt-2 mb-3 text-[13.5px] text-fin-muted">Tap a name to rename it. Limits are optional monthly caps, shown in Insights.</p>
       <Segmented
         value={bucket}
         onChange={(v) => {
@@ -269,7 +269,7 @@ function Subcategories() {
       />
       <div key={bucket} className="mt-3 animate-fade-in">
         {list.length ? (
-          <div className="divide-y divide-fin-line">
+          <div className="fin-scroll divide-y divide-fin-line lg:max-h-[calc(100dvh-400px)] lg:min-h-[160px] lg:overflow-y-auto lg:pr-1">
             {list.map((c) => (
               <SubcategoryRow key={c._id} cat={c} />
             ))}

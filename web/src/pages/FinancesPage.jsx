@@ -87,11 +87,11 @@ function FinanceShell() {
     <div className="fin-scope min-h-screen bg-fin-bg font-fin text-white antialiased">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-fin-line bg-fin-bg/80 backdrop-blur-xl">
-        <div className="flex items-center gap-3 px-3 py-4 sm:px-5 lg:py-3">
+        <div className="flex items-center gap-3 px-3 py-4 sm:px-5 lg:py-2.5">
           <MenuButton className="-ml-2 text-white/70 hover:bg-white/5 hover:text-white" />
-          <LogoMark size={44} />
+          <LogoMark size={40} />
           <div className="min-w-0">
-            <div className="text-[22px] font-extrabold leading-tight tracking-tight">Finances</div>
+            <div className="text-[22px] font-extrabold leading-tight tracking-tight lg:text-[20px]">Finances</div>
             <div className="truncate text-[14px] text-fin-muted">{monthLabel(currentMonth)} · week starts Monday</div>
           </div>
           <SyncStatus syncing={syncing && hasData} failed={Boolean(error) && hasData} onRetry={reload} />
@@ -121,7 +121,7 @@ function FinanceShell() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:max-w-[1320px] lg:pb-6 lg:pt-4">
+      <main className="mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:max-w-[1320px] lg:pb-4 lg:pt-3">
         {loading ? (
           <LoadingState />
         ) : error && !hasData ? (

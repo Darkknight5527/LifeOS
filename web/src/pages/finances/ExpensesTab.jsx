@@ -50,7 +50,7 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
 
   return (
     // Laptops: filters stay pinned on the left while the list scrolls on the right.
-    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(320px,400px)_1fr] [&>*]:min-w-0">
+    <div className="grid grid-cols-1 items-start gap-5 lg:gap-4 lg:grid-cols-[minmax(320px,400px)_1fr] [&>*]:min-w-0">
       <div className="space-y-5 lg:sticky lg:top-[92px]">
       <MonthNav
         label={monthLabel(month)}
@@ -99,12 +99,13 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
 
       </div>
       <FinCard
+        className="lg:flex lg:max-h-[calc(100dvh-100px)] lg:flex-col"
         title="Logged expenses"
         delay={80}
         action={filtered.length > 0 && <span className="tabular text-[15px] font-bold">{formatMoney(total)}</span>}
       >
         {groups.length ? (
-          <div className="space-y-4">
+          <div className="fin-scroll space-y-4 lg:-mr-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-3">
             {groups.map(([date, list]) => (
               <div key={date}>
                 <div className="mb-1 flex items-center justify-between px-2 text-[13px] font-semibold text-fin-muted">
