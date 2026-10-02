@@ -9,6 +9,24 @@ import WealthTab from "./finances/WealthTab.jsx";
 import SettingsTab from "./finances/SettingsTab.jsx";
 import LogExpenseSheet from "./finances/LogExpenseSheet.jsx";
 import { MenuButton } from "../components/AppMenu.jsx";
+import { IS_RELOAD } from "../lib/navigation.js";
+
+const TAB_KEY = "lifeos_fin_tab";
+let restoredAfterReload = false;
+
+// Home when you come into Finances; after a refresh, the sub-tab you were on.
+function initialTab() {
+  if (IS_RELOAD && !restoredAfterReload) {
+    restoredAfterReload = true;
+    try {
+      const saved = sessionStorage.getItem(TAB_KEY);
+      if (saved && TABS.some((t) => t.id === saved)) return saved;
+    } catch {
+      /* storage unavailable */
+    }
+  }
+  return "home";
+}
 
 const TABS = [
   { id: "home", label: "Home", icon: "home" },
@@ -28,8 +46,16 @@ export default function FinancesPage() {
 
 function FinanceShell() {
   const { loading, error, reload, currentMonth } = useFinance();
-  // Always open on Home when entering Finances.
-  const [tab, setTab] = useState("home");
+  const [tab, setTab] = useState(initialTab);
+
+  // Remember the sub-tab for this browser tab, so a refresh can restore it.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(TAB_KEY, tab);
+    } catch {
+      /* storage unavailable */
+    }
+  }, [tab]);
   const [expenseFilter, setExpenseFilter] = useState({ bucket: "all", n: 0 });
   const [sheet, setSheet] = useState({ open: false, editing: null });
 

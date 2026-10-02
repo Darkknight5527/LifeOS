@@ -3,6 +3,7 @@ import { NavLink, Route, Routes, Navigate, useLocation, useNavigate } from "reac
 import { getToken, setToken } from "./api";
 import { ToastProvider } from "./components/Toast.jsx";
 import { MenuContext, MenuButton } from "./components/AppMenu.jsx";
+import { IS_RELOAD } from "./lib/navigation.js";
 import LoginPage from "./pages/LoginPage.jsx";
 import OverviewPage from "./pages/OverviewPage.jsx";
 import PhysicalPage from "./pages/PhysicalPage.jsx";
@@ -35,9 +36,10 @@ export default function App() {
     setAuthed(Boolean(getToken()));
   }, []);
 
-  // Every fresh visit (typed URL, bookmark, refresh) starts on Overview.
+  // Opening the site fresh (typed URL, bookmark, new tab) starts on Overview;
+  // a refresh keeps you on the page you were on.
   useEffect(() => {
-    if (window.location.pathname !== "/") navigate("/", { replace: true });
+    if (!IS_RELOAD && window.location.pathname !== "/") navigate("/", { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
