@@ -68,10 +68,12 @@ function Masthead({ today }) {
   const hello = h < 5 ? "Up late" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
   return (
     <div className="mb-4 animate-fade-up border-y-2 border-double border-white/15 py-2 text-center lg:mb-3">
-      <div className="flex items-center justify-between gap-3 text-[11.5px] font-semibold uppercase tracking-[0.18em] text-fin-muted">
-        <span className="hidden sm:inline">Vol. {d.getFullYear() - 2025} · No. {dayOfYear}</span>
-        <span className="mx-auto sm:mx-0">{d.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
-        <span className="hidden sm:inline">Bengaluru Edition</span>
+      {/* Equal side columns keep the date exactly centred; the small left padding
+          balances the trailing letter-spacing on the last character. */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[11.5px] font-semibold uppercase tracking-[0.18em] text-fin-muted">
+        <span className="hidden text-left sm:block">Vol. {d.getFullYear() - 2025} · No. {dayOfYear}</span>
+        <span className="col-start-2 pl-[0.18em]">{d.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
+        <span className="hidden text-right sm:block">Bengaluru Edition</span>
       </div>
       <h1 className="font-paper text-[34px] font-black leading-none tracking-tight text-[#f3e6c4] sm:text-[44px] lg:text-[40px]">The LifeOS Times</h1>
       <div className="text-[13px] italic text-fin-muted">{hello}, Akhil — here's what today holds.</div>
