@@ -1,14 +1,16 @@
 import { createContext, useContext } from "react";
 
-export const MenuContext = createContext({ openMenu: () => {} });
+export const MenuContext = createContext({ openMenu: () => {}, hoverOpen: () => {} });
 export const useAppMenu = () => useContext(MenuContext);
 
-// Hamburger button that opens the slide-in navigation.
+// Hamburger button: opens the slide-in navigation on hover (mouse/trackpad)
+// or on click/tap (phones, keyboards).
 export function MenuButton({ className = "" }) {
-  const { openMenu } = useAppMenu();
+  const { openMenu, hoverOpen } = useAppMenu();
   return (
     <button
       onClick={openMenu}
+      onMouseEnter={hoverOpen}
       aria-label="Open menu"
       title="Menu"
       className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition active:scale-95 ${className}`}

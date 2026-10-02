@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { getToken, setToken } from "./api";
 import { ToastProvider } from "./components/Toast.jsx";
@@ -27,6 +27,9 @@ const DARK_PAGES = ["/finances"];
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
   const [menuOpen, setMenuOpen] = useState(false);
+  const closeTimer = useRef(null);
+  // Only real mice/trackpads hover; on touch screens the menu opens by tap.
+  const canHover = typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
   const location = useLocation();
   const navigate = useNavigate();
   const isOverview = location.pathname === "/";
@@ -51,6 +54,27 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [menuOpen]);
+
+  function cancelClose() {
+    clearTimeout(closeTimer.current);
+  }
+  // Short delay so a quick wobble of the mouse past the edge doesn't snap it shut.
+  function scheduleClose() {
+    if (!canHover) return;
+    cancelClose();
+    closeTimer.current = setTimeout(() => setMenuOpen(false), 280);
+  }
+  const menuApi = {
+    openMenu: () => {
+      cancelClose();
+      setMenuOpen(true);
+    },
+    hoverOpen: () => {
+      if (!canHover) return;
+      cancelClose();
+      setMenuOpen(true);
+    },
+  };
 
   if (!authed) {
     return (
@@ -103,7 +127,7 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <MenuContext.Provider value={{ openMenu: () => setMenuOpen(true) }}>
+      <MenuContext.Provider value={menuApi}>
         <div className="flex min-h-screen">
           {/* Fixed sidebar only on the Overview page, on wide screens */}
           {isOverview && (
@@ -120,6 +144,8 @@ export default function App() {
               onClick={() => setMenuOpen(false)}
             />
             <aside
+              onMouseEnter={cancelClose}
+              onMouseLeave={scheduleClose}
               className={`absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto p-4 shadow-2xl transition-transform duration-300 ease-out ${
                 menuOpen ? "translate-x-0" : "-translate-x-full"
               } ${dark ? "border-r border-white/5 bg-[#141418] font-fin text-white" : "bg-slate-50"}`}
