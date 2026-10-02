@@ -6,14 +6,16 @@ import { MenuContext, MenuButton } from "./components/AppMenu.jsx";
 import { IS_RELOAD } from "./lib/navigation.js";
 import LoginPage from "./pages/LoginPage.jsx";
 import OverviewPage from "./pages/OverviewPage.jsx";
-import PhysicalPage from "./pages/PhysicalPage.jsx";
+import GroomingPage from "./pages/GroomingPage.jsx";
+import FitnessPage from "./pages/FitnessPage.jsx";
 import FinancesPage from "./pages/FinancesPage.jsx";
 import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 
 const NAV_ITEMS = [
   { to: "/", label: "Overview", end: true },
   { to: "/mental", label: "Mental & Psych" },
-  { to: "/physical", label: "Physical" },
+  { to: "/grooming", label: "Grooming" },
+  { to: "/fitness", label: "Fitness & Nutrition" },
   { to: "/finances", label: "Finances" },
   { to: "/goals", label: "Goals" },
   { to: "/technical", label: "Technical & Projects" },
@@ -185,7 +187,10 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<OverviewPage />} />
                 <Route path="/mental" element={<PlaceholderPage title="Mental & Psych" />} />
-                <Route path="/physical" element={<PhysicalPage />} />
+                <Route path="/grooming" element={<GroomingPage />} />
+                <Route path="/fitness" element={<FitnessPage />} />
+                {/* old address from before the split */}
+                <Route path="/physical" element={<Navigate to="/grooming" replace />} />
                 <Route path="/finances" element={<FinancesPage />} />
                 <Route path="/goals" element={<PlaceholderPage title="Goals" />} />
                 <Route path="/technical" element={<PlaceholderPage title="Technical & Projects" />} />

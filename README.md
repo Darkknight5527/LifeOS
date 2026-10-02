@@ -1,6 +1,6 @@
 # LifeOS
 
-Personal self-development tracking system — mental/psych, physical health,
+Personal self-development tracking system — mental/psych, grooming, fitness & nutrition,
 goals, technical/career work, and learning — as a real full-stack app.
 
 ## Structure
