@@ -5,7 +5,7 @@ import { ToastProvider } from "./components/Toast.jsx";
 import { MenuContext, MenuButton } from "./components/AppMenu.jsx";
 import { IS_RELOAD } from "./lib/navigation.js";
 import LoginPage from "./pages/LoginPage.jsx";
-import OverviewPage from "./pages/OverviewPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
 import GroomingPage from "./pages/GroomingPage.jsx";
 import FitnessPage from "./pages/FitnessPage.jsx";
 import FinancesPage from "./pages/FinancesPage.jsx";
@@ -13,7 +13,7 @@ import PaperPage from "./pages/PaperPage.jsx";
 import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Overview", end: true },
+  { to: "/", label: "North Star", end: true },
   { to: "/paper", label: "Morning Paper" },
   { to: "/mental", label: "Mental & Psych" },
   { to: "/grooming", label: "Grooming" },
@@ -42,7 +42,7 @@ export default function App() {
     setAuthed(Boolean(getToken()));
   }, []);
 
-  // Opening the site fresh (typed URL, bookmark, new tab) starts on Overview;
+  // Opening the site fresh (typed URL, bookmark, new tab) starts on North Star (home);
   // a refresh keeps you on the page you were on.
   useEffect(() => {
     if (!IS_RELOAD && window.location.pathname !== "/") navigate("/", { replace: true });
@@ -180,7 +180,7 @@ export default function App() {
 
             <main className={dark ? "" : "p-4 md:p-8"}>
               <Routes>
-                <Route path="/" element={<OverviewPage />} />
+                <Route path="/" element={<HomePage />} />
                 <Route path="/mental" element={<PlaceholderPage title="Mental & Psych" />} />
                 <Route path="/grooming" element={<GroomingPage />} />
                 <Route path="/fitness" element={<FitnessPage />} />
