@@ -94,6 +94,18 @@ Calendar setup: in Render → the `LifeOS` backend service → Environment, add
 `CALENDAR_ICS_URL` = your Google Calendar's *Secret address in iCal format*.
 It's a secret — never commit it. Events are cached on the server for 5 minutes.
 
+Also on the paper:
+- **Headlines** — Tech, Chips (semiconductors), India, World and Sports, from
+  Google News RSS (no API key). Cached on the server for 30 minutes.
+- **Tech fact** — one electronics lesson a day, starting from the basics
+  (charge, voltage, current…) and building up to semiconductors, digital logic
+  and test/ATE. Lessons live in `web/src/pages/paper/facts.js`.
+- **Reminders** — stored in LifeOS (`/api/reminders`), tagged with a domain,
+  optionally repeating daily/weekly/monthly. Each can also be sent to Google
+  Calendar through a pre-filled "add event" link (no Google login needed).
+  `<ReminderSheet>` in `web/src/components/reminders.jsx` can be opened from
+  any domain with a prefilled title.
+
 ## Status
 
 - Backend: all 13 collections wired with generic CRUD + auth (mirrors the

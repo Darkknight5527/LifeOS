@@ -1,5 +1,5 @@
 // Visual building blocks for the FinTraQ-style Finances section.
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { formatMoney } from "./lib";
 
@@ -301,8 +301,13 @@ export function MonthNav({ label, sub, onPrev, onNext, canNext = true }) {
   );
 }
 
+// Domain colour theme (e.g. "theme-teal"), so popups drawn outside the page
+// still use the right accent colour.
+export const ThemeContext = createContext("");
+
 // ---------- sheet (bottom sheet on phones, centred dialog on larger screens) ----------
 export function Sheet({ open, onClose, title, children, footer }) {
+  const theme = useContext(ThemeContext);
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && onClose();
@@ -319,7 +324,8 @@ export function Sheet({ open, onClose, title, children, footer }) {
   // Rendered into <body> so it always covers the whole screen, even when opened
   // from inside an animated card (an animated parent would otherwise trap it).
   return createPortal(
-    <div className="fin-scope fixed inset-0 z-[60] flex items-end justify-center font-fin text-white sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
+    <div className={`fin-scope ${theme}`} style={{ display: "contents" }}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center font-fin text-white sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 animate-fade-in bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative flex max-h-[92vh] w-full max-w-lg animate-sheet-up flex-col rounded-t-[30px] bg-fin-card shadow-2xl ring-1 ring-white/5 sm:animate-pop-in sm:rounded-[30px]">
         <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-white/15 sm:hidden" />
@@ -330,6 +336,7 @@ export function Sheet({ open, onClose, title, children, footer }) {
         <div className="flex-1 overflow-y-auto px-6 pb-4">{children}</div>
         {footer && <div className="flex gap-3 border-t border-fin-line px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{footer}</div>}
       </div>
+    </div>
     </div>,
     document.body
   );

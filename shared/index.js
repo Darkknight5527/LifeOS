@@ -76,5 +76,6 @@ export function createApiClient(baseUrl, getToken) {
     // Morning Paper
     paperCalendar: ({ from, to, days }) =>
       request(`/paper/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&days=${days.join(",")}`),
+    paperNews: () => request("/paper/news"),
   };
 }

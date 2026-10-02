@@ -1,5 +1,6 @@
 import { Router } from "express";
 import ical from "node-ical";
+import { XMLParser } from "fast-xml-parser";
 
 // Morning Paper: reads your Google Calendar through its private iCal link.
 // The link is a secret, so it lives only in the CALENDAR_ICS_URL environment
@@ -84,6 +85,84 @@ router.get("/calendar", async (req, res, next) => {
     if (isNaN(from) || isNaN(to) || to <= from) return res.status(400).json({ error: "Bad date range" });
     const text = await fetchIcs(url);
     res.json({ configured: true, events: agendaFromIcs(text, from, to, days), fetchedAt: cache.at });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- News ----------
+// Google News RSS (Indian English edition): free, no key, refreshed hourly-ish.
+const GN = "hl=en-IN&gl=IN&ceid=IN:en";
+export const NEWS_FEEDS = {
+  tech: `https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?${GN}`,
+  chips: `https://news.google.com/rss/search?q=${encodeURIComponent("semiconductor OR chipmaker OR TSMC OR \"chip industry\" when:3d")}&${GN}`,
+  india: `https://news.google.com/rss/headlines/section/topic/NATION?${GN}`,
+  world: `https://news.google.com/rss/headlines/section/topic/WORLD?${GN}`,
+  sports: `https://news.google.com/rss/headlines/section/topic/SPORTS?${GN}`,
+};
+const NEWS_CACHE_MS = 30 * 60 * 1000;
+const newsCache = {}; // section -> { at, items }
+const xml = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+
+const decode = (s) =>
+  String(s ?? "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .trim();
+
+/** Turn an RSS document into a short list of headlines. */
+export function parseNews(text, limit = 8) {
+  const doc = xml.parse(text);
+  let items = doc?.rss?.channel?.item || [];
+  if (!Array.isArray(items)) items = [items];
+  const seen = new Set();
+  const out = [];
+  for (const it of items) {
+    const sourceNode = it.source;
+    const source = decode(typeof sourceNode === "object" ? sourceNode["#text"] : sourceNode);
+    let title = decode(it.title);
+    // Google appends " - Source" to titles; drop it since we show the source separately.
+    if (source && title.endsWith(` - ${source}`)) title = title.slice(0, -(source.length + 3)).trim();
+    const key = title.toLowerCase().slice(0, 60);
+    if (!title || seen.has(key)) continue;
+    seen.add(key);
+    const published = it.pubDate ? new Date(it.pubDate) : null;
+    out.push({ title, source, link: String(it.link || ""), published: published && !isNaN(published) ? published.toISOString() : null });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+async function getSection(section) {
+  const c = newsCache[section];
+  if (c && Date.now() - c.at < NEWS_CACHE_MS) return c.items;
+  try {
+    const res = await fetch(NEWS_FEEDS[section], { headers: { "User-Agent": "Mozilla/5.0 LifeOS" } });
+    if (!res.ok) throw new Error(`News feed responded ${res.status}`);
+    const items = parseNews(await res.text());
+    newsCache[section] = { at: Date.now(), items };
+    return items;
+  } catch (err) {
+    if (c) return c.items; // keep showing the last good copy
+    throw err;
+  }
+}
+
+// GET /api/paper/news -> { sections: { tech: [...], chips: [...], ... } }
+router.get("/news", async (req, res, next) => {
+  try {
+    const keys = Object.keys(NEWS_FEEDS);
+    const results = await Promise.allSettled(keys.map(getSection));
+    const sections = {};
+    const errors = {};
+    keys.forEach((k, i) => {
+      if (results[i].status === "fulfilled") sections[k] = results[i].value;
+      else errors[k] = results[i].reason?.message || "failed";
+    });
+    res.json({ sections, errors, fetchedAt: Date.now() });
   } catch (err) {
     next(err);
   }

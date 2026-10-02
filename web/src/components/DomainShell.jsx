@@ -2,7 +2,7 @@
 // header with menu + logo + tabs, phone bottom bar, sync status pill.
 // Each domain passes its own colour theme class (e.g. "theme-teal").
 import { MenuButton } from "./AppMenu.jsx";
-import { Icon, LogoMark, PrimaryButton } from "../pages/finances/fin-ui.jsx";
+import { Icon, LogoMark, PrimaryButton, ThemeContext } from "../pages/finances/fin-ui.jsx";
 
 export default function DomainShell({
   theme = "",
@@ -53,7 +53,7 @@ export default function DomainShell({
           )}
 
           {action ? (
-            <PrimaryButton onClick={action.onClick} className="ml-auto hidden items-center gap-2 !rounded-xl !py-2.5 !text-[15px] md:flex lg:ml-0">
+            <PrimaryButton onClick={action.onClick} className={`ml-auto hidden items-center gap-2 !rounded-xl !py-2.5 !text-[15px] md:flex ${tabs?.length > 1 ? "lg:ml-0" : ""}`}>
               <Icon name={action.icon || "plus"} size={18} stroke={2.6} /> {action.label}
               {action.shortcut && <kbd className="ml-1 rounded-md bg-black/20 px-1.5 text-[11px] font-semibold">{action.shortcut}</kbd>}
             </PrimaryButton>
@@ -63,7 +63,9 @@ export default function DomainShell({
         </div>
       </header>
 
-      <main className={`mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:pb-4 lg:pt-3 ${maxWidth}`}>{children}</main>
+      <main className={`mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:pb-4 lg:pt-3 ${maxWidth}`}>
+        <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
+      </main>
 
       {/* Phone / tablet bottom tab bar */}
       {tabs?.length > 1 && (
