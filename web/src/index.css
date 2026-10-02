@@ -101,3 +101,63 @@ body {
 .legacy-dark input[type="date"] {
   color-scheme: dark;
 }
+
+/* ---------- Overview: the LifeOS die ---------- */
+@property --die-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.die { box-shadow: 0 50px 120px -40px rgba(0, 0, 0, 0.95), 0 0 80px -30px rgba(242, 193, 78, 0.25); }
+.die-ring {
+  padding: 1.5px;
+  background: conic-gradient(from var(--die-a), #6ee7f9, #a78bfa, #f472b6, #fbbf24, #34d399, #6ee7f9);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.6;
+  animation: die-spin 16s linear infinite;
+}
+@keyframes die-spin { to { --die-a: 360deg; } }
+.die-metal {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.05) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.035) 0 1px, transparent 1px 24px);
+}
+.die-light { background: radial-gradient(circle at var(--mx) var(--my), rgba(255, 236, 190, 0.13), transparent 42%); }
+.die-pulse { stroke-dasharray: 12 88; stroke-dashoffset: 100; opacity: 0; animation: die-pulse var(--dur) linear var(--delay) infinite; }
+@keyframes die-pulse {
+  0% { stroke-dashoffset: 100; opacity: 0; }
+  6% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+.die-block {
+  border: 1px solid color-mix(in srgb, var(--c) 34%, transparent);
+  background: color-mix(in srgb, var(--c) 7%, #0e1119);
+  transition: border-color 0.25s, box-shadow 0.25s, background-color 0.25s;
+}
+.die-block:hover, .die-block:focus-visible {
+  border-color: color-mix(in srgb, var(--c) 80%, transparent);
+  background-color: color-mix(in srgb, var(--c) 12%, #0e1119);
+  box-shadow: 0 0 36px -6px color-mix(in srgb, var(--c) 60%, transparent), inset 0 0 44px -14px color-mix(in srgb, var(--c) 45%, transparent);
+}
+.die-block-fill { -webkit-mask-image: linear-gradient(135deg, transparent 30%, #000 100%); mask-image: linear-gradient(135deg, transparent 30%, #000 100%); }
+/* standard-cell rows */
+.die-block.is-cells .die-block-fill { background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--c) 14%, transparent) 0 1px, transparent 1px 7px); }
+/* memory array */
+.die-block.is-sram .die-block-fill {
+  background-image: radial-gradient(color-mix(in srgb, var(--c) 30%, transparent) 0.9px, transparent 1.3px);
+  background-size: 6px 6px;
+}
+.die-block.is-off {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.13);
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 6px, transparent 6px 12px), #0d0f16;
+}
+.die-block.is-off .die-block-fill { display: none; }
+.die-block.is-off:hover { border-color: color-mix(in srgb, var(--c) 55%, transparent); box-shadow: none; }
+.die-core {
+  border: 1px solid rgba(242, 193, 78, 0.38);
+  background: radial-gradient(circle at 50% 40%, rgba(242, 193, 78, 0.16), rgba(242, 193, 78, 0.03) 62%), #10131c;
+  box-shadow: 0 0 50px -10px rgba(242, 193, 78, 0.45), inset 0 0 30px -12px rgba(242, 193, 78, 0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  .die-ring { animation: none; }
+}

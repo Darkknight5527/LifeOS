@@ -26,7 +26,7 @@ const NAV_ITEMS = [
 
 // Dark pages that draw their own full-screen layout and header
 // (they put the menu button in their own header via useAppMenu()).
-const DARK_PAGES = ["/finances", "/grooming", "/paper"];
+const DARK_PAGES = ["/", "/finances", "/grooming", "/paper"];
 
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
@@ -36,7 +36,6 @@ export default function App() {
   const canHover = typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
   const location = useLocation();
   const navigate = useNavigate();
-  const isOverview = location.pathname === "/";
   const dark = DARK_PAGES.includes(location.pathname);
 
   useEffect(() => {
@@ -141,14 +140,6 @@ export default function App() {
     <ToastProvider>
       <MenuContext.Provider value={menuApi}>
         <div className="flex min-h-screen">
-          {/* Fixed sidebar only on the Overview page, on wide screens */}
-          {isOverview && (
-            <aside className="sticky top-0 hidden h-screen w-56 shrink-0 overflow-y-auto border-r border-slate-200 bg-slate-50 p-4 md:block">
-              <div className="mb-6 px-2 text-lg font-semibold">LifeOS</div>
-              {navList(false)}
-            </aside>
-          )}
-
           {/* Slide-in menu */}
           <div className={`fixed inset-0 z-[80] ${menuOpen ? "" : "pointer-events-none"}`} aria-hidden={!menuOpen}>
             <div
@@ -181,7 +172,7 @@ export default function App() {
           <div className="min-w-0 flex-1">
             {/* Light pages get a slim top bar with the menu button (dark pages draw their own) */}
             {!dark && (
-              <div className={`flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 ${isOverview ? "md:hidden" : ""}`}>
+              <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
                 <MenuButton className="text-slate-700 hover:bg-slate-200" />
                 <span className="text-sm font-semibold">LifeOS</span>
               </div>
