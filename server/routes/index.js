@@ -26,6 +26,7 @@ import FinanceSavingsGoal from "../models/FinanceSavingsGoal.js";
 import FinanceMonth from "../models/FinanceMonth.js";
 import FinanceSettings from "../models/FinanceSettings.js";
 import financeRoutes from "./finance.js";
+import paperRoutes from "./paper.js";
 
 const router = Router();
 
@@ -50,6 +51,7 @@ router.use("/projects", createCrudRouter(Project, { sortField: "updatedAt", sort
 router.use("/learning", createCrudRouter(LearningTopic, { sortField: "updatedAt", sortOrder: -1 }));
 router.use("/learning-sessions", createCrudRouter(LearningSession, { sortField: "date", sortOrder: -1 }));
 router.use("/finance", financeRoutes);
+router.use("/paper", paperRoutes);
 router.use("/finance-months", createCrudRouter(FinanceMonth, { sortField: "month", sortOrder: -1 }));
 router.use("/finance-settings", createCrudRouter(FinanceSettings, { sortField: "createdAt", sortOrder: 1 }));
 router.use("/finance-categories", createCrudRouter(FinanceCategory, { sortField: "order", sortOrder: 1 }));

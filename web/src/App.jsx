@@ -9,10 +9,12 @@ import OverviewPage from "./pages/OverviewPage.jsx";
 import GroomingPage from "./pages/GroomingPage.jsx";
 import FitnessPage from "./pages/FitnessPage.jsx";
 import FinancesPage from "./pages/FinancesPage.jsx";
+import PaperPage from "./pages/PaperPage.jsx";
 import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 
 const NAV_ITEMS = [
   { to: "/", label: "Overview", end: true },
+  { to: "/paper", label: "Morning Paper" },
   { to: "/mental", label: "Mental & Psych" },
   { to: "/grooming", label: "Grooming" },
   { to: "/fitness", label: "Fitness & Nutrition" },
@@ -24,7 +26,7 @@ const NAV_ITEMS = [
 
 // Dark pages that draw their own full-screen layout and header
 // (they put the menu button in their own header via useAppMenu()).
-const DARK_PAGES = ["/finances", "/grooming"];
+const DARK_PAGES = ["/finances", "/grooming", "/paper"];
 
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
@@ -194,6 +196,7 @@ export default function App() {
                 {/* old address from before the split */}
                 <Route path="/physical" element={<Navigate to="/grooming" replace />} />
                 <Route path="/finances" element={<FinancesPage />} />
+                <Route path="/paper" element={<PaperPage />} />
                 <Route path="/goals" element={<PlaceholderPage title="Goals" />} />
                 <Route path="/technical" element={<PlaceholderPage title="Technical & Projects" />} />
                 <Route path="/learning" element={<PlaceholderPage title="Learning" />} />

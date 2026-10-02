@@ -83,6 +83,17 @@ Hair, Body care. Skin has four views:
 API: `skincare-steps` (routine), `doneSteps` on `skin-logs`. Older skin logs
 (fixed cleanser/moisturizer/sunscreen fields) are read automatically.
 
+## Morning Paper
+
+`/paper` — a newspaper-style front page for the day: today's and tomorrow's
+Google Calendar events (recurring and all-day included, shown in your local
+time), a "check your Gmail" reminder, money left / safe to spend, skincare
+progress, today's training split, and savings goals.
+
+Calendar setup: in Render → the `LifeOS` backend service → Environment, add
+`CALENDAR_ICS_URL` = your Google Calendar's *Secret address in iCal format*.
+It's a secret — never commit it. Events are cached on the server for 5 minutes.
+
 ## Status
 
 - Backend: all 13 collections wired with generic CRUD + auth (mirrors the

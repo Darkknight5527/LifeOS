@@ -8,6 +8,8 @@ import "@fontsource/outfit/500.css";
 import "@fontsource/outfit/600.css";
 import "@fontsource/outfit/700.css";
 import "@fontsource/outfit/800.css";
+import "@fontsource/playfair-display/700.css";
+import "@fontsource/playfair-display/900.css";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(

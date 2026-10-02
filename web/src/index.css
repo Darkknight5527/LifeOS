@@ -27,6 +27,16 @@ body {
   --fin-glow: rgba(45, 212, 191, 0.42);
 }
 
+.theme-gold {
+  --fin-accent: 242 193 78;
+  --fin-grad-from: #f7d27a;
+  --fin-grad-to: #c8902a;
+  --fin-glow: rgba(242, 193, 78, 0.38);
+}
+.font-paper {
+  font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+}
+
 /* Finances section helpers */
 .fin-scope input[type="number"]::-webkit-outer-spin-button,
 .fin-scope input[type="number"]::-webkit-inner-spin-button {
