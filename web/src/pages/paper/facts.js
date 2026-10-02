@@ -6,9 +6,10 @@
 export const COURSE_START = "2026-10-03";
 
 export const BOOKS = {
-  hughes: { short: "Hughes", title: "Hughes Electrical and Electronic Technology, 10th ed." },
-  gibilisco: { short: "Gibilisco", title: "Teach Yourself Electricity and Electronics, 3rd ed. (Stan Gibilisco)" },
-  bishop: { short: "Bishop", title: "Electronics: Circuits and Systems, 4th ed. (Owen Bishop)" },
+  // offset: PDF page = printed page + offset (for the editions you uploaded)
+  hughes: { short: "Hughes", title: "Hughes Electrical and Electronic Technology, 10th ed.", offset: 21 },
+  gibilisco: { short: "Gibilisco", title: "Teach Yourself Electricity and Electronics, 3rd ed. (Stan Gibilisco)", offset: 21 },
+  bishop: { short: "Bishop", title: "Electronics: Circuits and Systems, 4th ed. (Owen Bishop)", offset: 11 },
 };
 
 export const UNITS = ["Foundations", "Capacitors & magnetism", "AC circuits", "Semiconductors & analogue", "Digital electronics", "Measurement & test"];

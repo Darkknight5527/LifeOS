@@ -77,5 +77,35 @@ export function createApiClient(baseUrl, getToken) {
     paperCalendar: ({ from, to, days }) =>
       request(`/paper/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&days=${days.join(",")}`),
     paperNews: () => request("/paper/news"),
+
+    // Reference books (private PDFs)
+    books: () => request("/books"),
+    // Raw download — returns the fetch Response so the caller can stream/cache it.
+    bookFile: (key) => {
+      const token = getToken();
+      return fetch(`${baseUrl}/books/${encodeURIComponent(key)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    },
+    // Upload with progress (XHR, since fetch has no upload progress).
+    uploadBook: (key, file, onProgress) =>
+      new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", `${baseUrl}/books/${encodeURIComponent(key)}`);
+        const token = getToken();
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.setRequestHeader("Content-Type", "application/pdf");
+        xhr.setRequestHeader("X-File-Name", file.name.replace(/[^\x20-\x7e]/g, "_"));
+        xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total);
+        xhr.onload = () => {
+          let data = null;
+          try {
+            data = JSON.parse(xhr.responseText);
+          } catch {
+            /* ignore */
+          }
+          xhr.status < 300 ? resolve(data) : reject(new Error(data?.error || `Upload failed: ${xhr.status}`));
+        };
+        xhr.onerror = () => reject(new Error("Upload failed — check your connection"));
+        xhr.send(file);
+      }),
   };
 }

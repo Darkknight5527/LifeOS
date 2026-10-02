@@ -14,6 +14,7 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
 app.use(
   cors({
     origin: allowedOrigins,
+    exposedHeaders: ["X-Uploaded-At"],
   })
 );
 app.use(express.json({ limit: "10mb" }));

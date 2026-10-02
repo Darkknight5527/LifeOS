@@ -102,6 +102,10 @@ Also on the paper:
   measurement and chip test. Written in our own words from three reference
   books (Hughes, Gibilisco, Bishop); each lesson shows the chapter and page to
   read more. Lessons live in `web/src/pages/paper/facts.js`.
+  Clicking a reference opens your own copy of the book at that page: upload
+  each PDF once from the book icon on the lesson card. PDFs are stored
+  privately in MongoDB (GridFS, `/api/books`, login required) and cached in
+  the browser after the first open — they are never in this repo.
 - **Reminders** — stored in LifeOS (`/api/reminders`), tagged with a domain,
   optionally repeating daily/weekly/monthly. Each can also be sent to Google
   Calendar through a pre-filled "add event" link (no Google login needed).
