@@ -29,11 +29,11 @@ function Kicker({ children }) {
 /* Now: a paragraph that lights up word by word as you scroll           */
 /* ------------------------------------------------------------------ */
 const NOW_TEXT =
-  "Right now, I test the silicon behind tomorrow's AI. On an Advantest V93000, I prove that every chip does exactly what it promises, before it ever leaves the factory.";
+  "I'm not where I want to be yet. But I'm not where I used to be, either. Every morning I choose to show up, learn one more thing, and become someone my future self will thank.";
 const FACTS = [
-  { k: "Trained as", v: "Electrical & electronics engineer, MACE, class of 2026" },
-  { k: "Work", v: "ATE test engineer, Bangalore" },
-  { k: "Published", v: "VX-01 hexapod robot, IJSDR, March 2026" },
+  { k: "Show up", v: "Especially on the days I don't feel like it." },
+  { k: "Learn", v: "One new thing, every single day." },
+  { k: "Grow", v: "Better than yesterday. Not better than anyone else." },
 ];
 
 export function Now() {
@@ -48,7 +48,7 @@ export function Now() {
           <Kicker>Where I am</Kicker>
           <p className="max-w-[22ch] text-[clamp(30px,4.4vw,64px)] font-semibold leading-[1.12] tracking-[-0.025em] sm:max-w-[24ch]">
             {words.map((w, i) => (
-              <Word key={i} p={scrollYProgress} range={[0.05 + (i / words.length) * 0.6, 0.05 + ((i + 1) / words.length) * 0.6]} reduce={reduce} gold={/V93000|AI\.?|silicon/.test(w)}>
+              <Word key={i} p={scrollYProgress} range={[0.05 + (i / words.length) * 0.6, 0.05 + ((i + 1) / words.length) * 0.6]} reduce={reduce} gold={/^(show|up,|future|self)$/.test(w)}>
                 {w}
               </Word>
             ))}
@@ -78,8 +78,8 @@ function Fact({ f, p, at, reduce }) {
   const y = useTransform(p, (v) => lerp(v, [at, at + 0.08], [16, 0]));
   return (
     <motion.div style={reduce ? undefined : { opacity: o, y }} className="border-t border-white/15 pt-3">
-      <div className="text-[13px] text-white/45">{f.k}</div>
-      <div className="mt-1 text-[16px] leading-snug text-white/85">{f.v}</div>
+      <div className="text-[17px] font-semibold text-[#f3e6c4]">{f.k}</div>
+      <div className="mt-1 text-[16px] leading-snug text-white/70">{f.v}</div>
     </motion.div>
   );
 }
@@ -88,11 +88,11 @@ function Fact({ f, p, at, reduce }) {
 /* Built: things I've made, scrolling sideways                          */
 /* ------------------------------------------------------------------ */
 const BUILT = [
-  { id: "vx01", title: "VX-01", line: "An autonomous hexapod that walks and flies. The final-year project I co-led, published in IJSDR.", art: "hexapod", color: "#60a5fa" },
-  { id: "gpu", title: "AI GPU testers", line: "Functional testing on testers built for next-generation AI GPUs. Finding faults before they ship.", art: "wave", color: "#f2c14e" },
-  { id: "pf", title: "PrintForge", line: "My 3D printing studio. From CAD to a finished part on a Bambu Lab P1S.", art: "layers", color: "#fb8a3c" },
-  { id: "stm", title: "Bare-metal STM32", line: "Registers, not libraries. Writing firmware the way the silicon sees it.", art: "bits", color: "#2dd4bf" },
-  { id: "lifeos", title: "LifeOS", line: "This. A system I built to become who I want to be, one domain at a time.", art: "die", color: "#c084fc" },
+  { id: "vx01", title: "VX-01", line: "Started with no idea how to build a robot. Ended with one that walks, and a published paper.", art: "hexapod", color: "#60a5fa" },
+  { id: "gpu", title: "AI GPU testers", line: "Walked onto a test floor knowing very little. Now I find the faults others miss.", art: "wave", color: "#f2c14e" },
+  { id: "pf", title: "PrintForge", line: "Bought one printer, taught myself, and turned it into a small business.", art: "layers", color: "#fb8a3c" },
+  { id: "stm", title: "Bare-metal STM32", line: "Chose the hard way on purpose. Understanding beats shortcuts.", art: "bits", color: "#2dd4bf" },
+  { id: "lifeos", title: "LifeOS", line: "Built to keep me honest with myself, one habit at a time.", art: "die", color: "#c084fc" },
 ];
 
 export function Built() {
@@ -115,8 +115,8 @@ export function Built() {
     <section ref={ref} id="built" className="relative" style={{ height: reduce ? "auto" : `calc(100svh + ${dist}px)` }}>
       <div className={reduce ? "py-20" : "sticky top-0 flex h-[100svh] flex-col justify-center overflow-hidden"}>
         <div className="mx-auto w-full max-w-[1320px] px-5 sm:px-10">
-          <Kicker>What I've built</Kicker>
-          <h2 className="max-w-[18ch] text-[clamp(30px,4vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em]">I learn by making things that work.</h2>
+          <Kicker>Proof it works</Kicker>
+          <h2 className="max-w-[22ch] text-[clamp(30px,4vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em]">Every one of these began with "I don't know how yet."</h2>
         </div>
         <motion.div ref={track} style={reduce ? undefined : { x: sx }} className={`mt-8 flex gap-5 px-5 sm:px-10 lg:mt-10 ${reduce ? "flex-wrap" : "w-max"}`}>
           {BUILT.map((b) => (
@@ -239,11 +239,11 @@ function Art({ kind, color }) {
 /* Next: the route, drawn across the world as you scroll                */
 /* ------------------------------------------------------------------ */
 const STEPS = [
-  { title: "Master the tester", line: "Become the person people ask about the V93000.", to: [] },
-  { title: "Go onsite", line: "Take the work to Taiwan, where the world's chips are made.", to: ["hsinchu"] },
-  { title: "Join a tier-one chipmaker", line: "Test engineer at a global semiconductor company.", to: [] },
-  { title: "Move up the stack", line: "From test to silicon validation to design verification.", to: [] },
-  { title: "Work across the world", line: "Singapore, the Netherlands, Germany, the US.", to: ["sg", "ein", "muc", "sj"] },
+  { title: "Master my craft", line: "Become the person others come to with the hard questions.", to: [] },
+  { title: "Step outside", line: "Taiwan first. Getting comfortable with the unfamiliar.", to: ["hsinchu"] },
+  { title: "Earn my place", line: "A seat at one of the best companies in the world.", to: [] },
+  { title: "Keep climbing", line: "Never settle into the version of me that's good enough.", to: [] },
+  { title: "Live without borders", line: "Singapore, the Netherlands, Germany, the US. Wherever growth is.", to: ["sg", "ein", "muc", "sj"] },
 ];
 const CITY = { blr: "Bangalore", hsinchu: "Hsinchu", sg: "Singapore", ein: "Eindhoven", muc: "Munich", sj: "San Jose" };
 
@@ -266,8 +266,8 @@ export function Next() {
       <div className="sticky top-0 flex h-[100svh] items-center overflow-hidden">
         <div className="mx-auto grid w-full max-w-[1320px] items-center gap-8 px-5 sm:px-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
           <div>
-            <Kicker>Where I'm going</Kicker>
-            <h2 className="text-[clamp(30px,4vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em]">From a test floor in Bangalore to the world.</h2>
+            <Kicker>Who I'm becoming</Kicker>
+            <h2 className="text-[clamp(30px,4vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em]">One step at a time, into a much bigger life.</h2>
             <ol className="mt-7 space-y-1 lg:mt-9">
               {STEPS.map((s, i) => {
                 const state = i < active ? "done" : i === active ? "now" : "next";
@@ -337,7 +337,7 @@ export function Next() {
               })}
             </svg>
             <p className="mt-4 text-center text-[15px] text-white/55">
-              The goal: <span className="text-[#f3e6c4]">a leader in semiconductor test by 35.</span>
+              And through it all: <span className="text-[#f3e6c4]">healthy, calm, and proud of who I became.</span>
             </p>
           </div>
         </div>
@@ -349,8 +349,8 @@ export function Next() {
 /* ------------------------------------------------------------------ */
 /* Principles: two rows that run faster the faster you scroll           */
 /* ------------------------------------------------------------------ */
-const PRINCIPLES_A = ["Fundamentals first", "Test everything", "Build with my hands", "Ship, then improve"];
-const PRINCIPLES_B = ["Stay curious", "One percent a day", "Go where the work is", "Finish what I start"];
+const PRINCIPLES_A = ["Show up anyway", "Discipline over motivation", "Better than yesterday", "Earn it"];
+const PRINCIPLES_B = ["Stay hungry", "Small steps, every day", "Comfort is the enemy", "Finish what I start"];
 
 export function Principles() {
   const reduce = useReducedMotion();
@@ -361,7 +361,7 @@ export function Principles() {
   return (
     <section id="principles" className="relative overflow-hidden py-[14vh]">
       <div className="mx-auto mb-10 max-w-[1320px] px-5 sm:px-10">
-        <Kicker>How I work</Kicker>
+        <Kicker>What I live by</Kicker>
       </div>
       <Marquee items={PRINCIPLES_A} dir={-1} factor={factor} reduce={reduce} />
       <Marquee items={PRINCIPLES_B} dir={1} factor={factor} reduce={reduce} outline />
@@ -443,9 +443,9 @@ export function Compound({ onPaper }) {
     <section ref={ref} id="compound" className="relative flex min-h-[100svh] items-center py-[10vh]">
       <div className="mx-auto grid w-full max-w-[1320px] items-center gap-10 px-5 sm:px-10 lg:grid-cols-2 lg:gap-16">
         <div>
-          <Kicker>Why this works</Kicker>
+          <Kicker>Why it matters</Kicker>
           <h2 className="text-[clamp(30px,4vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em]">One percent better, every day.</h2>
-          <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-white/60">Small gains compound. Drag through the year and watch what a single percent does, in either direction.</p>
+          <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-white/60">Nobody changes overnight. But tiny wins stack up, and so do tiny excuses. Drag through a year and see where each road leads.</p>
           <div className="mt-8 flex items-end gap-10">
             <div>
               <div className="text-[13px] text-white/45">Better by 1%</div>

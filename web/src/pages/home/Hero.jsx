@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 
-const ROLES = ["semiconductor test engineer.", "builder of robots that walk.", "founder of a 3D-print studio.", "student of electronics, for life.", "on my way to the world."];
+const ROLES = ["stronger.", "sharper.", "calmer.", "more disciplined.", "closer to who I want to be."];
 
 export default function Hero() {
   const reduce = useReducedMotion();
@@ -32,7 +32,7 @@ export default function Hero() {
           transition={{ delay: 1.1, duration: 0.8 }}
           className="mt-5 flex flex-wrap items-baseline gap-x-2 text-[20px] text-white/70 sm:text-[26px]"
         >
-          <span>A</span>
+          <span>Every day, a little</span>
           <RoleTicker reduce={reduce} />
         </motion.div>
       </motion.div>

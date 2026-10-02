@@ -26,11 +26,11 @@ const CHANNELS = [`M2.5 ${chan(2)} H97.5`, `M2.5 ${chan(4)} H97.5`, `M50 2.5 V${
 const AREAS = `"fin fin fin pap pap pap" "fin fin fin pap pap pap" "gro gro core core fit fit" "gro gro core core fit fit" "goa goa men men tec lea" "goa goa men men tec lea"`;
 
 const BLOCKS = [
-  { id: "fin", to: "/finances", name: "Finances", color: DOMAIN.finances.color, icon: "wallet", kind: "sram", big: "Wealth, with intent", why: "Every rupee given a job, so the move abroad is a choice, not a gamble." },
-  { id: "pap", to: "/paper", name: "Morning Paper", color: "#f2c14e", icon: "news", kind: "cells", big: "Learn daily", why: "The news that matters and one electronics lesson, every morning." },
-  { id: "gro", to: "/grooming", name: "Grooming", color: DOMAIN.grooming.color, icon: "drop", kind: "cells", big: "Look the part", why: "Small routines, done every day." },
-  { id: "fit", to: "/fitness", name: "Fitness", color: DOMAIN.fitness.color, icon: "dumbbell", kind: "cells", big: "Strong body", why: "Push, pull, legs. A body that keeps up with the ambition." },
-  { id: "goa", to: "/finances", name: "Goals", color: DOMAIN.goals.color, icon: "target", kind: "sram", big: "Aim and hit", why: "Big targets, broken into numbers I can track." },
+  { id: "fin", to: "/finances", name: "Finances", color: DOMAIN.finances.color, icon: "wallet", kind: "sram", big: "Wealth, with intent", why: "Freedom to choose my path, instead of having it chosen for me." },
+  { id: "pap", to: "/paper", name: "Morning Paper", color: "#f2c14e", icon: "news", kind: "cells", big: "Learn daily", why: "Start every day a little wiser than the last." },
+  { id: "gro", to: "/grooming", name: "Grooming", color: DOMAIN.grooming.color, icon: "drop", kind: "cells", big: "Look the part", why: "Taking care of myself is the first promise I keep." },
+  { id: "fit", to: "/fitness", name: "Fitness", color: DOMAIN.fitness.color, icon: "dumbbell", kind: "cells", big: "Strong body", why: "A body strong enough to carry the ambition." },
+  { id: "goa", to: "/finances", name: "Goals", color: DOMAIN.goals.color, icon: "target", kind: "sram", big: "Aim and hit", why: "Dreams, broken into steps I can actually take." },
   { id: "men", to: "/mental", name: "Mental & Psych", color: DOMAIN.mental.color, icon: "sparkle", off: true, why: "Calm under pressure. Being built next." },
   { id: "tec", to: "/technical", name: "Technical", color: DOMAIN.technical.color, icon: "gear", off: true, small: true },
   { id: "lea", to: "/learning", name: "Learning", color: DOMAIN.learning.color, icon: "list", off: true, small: true },
@@ -46,9 +46,9 @@ export default function System({ go }) {
       <div className="mx-auto grid w-full max-w-[1320px] items-center gap-10 px-5 sm:px-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
         <div>
           <p className="mb-5 text-[15px] font-medium text-[#f2c14e]">How I get there</p>
-          <h2 className="text-[clamp(30px,4vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em]">A life, laid out like a chip.</h2>
+          <h2 className="text-[clamp(30px,4vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em]">Every part of me, getting better together.</h2>
           <p className="mt-5 max-w-[44ch] text-[17px] leading-relaxed text-white/60">
-            Every part of LifeOS is a block on one die. Each does its own job, and they all share the same power. Point at a block to see what it's for; click to go in.
+            Growth isn't one thing. It's money, body, mind and learning, all getting better together. Each block is a part of me I'm working on. Point at one to see why; click to go in.
           </p>
           <div className="mt-8 min-h-[92px] border-l-2 pl-5 transition-colors duration-300" style={{ borderColor: h?.color || "rgba(255,255,255,.12)" }}>
             {h ? (
