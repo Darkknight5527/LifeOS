@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
 import { formatMoney, monthKey, parseISO, sum, todayISO } from "./lib";
 import { EmptyState, FinCard, GhostButton, Icon, IconButton, Money, MoneyField, Pill, PrimaryButton, Ring, Sheet, TextField, Tile } from "./fin-ui.jsx";
@@ -24,6 +24,7 @@ export default function WealthTab() {
 function Goals() {
   const { goals, goalsCrud } = useFinance();
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(null); // goal open in the edit sheet
   const [contrib, setContrib] = useState(null); // goal being topped up with a custom amount
 
   return (
@@ -56,8 +57,11 @@ function Goals() {
                   </Ring>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="truncate text-[17px] font-bold">{g.title}</div>
-                      <IconButton icon="trash" label={`Delete ${g.title}`} onClick={() => goalsCrud.remove(g, "Goal deleted")} className="-mr-2 -mt-1 !h-8 !w-8 hover:!text-fin-danger" size={16} />
+                      <button onClick={() => setEditing(g)} className="min-w-0 truncate text-left text-[17px] font-bold hover:text-fin-accent">{g.title}</button>
+                      <div className="-mr-2 -mt-1 flex shrink-0">
+                        <IconButton icon="edit" label={`Edit ${g.title}`} onClick={() => setEditing(g)} className="!h-8 !w-8" size={16} />
+                        <IconButton icon="trash" label={`Delete ${g.title}`} onClick={() => goalsCrud.remove(g, "Goal deleted")} className="!h-8 !w-8 hover:!text-fin-danger" size={16} />
+                      </div>
                     </div>
                     <div className="tabular text-[15px]">
                       <span className="font-bold"><Money value={g.currentAmount} /></span>
@@ -95,40 +99,66 @@ function Goals() {
         <EmptyState icon="target">No savings goals yet. Add one — like an emergency fund or a new phone.</EmptyState>
       )}
       <GoalSheet open={adding} onClose={() => setAdding(false)} />
+      <GoalSheet open={Boolean(editing)} goal={editing} onClose={() => setEditing(null)} />
       <ContributionSheet goal={contrib} onClose={() => setContrib(null)} />
     </FinCard>
   );
 }
 
-function GoalSheet({ open, onClose }) {
+// Add a new goal, or edit one when `goal` is passed.
+function GoalSheet({ open, onClose, goal }) {
   const { goalsCrud } = useFinance();
   const [title, setTitle] = useState("");
   const [target, setTarget] = useState("");
   const [saved, setSaved] = useState("");
   const [date, setDate] = useState("");
+  const [notes, setNotes] = useState("");
+
+  // Fill the form each time the sheet opens.
+  useEffect(() => {
+    if (!open) return;
+    setTitle(goal?.title || "");
+    setTarget(goal ? String(goal.targetAmount) : "");
+    setSaved(goal ? String(goal.currentAmount) : "");
+    setDate(goal?.targetDate || "");
+    setNotes(goal?.notes || "");
+  }, [open, goal]);
+
   const valid = title.trim() && parseFloat(target) > 0;
 
   async function save() {
     if (!valid) return;
-    const ok = await goalsCrud.create(
-      { title: title.trim(), targetAmount: Math.round(parseFloat(target)), currentAmount: Math.round(parseFloat(saved) || 0), targetDate: date, notes: "" },
-      "Goal added"
-    );
-    if (ok) {
-      setTitle(""); setTarget(""); setSaved(""); setDate("");
-      onClose();
-    }
+    const data = {
+      title: title.trim(),
+      targetAmount: Math.round(parseFloat(target)),
+      currentAmount: Math.round(parseFloat(saved) || 0),
+      targetDate: date,
+      notes: notes.trim(),
+    };
+    const ok = goal ? await goalsCrud.update(goal._id, data, "Goal updated") : await goalsCrud.create(data, "Goal added");
+    if (ok) onClose();
   }
 
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title="New savings goal"
-      footer={<><GhostButton className="flex-1" onClick={onClose}>Cancel</GhostButton><PrimaryButton className="flex-1" disabled={!valid} onClick={save}>Add goal</PrimaryButton></>}
+      title={goal ? "Edit goal" : "New savings goal"}
+      footer={
+        <>
+          {goal ? (
+            <GhostButton className="!px-4 text-fin-danger" aria-label="Delete goal" onClick={() => { goalsCrud.remove(goal, "Goal deleted"); onClose(); }}>
+              <Icon name="trash" size={20} />
+            </GhostButton>
+          ) : (
+            <GhostButton className="flex-1" onClick={onClose}>Cancel</GhostButton>
+          )}
+          <PrimaryButton className="flex-1" disabled={!valid} onClick={save}>{goal ? "Save changes" : "Add goal"}</PrimaryButton>
+        </>
+      }
     >
       <Label>Goal</Label>
-      <TextField autoFocus placeholder="e.g. Emergency fund" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <TextField autoFocus={!goal} placeholder="e.g. Emergency fund" value={title} onChange={(e) => setTitle(e.target.value)} />
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <Label>Target</Label>
@@ -140,7 +170,12 @@ function GoalSheet({ open, onClose }) {
         </div>
       </div>
       <Label>Target date (optional)</Label>
-      <TextField type="date" min={todayISO()} value={date} onChange={(e) => setDate(e.target.value)} className="[color-scheme:dark]" />
+      <div className="flex gap-2">
+        <TextField type="date" value={date} onChange={(e) => setDate(e.target.value)} className="[color-scheme:dark]" />
+        {date && <GhostButton className="!px-4 !py-2 text-[14px]" onClick={() => setDate("")}>Clear</GhostButton>}
+      </div>
+      <Label>Notes (optional)</Label>
+      <TextField value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Keep in a liquid fund" />
     </Sheet>
   );
 }
