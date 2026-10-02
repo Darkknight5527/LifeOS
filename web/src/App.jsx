@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { NavLink, Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { getToken, setToken } from "./api";
 import { ToastProvider } from "./components/Toast.jsx";
 import { MenuContext, MenuButton } from "./components/AppMenu.jsx";
@@ -27,11 +27,18 @@ export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isOverview = location.pathname === "/";
   const dark = DARK_PAGES.includes(location.pathname);
 
   useEffect(() => {
     setAuthed(Boolean(getToken()));
+  }, []);
+
+  // Every fresh visit (typed URL, bookmark, refresh) starts on Overview.
+  useEffect(() => {
+    if (window.location.pathname !== "/") navigate("/", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Close the menu on navigation and with Escape.
@@ -44,7 +51,14 @@ export default function App() {
   }, [menuOpen]);
 
   if (!authed) {
-    return <LoginPage onLoggedIn={() => setAuthed(true)} />;
+    return (
+      <LoginPage
+        onLoggedIn={() => {
+          setAuthed(true);
+          navigate("/", { replace: true });
+        }}
+      />
+    );
   }
 
   function handleLogout() {
