@@ -50,7 +50,7 @@ function Paper() {
           <SkinCard today={today} />
         </div>
         <div className="space-y-5 lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0 xl:col-span-1 xl:block xl:space-y-4">
-          <GmailCard today={today} />
+          <GmailCard />
           <FitnessCard today={today} />
           <GoalsCard />
         </div>
@@ -214,15 +214,35 @@ function EventList({ events, now, compact = false, empty }) {
 }
 
 // ---------- Gmail reminder ----------
-function GmailCard({ today }) {
-  const key = `lifeos_paper_gmail_${today}`;
-  const [checked, setChecked] = useState(() => {
+// One card that switches itself: morning check 5 am – 4 pm, night check
+// 4 pm – 5 am (after midnight still belongs to the previous night).
+function gmailSlot(now = new Date()) {
+  const h = now.getHours();
+  if (h >= 5 && h < 16) return { slot: "am", date: isoDate(now) };
+  return { slot: "pm", date: isoDate(h < 5 ? addDays(now, -1) : now) };
+}
+const GMAIL_COPY = {
+  am: { todo: "Check your Gmail", hint: "Clear anything urgent before the day starts.", done: "Morning inbox checked" },
+  pm: { todo: "Check your Gmail", hint: "Reply to anything you missed today.", done: "Evening inbox checked" },
+};
+
+function GmailCard() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60000); // flips to the next reminder on its own
+    return () => clearInterval(t);
+  }, []);
+  const { slot, date } = gmailSlot(now);
+  const key = `lifeos_paper_gmail_${date}_${slot}`;
+  const read = () => {
     try {
       return localStorage.getItem(key) === "1";
     } catch {
       return false;
     }
-  });
+  };
+  const [checked, setChecked] = useState(read);
+  useEffect(() => setChecked(read()), [key]); // eslint-disable-line react-hooks/exhaustive-deps
   const mark = (v) => {
     setChecked(v);
     try {
@@ -231,15 +251,25 @@ function GmailCard({ today }) {
       /* ignore */
     }
   };
+  const copy = GMAIL_COPY[slot];
+  const p = PERIOD[slot];
+
   return (
     <FinCard delay={40}>
       <div className="flex items-center gap-4">
-        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl transition ${checked ? "bg-emerald-400/15 text-emerald-300" : "bg-fin-accent/15 text-fin-accent"}`}>
+        <div className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl transition ${checked ? "bg-emerald-400/15 text-emerald-300" : "bg-fin-accent/15 text-fin-accent"}`}>
           <Icon name={checked ? "check" : "mail"} size={22} stroke={2} />
+          <span
+            className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full ring-2 ring-fin-card"
+            style={{ background: p.color, color: "#14141a" }}
+            title={slot === "am" ? "Morning reminder" : "Night reminder"}
+          >
+            <Icon name={p.icon} size={12} stroke={2.6} />
+          </span>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[16px] font-bold">{checked ? "Inbox checked" : "Check your Gmail"}</div>
-          <div className="text-[13px] text-fin-muted">{checked ? "Nice — one less thing on your mind." : "Clear anything urgent before the day starts."}</div>
+          <div className="text-[16px] font-bold">{checked ? copy.done : copy.todo}</div>
+          <div className="text-[13px] text-fin-muted">{checked ? "Nice — one less thing on your mind." : copy.hint}</div>
         </div>
       </div>
       <div className="mt-3 flex gap-2">
