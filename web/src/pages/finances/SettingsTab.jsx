@@ -5,10 +5,18 @@ import { BucketBadge, FinCard, GhostButton, Icon, IconButton, MoneyField, Pill, 
 
 export default function SettingsTab() {
   return (
-    <div className="space-y-5">
-      <AdjustSplit />
-      <Subcategories />
-      <DataBackup />
+    // Phones: stacked. Laptops: split + backup on the left, subcategories on the right;
+    // very wide screens: three columns.
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
+      <div>
+        <AdjustSplit />
+      </div>
+      <div className="lg:col-start-2 lg:row-span-2 xl:row-span-1">
+        <Subcategories />
+      </div>
+      <div className="lg:col-start-1 lg:row-start-2 xl:col-start-3 xl:row-start-1">
+        <DataBackup />
+      </div>
     </div>
   );
 }
@@ -231,46 +239,54 @@ function SplitSlider({ value, onChange }) {
 }
 
 // ---------- subcategories ----------
+// One bucket at a time (Needs / Wants / Savings switch) so the card stays short.
 function Subcategories() {
   const { categories, addCategory } = useFinance();
-  const [drafts, setDrafts] = useState({ needs: "", wants: "", savings: "" });
+  const [bucket, setBucket] = useState("needs");
+  const [draft, setDraft] = useState("");
+  const b = BUCKETS.find((x) => x.id === bucket);
+  const list = categories.filter((c) => c.bucket === bucket);
 
-  async function add(bucket) {
-    const doc = await addCategory(drafts[bucket], bucket);
-    if (doc) setDrafts((d) => ({ ...d, [bucket]: "" }));
+  async function add() {
+    const doc = await addCategory(draft, bucket);
+    if (doc) setDraft("");
   }
 
   return (
     <FinCard title="Subcategories" delay={60}>
       <p className="-mt-2 mb-4 text-[14px] text-fin-muted">Tap a name to rename it. Limits are optional monthly caps, shown in Insights.</p>
-      <div className="space-y-6">
-        {BUCKETS.map((b) => {
-          const list = categories.filter((c) => c.bucket === b.id);
-          return (
-            <div key={b.id}>
-              <div className="mb-1 flex items-center gap-3">
-                <BucketBadge bucket={b} size={34} />
-                <span className="text-[17px] font-bold">{b.label}</span>
-                <span className="text-[13px] text-fin-faint">{list.length}</span>
-              </div>
-              <div className="divide-y divide-fin-line">
-                {list.map((c) => (
-                  <SubcategoryRow key={c._id} cat={c} />
-                ))}
-              </div>
-              <div className="mt-2 flex gap-2">
-                <TextField
-                  className="!py-3"
-                  placeholder="Add subcategory"
-                  value={drafts[b.id]}
-                  onChange={(e) => setDrafts((d) => ({ ...d, [b.id]: e.target.value }))}
-                  onKeyDown={(e) => e.key === "Enter" && add(b.id)}
-                />
-                <GhostButton className="!py-3" disabled={!drafts[b.id].trim()} onClick={() => add(b.id)}>Add</GhostButton>
-              </div>
-            </div>
-          );
-        })}
+      <Segmented
+        value={bucket}
+        onChange={(v) => {
+          setBucket(v);
+          setDraft("");
+        }}
+        options={BUCKETS.map((x) => ({
+          value: x.id,
+          label: `${x.label} · ${categories.filter((c) => c.bucket === x.id).length}`,
+          dot: x.color,
+        }))}
+      />
+      <div key={bucket} className="mt-3 animate-fade-in">
+        {list.length ? (
+          <div className="divide-y divide-fin-line">
+            {list.map((c) => (
+              <SubcategoryRow key={c._id} cat={c} />
+            ))}
+          </div>
+        ) : (
+          <div className="py-4 text-center text-[14px] text-fin-muted">No {b.label.toLowerCase()} subcategories yet.</div>
+        )}
+        <div className="mt-2 flex gap-2">
+          <TextField
+            className="!py-3"
+            placeholder={`Add to ${b.label}`}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()}
+          />
+          <GhostButton className="!py-3" disabled={!draft.trim()} onClick={add}>Add</GhostButton>
+        </div>
       </div>
     </FinCard>
   );
@@ -299,7 +315,7 @@ function SubcategoryRow({ cat }) {
   }
 
   return (
-    <div className="flex items-center gap-2 py-2">
+    <div className="flex items-center gap-2 py-1.5">
       {editing ? (
         <input
           autoFocus

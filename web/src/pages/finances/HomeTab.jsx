@@ -33,9 +33,11 @@ export default function HomeTab({ onEdit, onGoTo }) {
   }
 
   return (
-    <div className="space-y-5">
+    // Phones: one column. Laptops: 2–3 columns so the whole overview fits on screen.
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
+      <div className="space-y-5">
       {/* Hero */}
-      <section className="relative animate-fade-up overflow-hidden rounded-[28px] bg-gradient-to-br from-[#ff9447] via-[#f47a2c] to-[#e2580e] p-6 shadow-glow sm:p-8">
+      <section className="relative animate-fade-up overflow-hidden rounded-[28px] bg-gradient-to-br from-[#ff9447] via-[#f47a2c] to-[#e2580e] p-6 shadow-glow sm:p-7">
         <div className="pointer-events-none absolute -right-14 -top-16 h-56 w-56 rounded-full bg-white/10" />
         <div className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-white/[0.06]" />
         <div className="relative">
@@ -107,6 +109,8 @@ export default function HomeTab({ onEdit, onGoTo }) {
         )}
       </FinCard>
 
+      </div>
+      <div className="space-y-5">
       {/* Remaining per bucket */}
       {hasSalary && (
         <FinCard title="Remaining · this month" delay={80}>
@@ -149,15 +153,17 @@ export default function HomeTab({ onEdit, onGoTo }) {
             ["This week", now.week],
             ["This month", now.month],
           ].map(([label, v]) => (
-            <Tile key={label} className="text-center">
+            <Tile key={label} className="text-center lg:!px-2">
               <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-fin-muted sm:text-[13px]">{label}</div>
-              <div className="mt-1 text-[20px] font-extrabold sm:text-[24px]"><Money value={v} compact={v >= 100000} /></div>
+              <div className="mt-1 whitespace-nowrap text-[20px] font-extrabold sm:text-[24px] lg:text-[clamp(16px,1.35vw,24px)]"><Money value={v} compact={v >= 100000} /></div>
             </Tile>
           ))}
         </div>
         <div className="mt-3 text-[14px] text-fin-muted">This week: {weekRangeLabel(now.weekStart)}</div>
       </FinCard>
 
+      </div>
+      <div className="space-y-5 lg:col-span-2 xl:col-span-1">
       {/* Last month leftover */}
       {last.salary > 0 && (
         <FinCard title="Last month leftover" delay={160}>
@@ -195,6 +201,7 @@ export default function HomeTab({ onEdit, onGoTo }) {
         )}
       </FinCard>
 
+      </div>
       <SalarySheet open={salaryOpen} onClose={() => setSalaryOpen(false)} monthKeyValue={currentMonth} />
     </div>
   );

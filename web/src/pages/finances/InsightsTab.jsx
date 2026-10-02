@@ -43,7 +43,7 @@ function Tip({ children, align = "center" }) {
 function SpendByCategory({ stats, month }) {
   const [active, setActive] = useState(null);
   const total = stats.total;
-  const size = 200;
+  const size = 180;
   const stroke = 26;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -167,7 +167,7 @@ function BudgetVsSpent({ stats }) {
 
   return (
     <FinCard title="Budget vs spent" delay={80}>
-      <div className="space-y-5">
+      <div className="space-y-3">
         {BUCKETS.map((b) => (
           <Row key={b.id} label={b.label} color={b.color} spent={stats.spent[b.id]} budget={stats.alloc[b.id]} />
         ))}
@@ -187,7 +187,7 @@ function BudgetVsSpent({ stats }) {
 }
 
 // Vertical bar chart with hover tooltips; bars anchored to a shared baseline.
-function Bars({ data, height = 180, renderTip, highlight }) {
+function Bars({ data, height = 130, renderTip, highlight }) {
   const [hover, setHover] = useState(null);
   const max = Math.max(1, ...data.map((d) => Math.max(d.value, d.marker || 0)));
   return (
@@ -357,14 +357,14 @@ function TopSubcategories({ stats }) {
       cur.count += 1;
       m.set(k, cur);
     });
-    return [...m.values()].sort((a, b) => b.value - a.value).slice(0, 6);
+    return [...m.values()].sort((a, b) => b.value - a.value).slice(0, 4);
   }, [stats.list]);
   const max = rows[0]?.value || 1;
 
   return (
     <FinCard title="Top subcategories" delay={160}>
       {rows.length ? (
-        <div className="space-y-4">
+        <div className="space-y-2.5">
           {rows.map((r, i) => {
             const b = BUCKET[r.bucket] || BUCKET.wants;
             return (

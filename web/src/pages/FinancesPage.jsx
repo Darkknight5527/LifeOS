@@ -86,21 +86,40 @@ function FinanceShell() {
     <div className="fin-scope min-h-screen bg-fin-bg font-fin text-white antialiased">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-fin-line bg-fin-bg/80 backdrop-blur-xl">
-        <div className="flex items-center gap-3 px-3 py-4 sm:px-5">
+        <div className="flex items-center gap-3 px-3 py-4 sm:px-5 lg:py-3">
           <MenuButton className="-ml-2 text-white/70 hover:bg-white/5 hover:text-white" />
           <LogoMark size={44} />
           <div className="min-w-0">
             <div className="text-[22px] font-extrabold leading-tight tracking-tight">Finances</div>
             <div className="truncate text-[14px] text-fin-muted">{monthLabel(currentMonth)} · week starts Monday</div>
           </div>
-          <PrimaryButton onClick={openNew} className="ml-auto hidden items-center gap-2 !rounded-xl !py-2.5 !text-[15px] md:flex">
+          {/* Tabs live in the header on computers; phones use the bottom bar */}
+          <nav className="mx-auto hidden items-center gap-1 rounded-2xl bg-[#141418] p-1 lg:flex" aria-label="Finance sections">
+            {TABS.map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => goTo(t.id)}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[14px] font-semibold transition ${
+                    active ? "bg-fin-tile text-fin-accent shadow" : "text-fin-muted hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <Icon name={t.icon} size={18} stroke={active ? 2.1 : 1.8} />
+                  {t.label}
+                </button>
+              );
+            })}
+          </nav>
+          <PrimaryButton onClick={openNew} className="ml-auto hidden items-center gap-2 !rounded-xl !py-2.5 !text-[15px] md:flex lg:ml-0">
             <Icon name="plus" size={18} stroke={2.6} /> Log expense
             <kbd className="ml-1 rounded-md bg-black/20 px-1.5 text-[11px] font-semibold">N</kbd>
           </PrimaryButton>
         </div>
       </header>
 
-      <main className={`mx-auto px-4 pb-36 pt-5 sm:px-6 ${tab === "wealth" || tab === "insights" ? "max-w-[1280px]" : "max-w-[880px]"}`}>
+      <main className="mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:max-w-[1320px] lg:pb-6 lg:pt-4">
         {loading ? (
           <LoadingState />
         ) : error ? (
@@ -125,14 +144,14 @@ function FinanceShell() {
         <button
           onClick={openNew}
           aria-label="Log expense"
-          className="fixed bottom-[96px] right-5 z-40 grid h-16 w-16 place-items-center rounded-[22px] bg-gradient-to-br from-[#ff9a4d] to-[#e8590c] text-white shadow-glow transition hover:scale-105 active:scale-95 md:bottom-[104px] md:right-8 md:h-[72px] md:w-[72px]"
+          className="fixed bottom-[96px] right-5 z-40 grid h-16 w-16 place-items-center rounded-[22px] bg-gradient-to-br from-[#ff9a4d] to-[#e8590c] text-white shadow-glow transition hover:scale-105 active:scale-95 md:bottom-[104px] md:right-8 lg:hidden"
         >
           <Icon name="plus" size={30} stroke={2.4} />
         </button>
       )}
 
       {/* Bottom tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-fin-line bg-[#0e0e11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-fin-line bg-[#0e0e11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         <div className="mx-auto flex max-w-[880px]">
           {TABS.map((t) => {
             const active = tab === t.id;

@@ -49,7 +49,9 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
   const total = sum(filtered.filter((t) => t.type !== "income"), (t) => t.amount);
 
   return (
-    <div className="space-y-5">
+    // Laptops: filters stay pinned on the left while the list scrolls on the right.
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(320px,400px)_1fr] [&>*]:min-w-0">
+      <div className="space-y-5 lg:sticky lg:top-[92px]">
       <MonthNav
         label={monthLabel(month)}
         sub={isCurrent ? "This month" : month < currentMonth ? "Past month" : "Upcoming"}
@@ -70,7 +72,7 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
             ]}
           />
         )}
-        <div className={`fin-scrollbar-none flex gap-2 overflow-x-auto ${isCurrent ? "mt-3" : ""}`}>
+        <div className={`fin-scrollbar-none flex gap-2 overflow-x-auto lg:flex-wrap ${isCurrent ? "mt-3" : ""}`}>
           <Pill active={bucket === "all"} onClick={() => setBucket("all")} className="!px-3.5">All</Pill>
           {BUCKETS.map((b) => (
             <Pill key={b.id} active={bucket === b.id} color={b.color} onClick={() => setBucket(b.id)} className="!gap-1.5 !px-3.5">
@@ -95,6 +97,7 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
         </div>
       </FinCard>
 
+      </div>
       <FinCard
         title="Logged expenses"
         delay={80}

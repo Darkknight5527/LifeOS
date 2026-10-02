@@ -65,11 +65,11 @@ export function LogoMark({ size = 40 }) {
 export function FinCard({ title, action, children, className = "", delay = 0 }) {
   return (
     <section
-      className={`animate-fade-up rounded-[28px] bg-fin-card p-5 shadow-card sm:p-7 ${className}`}
+      className={`animate-fade-up rounded-[28px] bg-fin-card p-5 shadow-card sm:p-6 ${className}`}
       style={{ animationDelay: `${delay}ms` }}
     >
       {(title || action) && (
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex min-h-[32px] items-center justify-between gap-3">
           {title && <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-fin-muted">{title}</h2>}
           {action}
         </div>
@@ -275,7 +275,7 @@ export function Ring({ value, max, color, size = 64, stroke = 7, children }) {
 // ---------- month navigator ----------
 export function MonthNav({ label, sub, onPrev, onNext, canNext = true }) {
   return (
-    <div className="flex animate-fade-up items-center justify-between rounded-[22px] bg-[#141418] px-3 py-3">
+    <div className="flex animate-fade-up items-center justify-between rounded-[22px] bg-[#141418] px-3 py-3 lg:py-2">
       <IconButton icon="left" label="Previous month" onClick={onPrev} />
       <div className="text-center">
         <div className="text-[18px] font-bold">{label}</div>
