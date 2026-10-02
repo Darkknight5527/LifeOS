@@ -11,3 +11,37 @@ body,
 body {
   @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
 }
+
+/* Finances section helpers */
+.fin-scope input[type="number"]::-webkit-outer-spin-button,
+.fin-scope input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.fin-scope input[type="number"] {
+  -moz-appearance: textfield;
+}
+.fin-scope input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+.fin-scope ::selection {
+  background: rgba(251, 138, 60, 0.35);
+}
+.fin-scope .tabular {
+  font-variant-numeric: tabular-nums;
+}
+.fin-scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.fin-scrollbar-none {
+  scrollbar-width: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fin-scope *,
+  .fin-scope *::before,
+  .fin-scope *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

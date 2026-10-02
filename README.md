@@ -43,6 +43,29 @@ See the deployment guide doc for the full path: GitHub → MongoDB Atlas →
 Render (backend) → GitHub Pages/Vercel (web) → optional data migration →
 React Native/Expo app later.
 
+## Finances section
+
+Styled after FinTraQ (dark theme, orange accent). Five tabs:
+
+- **Home** — salary for the month split into Needs / Wants / Savings, what's
+  left in each bucket, a safe-to-spend-per-day figure, today / week / month
+  spending, last month's leftover and recent expenses.
+- **Expenses** — month navigator, Today / Week / Month, bucket filters, search,
+  grouped by day. Tap an expense to edit; deletes can be undone.
+- **Insights** — spend by bucket (donut), budget vs spent (incl. subcategory
+  limits), weekly comparison, month by month vs salary, top subcategories.
+- **Wealth** — savings goals and investment holdings.
+- **Settings** — split by ratio (presets, drag slider) or exact amounts,
+  subcategories (rename, monthly limit, delete), backup / restore / reset.
+
+Press **N** (desktop) or the **+** button to log an expense.
+
+API additions: `finance-months` (salary + split per month), `finance-settings`
+(default ratio), `bucket`/`limit`/`order` on categories, `bucket` on
+transactions, and `GET /api/finance/backup`, `POST /api/finance/restore`,
+`POST /api/finance/reset`. Old categories are sorted into buckets
+automatically the first time the new page loads.
+
 ## Status
 
 - Backend: all 13 collections wired with generic CRUD + auth (mirrors the

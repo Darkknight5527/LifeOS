@@ -67,5 +67,10 @@ export function createApiClient(baseUrl, getToken) {
     create: (collection, data) => request(`/${collection}`, { method: "POST", body: data }),
     update: (collection, id, data) => request(`/${collection}/${id}`, { method: "PATCH", body: data }),
     remove: (collection, id) => request(`/${collection}/${id}`, { method: "DELETE" }),
+
+    // Finances: whole-section backup / restore / reset
+    financeBackup: () => request("/finance/backup"),
+    financeRestore: (data) => request("/finance/restore", { method: "POST", body: { data } }),
+    financeReset: () => request("/finance/reset", { method: "POST" }),
   };
 }

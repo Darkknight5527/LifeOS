@@ -169,6 +169,10 @@ export function fmtDate(d) {
   return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+// Local calendar date (not UTC), so entries made just after midnight in IST
+// land on the right day.
 export function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
