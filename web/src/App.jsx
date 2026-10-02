@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { getToken, setToken } from "./api";
 import { ToastProvider } from "./components/Toast.jsx";
+import { MenuContext, MenuButton } from "./components/AppMenu.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import OverviewPage from "./pages/OverviewPage.jsx";
 import PhysicalPage from "./pages/PhysicalPage.jsx";
@@ -18,21 +19,29 @@ const NAV_ITEMS = [
   { to: "/learning", label: "Learning" },
 ];
 
-// Pages that draw their own full-bleed dark layout.
-const FULL_BLEED = ["/finances"];
+// Dark pages that draw their own full-screen layout and header
+// (they put the menu button in their own header via useAppMenu()).
+const DARK_PAGES = ["/finances"];
 
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
-  const fullBleed = FULL_BLEED.includes(location.pathname);
+  const isOverview = location.pathname === "/";
+  const dark = DARK_PAGES.includes(location.pathname);
 
   useEffect(() => {
     setAuthed(Boolean(getToken()));
   }, []);
 
-  // Close the mobile menu whenever the route changes.
+  // Close the menu on navigation and with Escape.
   useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   if (!authed) {
     return <LoginPage onLoggedIn={() => setAuthed(true)} />;
@@ -43,9 +52,8 @@ export default function App() {
     setAuthed(false);
   }
 
-  const nav = (
+  const navList = (isDark) => (
     <>
-      <div className="mb-6 px-2 text-lg font-semibold">LifeOS</div>
       <nav className="space-y-1">
         {NAV_ITEMS.map((item) => (
           <NavLink
@@ -53,10 +61,14 @@ export default function App() {
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `block rounded-lg px-3 py-2 text-sm transition ${
-                isActive
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              `block rounded-lg px-3 py-2.5 text-sm transition ${
+                isDark
+                  ? isActive
+                    ? "bg-[#fb8a3c]/15 font-semibold text-[#fb8a3c]"
+                    : "text-white/70 hover:bg-white/5 hover:text-white"
+                  : isActive
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100"
               }`
             }
           >
@@ -66,7 +78,7 @@ export default function App() {
       </nav>
       <button
         onClick={handleLogout}
-        className="mt-6 w-full rounded-lg px-3 py-2 text-left text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+        className={`mt-6 w-full rounded-lg px-3 py-2 text-left text-sm ${isDark ? "text-white/45 hover:bg-white/5" : "text-slate-500 hover:bg-slate-100"}`}
       >
         Log out
       </button>
@@ -75,49 +87,67 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="flex min-h-screen">
-        {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-screen w-56 shrink-0 overflow-y-auto border-r border-slate-200 bg-slate-50 p-4 md:block dark:border-slate-800">
-          {nav}
-        </aside>
+      <MenuContext.Provider value={{ openMenu: () => setMenuOpen(true) }}>
+        <div className="flex min-h-screen">
+          {/* Fixed sidebar only on the Overview page, on wide screens */}
+          {isOverview && (
+            <aside className="sticky top-0 hidden h-screen w-56 shrink-0 overflow-y-auto border-r border-slate-200 bg-slate-50 p-4 md:block">
+              <div className="mb-6 px-2 text-lg font-semibold">LifeOS</div>
+              {navList(false)}
+            </aside>
+          )}
 
-        {/* Mobile menu drawer */}
-        {menuOpen && (
-          <div className="fixed inset-0 z-[80] md:hidden">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setMenuOpen(false)} />
-            <aside className="absolute inset-y-0 left-0 w-64 bg-slate-50 p-4 shadow-xl">{nav}</aside>
+          {/* Slide-in menu */}
+          <div className={`fixed inset-0 z-[80] ${menuOpen ? "" : "pointer-events-none"}`} aria-hidden={!menuOpen}>
+            <div
+              className={`absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 ${menuOpen ? "opacity-100" : "opacity-0"}`}
+              onClick={() => setMenuOpen(false)}
+            />
+            <aside
+              className={`absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto p-4 shadow-2xl transition-transform duration-300 ease-out ${
+                menuOpen ? "translate-x-0" : "-translate-x-full"
+              } ${dark ? "border-r border-white/5 bg-[#141418] font-fin text-white" : "bg-slate-50"}`}
+            >
+              <div className="mb-6 flex items-center justify-between px-2">
+                <span className="text-lg font-semibold">LifeOS</span>
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  aria-label="Close menu"
+                  className={`grid h-9 w-9 place-items-center rounded-lg ${dark ? "text-white/60 hover:bg-white/5" : "text-slate-500 hover:bg-slate-100"}`}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                </button>
+              </div>
+              {navList(dark)}
+            </aside>
           </div>
-        )}
 
-        <div className="min-w-0 flex-1">
-          {/* Mobile top bar */}
-          <div
-            className={`flex items-center gap-3 px-4 py-2.5 md:hidden ${
-              fullBleed ? "bg-[#0b0b0d] text-white/80" : "border-b border-slate-200 bg-slate-50"
-            }`}
-          >
-            <button onClick={() => setMenuOpen(true)} aria-label="Open menu" className="rounded-lg p-1.5 hover:bg-black/10">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M4 7h16M4 12h16M4 17h16" />
-              </svg>
-            </button>
-            <span className="text-sm font-semibold">LifeOS</span>
+          <div className="min-w-0 flex-1">
+            {/* Light pages get a slim top bar with the menu button (dark pages draw their own) */}
+            {!dark && (
+              <div className={`flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 ${isOverview ? "md:hidden" : ""}`}>
+                <MenuButton className="text-slate-700 hover:bg-slate-200" />
+                <span className="text-sm font-semibold">LifeOS</span>
+              </div>
+            )}
+
+            <main className={dark ? "" : "p-4 md:p-8"}>
+              <Routes>
+                <Route path="/" element={<OverviewPage />} />
+                <Route path="/mental" element={<PlaceholderPage title="Mental & Psych" />} />
+                <Route path="/physical" element={<PhysicalPage />} />
+                <Route path="/finances" element={<FinancesPage />} />
+                <Route path="/goals" element={<PlaceholderPage title="Goals" />} />
+                <Route path="/technical" element={<PlaceholderPage title="Technical & Projects" />} />
+                <Route path="/learning" element={<PlaceholderPage title="Learning" />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </main>
           </div>
-
-          <main className={fullBleed ? "" : "p-4 md:p-8"}>
-            <Routes>
-              <Route path="/" element={<OverviewPage />} />
-              <Route path="/mental" element={<PlaceholderPage title="Mental & Psych" />} />
-              <Route path="/physical" element={<PhysicalPage />} />
-              <Route path="/finances" element={<FinancesPage />} />
-              <Route path="/goals" element={<PlaceholderPage title="Goals" />} />
-              <Route path="/technical" element={<PlaceholderPage title="Technical & Projects" />} />
-              <Route path="/learning" element={<PlaceholderPage title="Learning" />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
         </div>
-      </div>
+      </MenuContext.Provider>
     </ToastProvider>
   );
 }

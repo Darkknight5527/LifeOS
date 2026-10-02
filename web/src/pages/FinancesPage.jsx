@@ -8,6 +8,7 @@ import InsightsTab from "./finances/InsightsTab.jsx";
 import WealthTab from "./finances/WealthTab.jsx";
 import SettingsTab from "./finances/SettingsTab.jsx";
 import LogExpenseSheet from "./finances/LogExpenseSheet.jsx";
+import { MenuButton } from "../components/AppMenu.jsx";
 
 const TABS = [
   { id: "home", label: "Home", icon: "home" },
@@ -73,7 +74,8 @@ function FinanceShell() {
     <div className="fin-scope min-h-screen bg-fin-bg font-fin text-white antialiased">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-fin-line bg-fin-bg/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[880px] items-center gap-3 px-4 py-4 sm:px-6">
+        <div className="flex items-center gap-3 px-3 py-4 sm:px-5">
+          <MenuButton className="-ml-2 text-white/70 hover:bg-white/5 hover:text-white" />
           <LogoMark size={44} />
           <div className="min-w-0">
             <div className="text-[22px] font-extrabold leading-tight tracking-tight">Finances</div>
@@ -118,7 +120,7 @@ function FinanceShell() {
       )}
 
       {/* Bottom tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-fin-line bg-[#0e0e11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:left-56">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-fin-line bg-[#0e0e11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-[880px]">
           {TABS.map((t) => {
             const active = tab === t.id;
