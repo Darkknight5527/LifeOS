@@ -97,9 +97,11 @@ It's a secret — never commit it. Events are cached on the server for 5 minutes
 Also on the paper:
 - **Headlines** — Tech, Chips (semiconductors), India, World and Sports, from
   Google News RSS (no API key). Cached on the server for 30 minutes.
-- **Tech fact** — one electronics lesson a day, starting from the basics
-  (charge, voltage, current…) and building up to semiconductors, digital logic
-  and test/ATE. Lessons live in `web/src/pages/paper/facts.js`.
+- **Tech fact** — one electronics lesson a day (136 in all), from atoms and
+  Ohm's law through AC, semiconductors, op-amps and digital logic to
+  measurement and chip test. Written in our own words from three reference
+  books (Hughes, Gibilisco, Bishop); each lesson shows the chapter and page to
+  read more. Lessons live in `web/src/pages/paper/facts.js`.
 - **Reminders** — stored in LifeOS (`/api/reminders`), tagged with a domain,
   optionally repeating daily/weekly/monthly. Each can also be sent to Google
   Calendar through a pre-filled "add event" link (no Google login needed).

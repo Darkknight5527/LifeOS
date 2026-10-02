@@ -58,7 +58,7 @@ function Paper() {
           <GmailCard />
         </div>
         {/* Centre: the news and today's lesson */}
-        <div className="space-y-5 lg:space-y-3 xl:col-span-6">
+        <div className="space-y-5 lg:space-y-3 xl:col-span-6 xl:flex xl:flex-col xl:gap-3 xl:space-y-0 xl:self-stretch xl:[contain:size]">
           <NewsCard news={news} />
           <FactCard today={today} />
         </div>

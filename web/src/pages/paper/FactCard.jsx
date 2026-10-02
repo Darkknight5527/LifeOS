@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FACTS, UNITS, dayNumber } from "./facts.js";
+import { BOOKS, FACTS, UNITS, dayNumber } from "./facts.js";
 import { FinCard, Icon, IconButton } from "../finances/fin-ui.jsx";
 
 // Today's lesson; you can step back through earlier ones (not ahead).
@@ -37,6 +37,22 @@ export default function FactCard({ today }) {
           <span className="font-semibold text-white/75">Example: </span>
           {f.example}
         </p>
+        <div className="mt-2 flex items-start gap-1.5 text-[12px] text-fin-faint">
+          <Icon name="book" size={14} className="mt-px shrink-0" />
+          {f.refs?.length ? (
+            <span>
+              Read more:{" "}
+              {f.refs.map((r, i) => (
+                <span key={i} title={BOOKS[r.book]?.title}>
+                  {i > 0 && " · "}
+                  <span className="text-white/60">{BOOKS[r.book]?.short}</span> ch {r.ch}, p {r.page}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span>From general chip-test practice — not covered in your books.</span>
+          )}
+        </div>
         {n === latest && finished && <p className="mt-2 text-[12px] text-fin-faint">You've reached the end of the course for now — more lessons coming.</p>}
       </div>
     </FinCard>

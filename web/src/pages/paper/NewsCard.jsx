@@ -63,7 +63,7 @@ export default function NewsCard({ news }) {
         </span>
       }
       action={<Segmented className="w-[330px] !p-0.5 [&_button]:!py-1 [&_button]:!text-[12.5px]" value={section} onChange={setSection} options={SECTIONS} />}
-      className="lg:flex lg:h-[calc(100dvh-488px)] lg:min-h-[220px] lg:flex-col"
+      className="lg:flex lg:h-[calc(100dvh-488px)] lg:min-h-[220px] lg:flex-col xl:h-auto xl:min-h-[150px] xl:flex-1"
     >
       {news.loading ? (
         <div className="space-y-2">{[0, 1, 2, 3].map((i) => <div key={i} className="h-11 animate-pulse rounded-xl bg-fin-input" />)}</div>
