@@ -129,7 +129,7 @@ function GoalSheet({ open, onClose }) {
     >
       <Label>Goal</Label>
       <TextField autoFocus placeholder="e.g. Emergency fund" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <Label>Target</Label>
           <MoneyField value={target} onChange={setTarget} placeholder="100000" />
@@ -305,7 +305,7 @@ function HoldingSheet({ open, onClose, holding }) {
       </div>
       <Label>Units</Label>
       <TextField type="number" inputMode="decimal" placeholder="0" value={form.units} onChange={set("units")} />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <Label>Buy price / unit</Label>
           <MoneyField value={form.buyPrice} onChange={set("buyPrice")} />
