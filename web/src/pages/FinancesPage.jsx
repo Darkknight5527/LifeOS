@@ -17,7 +17,6 @@ const TABS = [
   { id: "wealth", label: "Wealth", icon: "wallet" },
   { id: "settings", label: "Settings", icon: "gear" },
 ];
-const TAB_KEY = "lifeos_fin_tab";
 
 export default function FinancesPage() {
   return (
@@ -29,13 +28,8 @@ export default function FinancesPage() {
 
 function FinanceShell() {
   const { loading, error, reload, currentMonth } = useFinance();
-  const [tab, setTab] = useState(() => {
-    try {
-      return localStorage.getItem(TAB_KEY) || "home";
-    } catch {
-      return "home";
-    }
-  });
+  // Always open on Home when entering Finances.
+  const [tab, setTab] = useState("home");
   const [expenseFilter, setExpenseFilter] = useState({ bucket: "all", n: 0 });
   const [sheet, setSheet] = useState({ open: false, editing: null });
 
@@ -44,14 +38,6 @@ function FinanceShell() {
     if (id === "expenses") setExpenseFilter((f) => ({ bucket: opts.bucket || "all", n: f.n + 1 }));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(TAB_KEY, tab);
-    } catch {
-      /* storage unavailable */
-    }
-  }, [tab]);
 
   const openNew = useCallback(() => setSheet({ open: true, editing: null }), []);
   const openEdit = useCallback((tx) => setSheet({ open: true, editing: tx }), []);
