@@ -89,6 +89,12 @@ export default function App() {
 
   function handleLogout() {
     setToken(null);
+    // Forget the browser copy of finance data on this device.
+    try {
+      localStorage.removeItem("lifeos_fin_cache_v1");
+    } catch {
+      /* ignore */
+    }
     setAuthed(false);
   }
 

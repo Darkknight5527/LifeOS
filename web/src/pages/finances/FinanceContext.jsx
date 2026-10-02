@@ -23,6 +23,33 @@ const COLLECTIONS = {
   goals: "finance-savings-goals",
 };
 
+// ---------- browser copy of the last-seen data ----------
+// Shown instantly on the next visit while the (possibly sleeping) server
+// wakes up; replaced by fresh data as soon as it arrives. Display only —
+// every save still goes to the database.
+export const FIN_CACHE_KEY = "lifeos_fin_cache_v1";
+const CACHED_KEYS = ["categories", "transactions", "months", "settings", "investments", "goals"];
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem(FIN_CACHE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return CACHED_KEYS.every((k) => k in data) ? data : null;
+  } catch {
+    return null;
+  }
+}
+function writeCache(state) {
+  try {
+    const data = Object.fromEntries(CACHED_KEYS.map((k) => [k, state[k]]));
+    data.savedAt = Date.now();
+    localStorage.setItem(FIN_CACHE_KEY, JSON.stringify(data));
+  } catch {
+    /* storage full or blocked — not critical */
+  }
+}
+
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name);
 const byDateDesc = (a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0);
 
@@ -33,15 +60,12 @@ const byDateDesc = (a, b) => (b.date || "").localeCompare(a.date || "") || (b.cr
  */
 export function FinanceProvider({ children }) {
   const showToast = useToast();
-  const [state, setState] = useState({
-    loading: true,
-    error: null,
-    categories: [],
-    transactions: [],
-    months: [],
-    settings: null,
-    investments: [],
-    goals: [],
+  const [state, setState] = useState(() => {
+    const cached = readCache();
+    return cached
+      ? // Show the saved copy straight away and refresh in the background.
+        { ...cached, loading: false, syncing: true, error: null, cachedAt: cached.savedAt }
+      : { loading: true, syncing: true, error: null, categories: [], transactions: [], months: [], settings: null, investments: [], goals: [] };
   });
   const booted = useRef(false);
 
@@ -82,6 +106,7 @@ export function FinanceProvider({ children }) {
 
       setState({
         loading: false,
+        syncing: false,
         error: null,
         categories: [...cats].sort(byOrder),
         transactions: [...transactions].sort(byDateDesc),
@@ -91,9 +116,20 @@ export function FinanceProvider({ children }) {
         goals,
       });
     } catch (err) {
-      setState((s) => ({ ...s, loading: false, error: err.message || "Failed to load" }));
+      setState((s) => ({ ...s, loading: false, syncing: false, error: err.message || "Failed to load" }));
     }
   }, []);
+
+  // Keep the browser copy up to date with every confirmed change.
+  useEffect(() => {
+    if (!state.loading && !state.syncing && !state.error && state.settings) writeCache(state);
+  }, [state]);
+
+  // Retry button / background refresh: keeps showing current data meanwhile.
+  const sync = useCallback(async () => {
+    setState((s) => ({ ...s, syncing: true, error: null }));
+    await load();
+  }, [load]);
 
   useEffect(() => {
     if (booted.current) return;
@@ -322,7 +358,7 @@ export function FinanceProvider({ children }) {
     async (data) => {
       const ok = await attempt(() => api.financeRestore(data), "Backup restored");
       if (ok) {
-        setState((s) => ({ ...s, loading: true }));
+        setState((s) => ({ ...s, syncing: true }));
         await load();
       }
       return ok;
@@ -332,7 +368,7 @@ export function FinanceProvider({ children }) {
   const resetAll = useCallback(async () => {
     const ok = await attempt(() => api.financeReset(), "Finances reset");
     if (ok) {
-      setState((s) => ({ ...s, loading: true }));
+      setState((s) => ({ ...s, syncing: true }));
       await load();
     }
     return ok;
@@ -346,7 +382,7 @@ export function FinanceProvider({ children }) {
     monthRecord,
     previousRecord,
     prevMonthKey: (k) => shiftMonth(k, -1),
-    reload: load,
+    reload: sync,
     addExpense,
     updateExpense,
     removeExpense,

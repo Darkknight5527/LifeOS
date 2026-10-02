@@ -45,7 +45,8 @@ export default function FinancesPage() {
 }
 
 function FinanceShell() {
-  const { loading, error, reload, currentMonth } = useFinance();
+  const { loading, syncing, error, reload, currentMonth, settings } = useFinance();
+  const hasData = Boolean(settings);
   const [tab, setTab] = useState(initialTab);
 
   // Remember the sub-tab for this browser tab, so a refresh can restore it.
@@ -93,6 +94,7 @@ function FinanceShell() {
             <div className="text-[22px] font-extrabold leading-tight tracking-tight">Finances</div>
             <div className="truncate text-[14px] text-fin-muted">{monthLabel(currentMonth)} · week starts Monday</div>
           </div>
+          <SyncStatus syncing={syncing && hasData} failed={Boolean(error) && hasData} onRetry={reload} />
           {/* Tabs live in the header on computers; phones use the bottom bar */}
           <nav className="mx-auto hidden items-center gap-1 rounded-2xl bg-[#141418] p-1 lg:flex" aria-label="Finance sections">
             {TABS.map((t) => {
@@ -122,7 +124,7 @@ function FinanceShell() {
       <main className="mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:max-w-[1320px] lg:pb-6 lg:pt-4">
         {loading ? (
           <LoadingState />
-        ) : error ? (
+        ) : error && !hasData ? (
           <div className="mt-10 rounded-[28px] bg-fin-card p-8 text-center">
             <div className="text-[18px] font-bold">Couldn't load your finances</div>
             <div className="mt-2 text-[15px] text-fin-muted">{error}</div>
@@ -184,4 +186,31 @@ function LoadingState() {
       ))}
     </div>
   );
+}
+
+// Small pill in the header: "Syncing…" while fresh data loads in the
+// background, or a retry button if the server couldn't be reached.
+function SyncStatus({ syncing, failed, onRetry }) {
+  if (syncing) {
+    return (
+      <span className="flex shrink-0 animate-fade-in items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-[12px] font-semibold text-fin-muted" role="status">
+        <span className="h-3 w-3 animate-spin rounded-full border-2 border-fin-accent/30 border-t-fin-accent" />
+        <span className="hidden sm:inline">Syncing…</span>
+      </span>
+    );
+  }
+  if (failed) {
+    return (
+      <button
+        onClick={onRetry}
+        className="flex shrink-0 animate-fade-in items-center gap-2 rounded-full bg-red-500/10 px-3 py-1 text-[12px] font-semibold text-fin-danger hover:bg-red-500/20"
+        title="Showing your last saved copy. Click to try again."
+      >
+        <span className="h-2 w-2 rounded-full bg-fin-danger" />
+        <span className="hidden sm:inline">Offline · Retry</span>
+        <span className="sm:hidden">Retry</span>
+      </button>
+    );
+  }
+  return null;
 }
