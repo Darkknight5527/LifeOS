@@ -24,7 +24,7 @@ const NAV_ITEMS = [
 
 // Dark pages that draw their own full-screen layout and header
 // (they put the menu button in their own header via useAppMenu()).
-const DARK_PAGES = ["/finances"];
+const DARK_PAGES = ["/finances", "/grooming"];
 
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
@@ -91,9 +91,11 @@ export default function App() {
 
   function handleLogout() {
     setToken(null);
-    // Forget the browser copy of finance data on this device.
+    // Forget the browser copies of LifeOS data on this device.
     try {
-      localStorage.removeItem("lifeos_fin_cache_v1");
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("lifeos_") && k.endsWith("_cache_v1"))
+        .forEach((k) => localStorage.removeItem(k));
     } catch {
       /* ignore */
     }

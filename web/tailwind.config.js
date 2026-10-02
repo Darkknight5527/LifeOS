@@ -14,7 +14,7 @@ export default {
           line: "rgba(255,255,255,0.07)",
           muted: "#9b9ba5",
           faint: "#6b6b75",
-          accent: "#fb8a3c",
+          accent: "rgb(var(--fin-accent) / <alpha-value>)",
           accentDeep: "#e8590c",
           needs: "#fb8a3c",
           wants: "#facc15",
@@ -26,7 +26,7 @@ export default {
         fin: ["Outfit", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 10px 30px -8px rgba(251,138,60,0.55)",
+        glow: "0 10px 30px -8px var(--fin-glow)",
         card: "0 1px 0 rgba(255,255,255,0.03) inset",
       },
       keyframes: {

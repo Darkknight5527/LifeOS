@@ -1,0 +1,117 @@
+// Dark page frame shared by the redesigned domains (same look as Finances):
+// header with menu + logo + tabs, phone bottom bar, sync status pill.
+// Each domain passes its own colour theme class (e.g. "theme-teal").
+import { MenuButton } from "./AppMenu.jsx";
+import { Icon, LogoMark, PrimaryButton } from "../pages/finances/fin-ui.jsx";
+
+export default function DomainShell({
+  theme = "",
+  title,
+  subtitle,
+  logoIcon,
+  tabs,
+  tab,
+  onTab,
+  action, // { label, icon, onClick, shortcut }
+  syncing = false,
+  failed = false,
+  onRetry,
+  maxWidth = "lg:max-w-[1320px]",
+  children,
+}) {
+  return (
+    <div className={`fin-scope ${theme} min-h-screen bg-fin-bg font-fin text-white antialiased`}>
+      <header className="sticky top-0 z-30 border-b border-fin-line bg-fin-bg/80 backdrop-blur-xl">
+        <div className="flex items-center gap-3 px-3 py-4 sm:px-5 lg:py-2.5">
+          <MenuButton className="-ml-2 text-white/70 hover:bg-white/5 hover:text-white" />
+          <LogoMark size={40} icon={logoIcon} />
+          <div className="min-w-0">
+            <div className="text-[22px] font-extrabold leading-tight tracking-tight lg:text-[20px]">{title}</div>
+            {subtitle && <div className="truncate text-[14px] text-fin-muted">{subtitle}</div>}
+          </div>
+          <SyncStatus syncing={syncing} failed={failed} onRetry={onRetry} />
+
+          {tabs?.length > 1 && (
+            <nav className="mx-auto hidden items-center gap-1 rounded-2xl bg-[#141418] p-1 lg:flex" aria-label={`${title} sections`}>
+              {tabs.map((t) => {
+                const active = tab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => onTab(t.id)}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[14px] font-semibold transition ${
+                      active ? "bg-fin-tile text-fin-accent shadow" : "text-fin-muted hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <Icon name={t.icon} size={18} stroke={active ? 2.1 : 1.8} />
+                    {t.label}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+
+          {action ? (
+            <PrimaryButton onClick={action.onClick} className="ml-auto hidden items-center gap-2 !rounded-xl !py-2.5 !text-[15px] md:flex lg:ml-0">
+              <Icon name={action.icon || "plus"} size={18} stroke={2.6} /> {action.label}
+              {action.shortcut && <kbd className="ml-1 rounded-md bg-black/20 px-1.5 text-[11px] font-semibold">{action.shortcut}</kbd>}
+            </PrimaryButton>
+          ) : (
+            <div className="hidden w-[120px] lg:block" />
+          )}
+        </div>
+      </header>
+
+      <main className={`mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:pb-4 lg:pt-3 ${maxWidth}`}>{children}</main>
+
+      {/* Phone / tablet bottom tab bar */}
+      {tabs?.length > 1 && (
+        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-fin-line bg-[#0e0e11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+          <div className="mx-auto flex max-w-[880px]">
+            {tabs.map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => onTab(t.id)}
+                  className={`relative flex flex-1 flex-col items-center gap-1 py-3 text-[12px] font-semibold transition sm:text-[13px] ${active ? "text-fin-accent" : "text-fin-muted hover:text-white"}`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <span className={`absolute top-0 h-[3px] w-8 rounded-b-full bg-fin-accent transition-opacity ${active ? "opacity-100" : "opacity-0"}`} />
+                  <Icon name={t.icon} size={24} stroke={active ? 2.1 : 1.7} />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
+    </div>
+  );
+}
+
+export function SyncStatus({ syncing, failed, onRetry }) {
+  if (syncing) {
+    return (
+      <span className="flex shrink-0 animate-fade-in items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-[12px] font-semibold text-fin-muted" role="status">
+        <span className="h-3 w-3 animate-spin rounded-full border-2 border-fin-accent/30 border-t-fin-accent" />
+        <span className="hidden sm:inline">Syncing…</span>
+      </span>
+    );
+  }
+  if (failed) {
+    return (
+      <button
+        onClick={onRetry}
+        className="flex shrink-0 animate-fade-in items-center gap-2 rounded-full bg-red-500/10 px-3 py-1 text-[12px] font-semibold text-fin-danger hover:bg-red-500/20"
+        title="Showing your last saved copy. Click to try again."
+      >
+        <span className="h-2 w-2 rounded-full bg-fin-danger" />
+        <span className="hidden sm:inline">Offline · Retry</span>
+        <span className="sm:hidden">Retry</span>
+      </button>
+    );
+  }
+  return null;
+}

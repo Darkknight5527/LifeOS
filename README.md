@@ -66,6 +66,23 @@ transactions, and `GET /api/finance/backup`, `POST /api/finance/restore`,
 `POST /api/finance/reset`. Old categories are sorted into buckets
 automatically the first time the new page loads.
 
+## Grooming section
+
+Same dark layout as Finances, teal accent (each domain gets its own accent
+via a theme class — see `--fin-accent` in `web/src/index.css`). Tabs: Skin,
+Hair, Body care. Skin has four views:
+
+- **Today** — tick morning/evening steps, rate skin (1–5), concerns, note,
+  streak of fully-completed days.
+- **History** — month calendar shaded by completion; open any day to edit.
+- **Insights** — consistency, condition trend, step-by-step adherence,
+  concerns (7 / 30 / 90 days).
+- **Routine** — your own steps and products per morning/evening, with
+  optional weekdays (e.g. retinol Mon/Wed/Fri).
+
+API: `skincare-steps` (routine), `doneSteps` on `skin-logs`. Older skin logs
+(fixed cleanser/moisturizer/sunscreen fields) are read automatically.
+
 ## Status
 
 - Backend: all 13 collections wired with generic CRUD + auth (mirrors the

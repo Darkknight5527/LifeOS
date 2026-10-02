@@ -6,6 +6,7 @@ import authRoutes from "./auth.js";
 
 import MoodLog from "../models/MoodLog.js";
 import SkinLog from "../models/SkinLog.js";
+import SkincareStep from "../models/SkincareStep.js";
 import HairLog from "../models/HairLog.js";
 import GroomingBrush from "../models/GroomingBrush.js";
 import GroomingTask from "../models/GroomingTask.js";
@@ -36,6 +37,7 @@ router.use(requireAuth);
 
 router.use("/mood-logs", createCrudRouter(MoodLog, { sortField: "date", sortOrder: -1 }));
 router.use("/skin-logs", createCrudRouter(SkinLog, { sortField: "date", sortOrder: -1 }));
+router.use("/skincare-steps", createCrudRouter(SkincareStep, { sortField: "order", sortOrder: 1 }));
 router.use("/hair-logs", createCrudRouter(HairLog, { sortField: "date", sortOrder: -1 }));
 router.use("/grooming-brush", createCrudRouter(GroomingBrush, { sortField: "date", sortOrder: -1 }));
 router.use("/grooming-tasks", createCrudRouter(GroomingTask, { sortField: "date", sortOrder: -1 }));

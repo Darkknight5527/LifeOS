@@ -146,7 +146,7 @@ function FinanceShell() {
         <button
           onClick={openNew}
           aria-label="Log expense"
-          className="fixed bottom-[96px] right-5 z-40 grid h-16 w-16 place-items-center rounded-[22px] bg-gradient-to-br from-[#ff9a4d] to-[#e8590c] text-white shadow-glow transition hover:scale-105 active:scale-95 md:bottom-[104px] md:right-8 lg:hidden"
+          className="fixed bottom-[96px] right-5 z-40 grid h-16 w-16 place-items-center rounded-[22px] bg-gradient-to-br from-[color:var(--fin-grad-from)] to-[color:var(--fin-grad-to)] text-white shadow-glow transition hover:scale-105 active:scale-95 md:bottom-[104px] md:right-8 lg:hidden"
         >
           <Icon name="plus" size={30} stroke={2.4} />
         </button>

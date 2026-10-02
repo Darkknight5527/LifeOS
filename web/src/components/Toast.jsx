@@ -41,7 +41,7 @@ export function ToastProvider({ children }) {
                   t.action.onClick();
                   dismiss(t.id);
                 }}
-                className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-bold text-orange-300 hover:bg-white/25"
+                className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-bold text-[rgb(var(--fin-accent))] hover:bg-white/25"
               >
                 {t.action.label}
               </button>

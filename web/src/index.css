@@ -12,6 +12,21 @@ body {
   @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
 }
 
+/* Accent colour per domain. Finances = orange (default); other domains
+   add a theme class (e.g. .theme-teal) on their page wrapper. */
+:root {
+  --fin-accent: 251 138 60;
+  --fin-grad-from: #ff9a4d;
+  --fin-grad-to: #e8590c;
+  --fin-glow: rgba(251, 138, 60, 0.55);
+}
+.theme-teal {
+  --fin-accent: 45 212 191;
+  --fin-grad-from: #3ee0cb;
+  --fin-grad-to: #0f8f84;
+  --fin-glow: rgba(45, 212, 191, 0.42);
+}
+
 /* Finances section helpers */
 .fin-scope input[type="number"]::-webkit-outer-spin-button,
 .fin-scope input[type="number"]::-webkit-inner-spin-button {
@@ -57,4 +72,22 @@ body {
 .fin-scroll::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.14);
   border-radius: 999px;
+}
+
+/* Older light-style forms shown inside the dark domain pages */
+.legacy-dark {
+  color: #fff;
+}
+.legacy-dark.dark .dark\:bg-slate-900 {
+  background-color: #26262c;
+}
+.legacy-dark.dark .dark\:bg-slate-800 {
+  background-color: #121215;
+}
+.legacy-dark.dark .dark\:border-slate-800,
+.legacy-dark.dark .dark\:border-slate-700 {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.legacy-dark input[type="date"] {
+  color-scheme: dark;
 }

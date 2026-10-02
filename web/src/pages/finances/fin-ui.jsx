@@ -29,6 +29,15 @@ const PATHS = {
   calendar: "M4 6h16v14H4zM4 10h16M9 3v4M15 3v4",
   pie: "M12 3v9h9A9 9 0 1 1 12 3zM15 3.5A9 9 0 0 1 20.5 9H15z",
   sparkle: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z",
+  sun: "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
+  moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
+  drop: "M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z",
+  scissors: "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12",
+  hair: "M4 20c0-8 3-14 8-14s8 6 8 14M8 20c0-6 1.5-10 4-10s4 4 4 10M12 6V3",
+  flame: "M12 22a7 7 0 0 0 7-7c0-4-3-6-4-10-2 2-3 4-3 6-1-1-2-2-2-4-3 3-5 5-5 8a7 7 0 0 0 7 7z",
+  up: "M6 15l6-6 6 6",
+  down: "M6 9l6 6 6-6",
+  list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
 };
 
 export function Icon({ name, size = 20, stroke = 1.8, className = "" }) {
@@ -50,13 +59,13 @@ export function Icon({ name, size = 20, stroke = 1.8, className = "" }) {
   );
 }
 
-export function LogoMark({ size = 40 }) {
+export function LogoMark({ size = 40, icon = "trend" }) {
   return (
     <div
-      className="grid shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#ff9a4d] to-[#ea580c] text-white shadow-glow"
+      className="grid shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[color:var(--fin-grad-from)] to-[color:var(--fin-grad-to)] text-white shadow-glow"
       style={{ width: size, height: size }}
     >
-      <Icon name="trend" size={size * 0.55} stroke={2.4} />
+      <Icon name={icon} size={size * 0.55} stroke={2.4} />
     </div>
   );
 }
@@ -140,7 +149,7 @@ export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`rounded-2xl bg-gradient-to-r from-[#ff8f45] to-[#e8590c] px-5 py-3 text-[16px] font-bold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 ${className}`}
+      className={`rounded-2xl bg-gradient-to-r from-[color:var(--fin-grad-from)] to-[color:var(--fin-grad-to)] px-5 py-3 text-[16px] font-bold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 ${className}`}
     >
       {children}
     </button>
