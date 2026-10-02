@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
 import { useMonthStats } from "./stats.js";
 import { BUCKET, BUCKETS, addDays, daysInMonth, formatMoney, isoDate, monthLabel, monthShort, parseISO, shiftMonth, sum, weekStart } from "./lib";
-import { BucketDot, EmptyState, FinCard, MonthNav } from "./fin-ui.jsx";
+import { BucketDot, EmptyState, FinCard, MonthNav, Segmented } from "./fin-ui.jsx";
 
 export default function InsightsTab() {
   const { currentMonth } = useFinance();
@@ -18,11 +18,13 @@ export default function InsightsTab() {
         onNext={() => setMonth((m) => shiftMonth(m, 1))}
         canNext={month < currentMonth}
       />
-      <SpendByCategory stats={stats} month={month} />
-      <BudgetVsSpent stats={stats} />
-      <WeeklyComparison stats={stats} month={month} />
-      <MonthByMonth month={month} />
-      <TopSubcategories stats={stats} />
+      {/* Two cards per row on wide screens, one per row on phones */}
+      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 [&>*]:min-w-0">
+        <SpendByCategory stats={stats} month={month} />
+        <BudgetVsSpent stats={stats} />
+        <SpendingTrend stats={stats} month={month} />
+        <TopSubcategories stats={stats} />
+      </div>
     </div>
   );
 }
@@ -230,8 +232,34 @@ function Bars({ data, height = 180, renderTip, highlight }) {
   );
 }
 
-// ---------- 3. weeks of the month ----------
-function WeeklyComparison({ stats, month }) {
+// ---------- 3. spending trend: one card, Week / Month switch ----------
+function SpendingTrend({ stats, month }) {
+  const [view, setView] = useState("week");
+  return (
+    <FinCard
+      title={view === "week" ? "Week by week" : "Month by month"}
+      delay={120}
+      action={
+        <Segmented
+          className="w-[170px] !p-0.5 [&_button]:!py-1.5 [&_button]:!text-[13px]"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: "week", label: "Week" },
+            { value: "month", label: "Month" },
+          ]}
+        />
+      }
+    >
+      <div key={view} className="animate-fade-in">
+        {view === "week" ? <WeekBars stats={stats} month={month} /> : <MonthBars month={month} />}
+      </div>
+    </FinCard>
+  );
+}
+
+// Weeks of the selected month
+function WeekBars({ stats, month }) {
   const weeks = useMemo(() => {
     const first = parseISO(`${month}-01`);
     const last = parseISO(`${month}-${String(daysInMonth(month)).padStart(2, "0")}`);
@@ -251,7 +279,7 @@ function WeeklyComparison({ stats, month }) {
   const fmt = (iso) => parseISO(iso).toLocaleDateString("en-IN", { month: "short", day: "numeric" });
 
   return (
-    <FinCard title="Weekly comparison" delay={120}>
+    <>
       {stats.total > 0 ? (
         <>
           <Bars
@@ -269,12 +297,12 @@ function WeeklyComparison({ stats, month }) {
       ) : (
         <EmptyState icon="chart">No spending to compare yet.</EmptyState>
       )}
-    </FinCard>
+    </>
   );
 }
 
-// ---------- 4. last 6 months ----------
-function MonthByMonth({ month }) {
+// Last 6 months up to the selected month
+function MonthBars({ month }) {
   const { expenses, monthRecord } = useFinance();
   const data = useMemo(() => {
     const out = [];
@@ -288,7 +316,7 @@ function MonthByMonth({ month }) {
   const any = data.some((d) => d.value > 0 || d.marker > 0);
 
   return (
-    <FinCard title="Month by month" delay={160}>
+    <>
       {any ? (
         <>
           <Bars
@@ -314,7 +342,7 @@ function MonthByMonth({ month }) {
       ) : (
         <EmptyState icon="chart">History will appear as you log expenses.</EmptyState>
       )}
-    </FinCard>
+    </>
   );
 }
 
@@ -334,7 +362,7 @@ function TopSubcategories({ stats }) {
   const max = rows[0]?.value || 1;
 
   return (
-    <FinCard title="Top subcategories" delay={200}>
+    <FinCard title="Top subcategories" delay={160}>
       {rows.length ? (
         <div className="space-y-4">
           {rows.map((r, i) => {

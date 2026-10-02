@@ -100,7 +100,7 @@ function FinanceShell() {
         </div>
       </header>
 
-      <main className={`mx-auto px-4 pb-36 pt-5 sm:px-6 ${tab === "wealth" ? "max-w-[1280px]" : "max-w-[880px]"}`}>
+      <main className={`mx-auto px-4 pb-36 pt-5 sm:px-6 ${tab === "wealth" || tab === "insights" ? "max-w-[1280px]" : "max-w-[880px]"}`}>
         {loading ? (
           <LoadingState />
         ) : error ? (
