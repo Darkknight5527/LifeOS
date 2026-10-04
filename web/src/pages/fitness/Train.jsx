@@ -234,7 +234,7 @@ export function TrainToday() {
                 className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-white py-2.5 text-[15px] font-bold text-[#1d4ed8] shadow-lg transition hover:brightness-95 active:scale-[0.99] disabled:bg-white/25 disabled:text-white/85 disabled:shadow-none"
               >
                 <Icon name="dumbbell" size={18} stroke={2.2} />
-                <span className="truncate">{split === "rest" ? "Pick a workout above" : `${doneToday ? "Start another" : "Start"} ${sp.label} workout`}</span>
+                <span className="truncate">{split === "rest" ? "Pick a workout above" : doneToday ? "Start another workout" : "Start workout"}</span>
               </button>
               <button onClick={() => setTool("plates")} title="Plate calculator" className="rounded-2xl bg-black/15 px-3 text-[13px] font-semibold hover:bg-black/25">Plates</button>
               <button onClick={() => setTool("timers")} title="Timers: stopwatch, EMOM, AMRAP, Tabata" className="rounded-2xl bg-black/15 px-3 text-[13px] font-semibold hover:bg-black/25">Timers</button>
