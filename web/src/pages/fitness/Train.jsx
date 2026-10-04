@@ -249,7 +249,13 @@ export function TrainToday() {
         delay={40}
         className={`flex flex-col ${H}`}
         title={<span className="flex items-center gap-2"><Icon name="list" size={15} /> {split === "rest" ? "Rest day" : `${sp.label} plan`}</span>}
-        action={split !== "rest" && <span className="text-[13px] text-fin-muted">{plan.length} exercises</span>}
+        action={
+          split !== "rest" && (
+            <button onClick={() => setTool("add")} className="flex items-center gap-1.5 rounded-xl bg-fin-accent/15 px-3 py-1.5 text-[13.5px] font-semibold text-fin-accent hover:bg-fin-accent/25" title={`Add an exercise to your ${sp.label} plan`}>
+              <Icon name="plus" size={14} stroke={2.6} /> Add exercise
+            </button>
+          )
+        }
       >
         {split === "rest" ? (
           <div className="rounded-2xl bg-fin-input p-4 text-[14px] leading-relaxed text-white/75">
@@ -304,6 +310,17 @@ export function TrainToday() {
       <SummarySheet summary={summary} onClose={() => setSummary(null)} />
       <PlateCalculator open={tool === "plates"} onClose={() => setTool(null)} />
       <TimersSheet open={tool === "timers"} onClose={() => setTool(null)} />
+      <ExercisePicker
+        open={tool === "add"}
+        onClose={() => setTool(null)}
+        customs={customs}
+        onCreate={(x) => fit.saveSettings({ customExercises: [...customs, x] }, `Created ${x.exercise}`)}
+        exclude={plan.map((p) => p.exercise)}
+        onPick={(x) => {
+          fit.saveSettings({ program: { ...(fit.settings?.program || {}), [split]: [...plan, { exercise: x.exercise, group: x.group || groupOf(x.exercise), type: x.type, sets: 3, reps: 10 }] } }, `Added ${x.exercise} to ${sp.label}`);
+          setTool(null);
+        }}
+      />
     </div>
   );
 }
