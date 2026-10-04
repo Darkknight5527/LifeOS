@@ -188,6 +188,7 @@ export default function Calculator({ open, onClose, onUseAmount }) {
       open={open}
       onClose={onClose}
       title="Calculator"
+      titleExtra={<HelpPopover />}
       footer={
         <button
           data-calc-action="use"
@@ -262,10 +263,71 @@ export default function Calculator({ open, onClose, onUseAmount }) {
           </div>
         </div>
       )}
-      <p className="mt-4 text-[12px] leading-relaxed text-fin-faint">
-        Keyboard: numbers, + − * /, % , Enter for =, Backspace, C to clear, Esc to close. "500 + 18%" adds 18% of 500.
-      </p>
     </Sheet>
+  );
+}
+
+// The "i" button next to the title: a small popover with keyboard tips.
+const TIPS = [
+  ["0–9", "Type numbers"],
+  ["+ − * /", "Add, subtract, multiply, divide (x also multiplies)"],
+  ["%", "Percent: 500 + 18% adds 18% of 500"],
+  ["Enter", "Equals"],
+  ["Backspace", "Delete the last character"],
+  ["C", "Clear"],
+  ["Esc", "Close the calculator"],
+  ["K", "Open it from anywhere in Finances"],
+];
+
+function HelpPopover() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => !ref.current?.contains(e.target) && setOpen(false);
+    // Esc closes the tips first, not the whole calculator.
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        setOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onKey, true);
+    };
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        data-calc-action="help"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="How to use the calculator"
+        aria-expanded={open}
+        className={`grid h-8 w-8 place-items-center rounded-full transition ${open ? "bg-fin-accent/20 text-fin-accent" : "text-fin-muted hover:bg-white/5 hover:text-white"}`}
+      >
+        <Icon name="info" size={18} stroke={2} />
+      </button>
+      {open && (
+        <div role="dialog" aria-label="Calculator tips" className="absolute left-0 top-10 z-10 w-[300px] animate-pop-in rounded-2xl bg-fin-tile p-4 shadow-2xl ring-1 ring-white/10">
+          <div className="mb-2 text-[14px] font-semibold">Keyboard shortcuts</div>
+          <dl className="space-y-1.5">
+            {TIPS.map(([k, v]) => (
+              <div key={k} className="flex items-baseline gap-3 text-[13px]">
+                <dt className="w-[86px] shrink-0">
+                  <kbd className="rounded-md bg-black/30 px-1.5 py-0.5 font-semibold text-fin-accent">{k}</kbd>
+                </dt>
+                <dd className="leading-snug text-white/75">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+    </div>
   );
 }
 

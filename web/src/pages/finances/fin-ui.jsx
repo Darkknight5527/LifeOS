@@ -45,6 +45,7 @@ const PATHS = {
   pin: "M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
   book: "M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z",
   calc: "M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01",
+  info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01",
   external: "M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
 };
 
@@ -318,7 +319,7 @@ export function MonthNav({ label, sub, onPrev, onNext, canNext = true }) {
 export const ThemeContext = createContext("");
 
 // ---------- sheet (bottom sheet on phones, centred dialog on larger screens) ----------
-export function Sheet({ open, onClose, title, children, footer }) {
+export function Sheet({ open, onClose, title, children, footer, titleExtra }) {
   const theme = useContext(ThemeContext);
   useEffect(() => {
     if (!open) return;
@@ -342,7 +343,10 @@ export function Sheet({ open, onClose, title, children, footer }) {
       <div className="relative flex max-h-[92vh] w-full max-w-lg animate-sheet-up flex-col rounded-t-[30px] bg-fin-card shadow-2xl ring-1 ring-white/5 sm:animate-pop-in sm:rounded-[30px]">
         <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-white/15 sm:hidden" />
         <div className="flex items-center justify-between px-6 pb-2 pt-4">
-          <h3 className="text-[20px] font-bold">{title}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-[20px] font-bold">{title}</h3>
+            {titleExtra}
+          </div>
           <IconButton icon="close" label="Close" onClick={onClose} />
         </div>
         <div className="flex-1 overflow-y-auto px-6 pb-4">{children}</div>
