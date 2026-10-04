@@ -65,6 +65,7 @@ export function createApiClient(baseUrl, getToken) {
     list: (collection) => request(`/${collection}`),
     get: (collection, id) => request(`/${collection}/${id}`),
     create: (collection, data) => request(`/${collection}`, { method: "POST", body: data }),
+    bulkCreate: (collection, items) => request(`/${collection}/bulk`, { method: "POST", body: { items } }),
     update: (collection, id, data) => request(`/${collection}/${id}`, { method: "PATCH", body: data }),
     remove: (collection, id) => request(`/${collection}/${id}`, { method: "DELETE" }),
 

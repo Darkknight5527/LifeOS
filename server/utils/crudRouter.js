@@ -49,6 +49,24 @@ export function createCrudRouter(Model, opts = {}) {
     }
   });
 
+  // Create many documents at once (imports). Body: { items: [...] }, max 1000.
+  router.post("/bulk", async (req, res, next) => {
+    try {
+      const items = Array.isArray(req.body?.items) ? req.body.items : null;
+      if (!items || !items.length) return res.status(400).json({ error: "items must be a non-empty array" });
+      if (items.length > 1000) return res.status(413).json({ error: "Too many items (max 1000 per request)" });
+      const now = Date.now();
+      const hasUpdated = "updatedAt" in Model.schema.paths;
+      const docs = await Model.insertMany(
+        items.map((x, i) => ({ ...x, createdAt: x.createdAt ?? now + i, ...(hasUpdated ? { updatedAt: now } : {}) })),
+        { ordered: true }
+      );
+      res.status(201).json(docs);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Update a document
   router.patch("/:id", async (req, res, next) => {
     try {

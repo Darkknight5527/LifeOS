@@ -35,6 +35,7 @@ import { PlateCalculator, TimersSheet } from "./Tools.jsx";
 import { daysInMonth, monthKey, monthLabel, shiftMonth } from "../finances/lib";
 import { EmptyState, FinCard, GhostButton, Icon, IconButton, Pill, PrimaryButton, Ring, Segmented, Sheet, TextField } from "../finances/fin-ui.jsx";
 import { useToast } from "../../components/Toast.jsx";
+import { fromFitNotes } from "./fitnotes.js";
 
 export const ACTIVE_KEY = "lifeos_fit_active_v1";
 const H = "lg:h-[calc(100dvh-178px)] lg:min-h-[380px]";
@@ -842,6 +843,7 @@ export function TrainHistory({ onOpenSession }) {
   }, [month]);
   const day = byDate[selected] || { s: [], c: [] };
   const monthCount = fit.sessions.filter((s) => s.date.startsWith(month)).length;
+  const [importing, setImporting] = useState(false);
   const splitId = (label) => SPLITS.find((x) => x.label === label)?.id || "push";
   const open = (s, edit) => {
     openSessionLater(makeSession({ split: splitId(s.splitDay), list: [], history, customs, date: edit ? s.date : todayISO(), fromSession: s, editingId: edit ? s._id : null }));
@@ -851,11 +853,28 @@ export function TrainHistory({ onOpenSession }) {
   return (
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(340px,420px)_1fr] lg:gap-4 [&>*]:min-w-0">
       <FinCard
-        title={monthLabel(month)}
+        title={
+          <label className="relative flex cursor-pointer items-center gap-1 rounded-lg hover:text-fin-accent" title="Jump to a month">
+            {monthLabel(month)}
+            <Icon name="down" size={14} />
+            <input
+              type="month"
+              aria-label="Jump to month"
+              value={month}
+              max={monthKey()}
+              onClick={(e) => e.currentTarget.showPicker?.()}
+              onChange={(e) => e.target.value && setMonth(e.target.value)}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
+        }
         action={
           <div className="flex items-center">
+            <button onClick={() => setImporting(true)} className="mr-1 rounded-lg bg-fin-accent/15 px-2.5 py-1 text-[12.5px] font-semibold text-fin-accent hover:bg-fin-accent/25" title="Bring in workouts from a FitNotes export">
+              Import
+            </button>
             <button onClick={() => exportCSV(fit.sessions)} className="mr-1 rounded-lg bg-fin-tile px-2.5 py-1 text-[12.5px] font-semibold text-white/80 hover:text-white" title="Download all workouts as a CSV file">
-              Export CSV
+              Export
             </button>
             <IconButton icon="left" label="Previous month" onClick={() => setMonth((m) => shiftMonth(m, -1))} />
             <IconButton icon="right" label="Next month" onClick={() => setMonth((m) => shiftMonth(m, 1))} className={month >= monthKey() ? "pointer-events-none opacity-25" : ""} />
@@ -911,7 +930,11 @@ export function TrainHistory({ onOpenSession }) {
               }
             >
               <div className="mb-2 text-[13px] text-fin-muted">{kg(volumeOf(s))} lifted · {(s.exercises || []).reduce((a, e) => a + working(e.sets).length, 0)} working sets</div>
-              {s.notes && <div className="mb-2 rounded-xl bg-fin-input px-3 py-2 text-[13px] italic text-white/75">“{s.notes}”</div>}
+              {s.notes === IMPORTED ? (
+                <div className="mb-2 text-[12px] text-fin-faint">Imported from FitNotes</div>
+              ) : (
+                s.notes && <div className="mb-2 rounded-xl bg-fin-input px-3 py-2 text-[13px] italic text-white/75">“{s.notes}”</div>
+              )}
               <div className="space-y-2">
                 {(s.exercises || []).map((e, i) => (
                   <div key={i} className={`rounded-2xl bg-fin-input px-3 py-2 ${e.superset ? "border-l-2 border-amber-300/60" : ""}`}>
@@ -944,7 +967,117 @@ export function TrainHistory({ onOpenSession }) {
           ))}
         </div>
       </div>
+      <ImportSheet
+        open={importing}
+        onClose={() => setImporting(false)}
+        onDone={(last) => {
+          if (last) {
+            setMonth(last.slice(0, 7));
+            setSelected(last);
+          }
+        }}
+      />
     </div>
+  );
+}
+
+const IMPORTED = "Imported from FitNotes";
+
+// Pick a FitNotes CSV → preview → import. Days already in LifeOS are skipped,
+// so importing a newer export later only adds what's new.
+function ImportSheet({ open, onClose, onDone }) {
+  const fit = useFit();
+  const showToast = useToast();
+  const [plan, setPlan] = useState(null);
+  const [error, setError] = useState("");
+  const [progress, setProgress] = useState(null);
+  const [fileName, setFileName] = useState("");
+  useEffect(() => {
+    if (open) {
+      setPlan(null);
+      setError("");
+      setProgress(null);
+      setFileName("");
+    }
+  }, [open]);
+
+  async function pick(file) {
+    if (!file) return;
+    setFileName(file.name);
+    setError("");
+    setPlan(null);
+    try {
+      const text = await file.text();
+      setPlan(fromFitNotes(text, { sessions: fit.sessions, cardio: fit.cardio, customs: fit.settings?.customExercises || [] }));
+    } catch (e) {
+      setError(e.message || "Couldn't read that file");
+    }
+  }
+  async function run() {
+    setProgress(0);
+    try {
+      const made = await fit.importData(plan, setProgress);
+      showToast(`Imported ${made.sessions.length} workouts${made.cardio.length ? ` and ${made.cardio.length} cardio` : ""}`);
+      onDone?.(plan.sessions[plan.sessions.length - 1]?.date);
+      onClose();
+    } catch (e) {
+      setError(`${e.message || "Import failed"} — anything saved so far is kept; import the same file again to finish.`);
+      setProgress(null);
+    }
+  }
+  const busy = progress != null;
+  const nothing = plan && !plan.sessions.length && !plan.cardio.length;
+  return (
+    <Sheet
+      open={open}
+      onClose={busy ? () => {} : onClose}
+      title="Import from FitNotes"
+      footer={
+        <PrimaryButton className="flex-1" disabled={!plan || nothing || busy} onClick={run}>
+          {busy ? `Importing… ${Math.round(progress * 100)}%` : plan && !nothing ? `Import ${plan.sessions.length} workouts` : "Import"}
+        </PrimaryButton>
+      }
+    >
+      <div className="text-[14px] leading-relaxed text-fin-muted">
+        In FitNotes: <b className="text-white/85">Settings → Spreadsheet Export → Export Workouts</b>, then choose that .csv file here.
+      </div>
+      <label className={`mt-4 flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border-2 border-dashed border-white/10 px-4 py-6 text-center transition hover:border-fin-accent/60 ${busy ? "pointer-events-none opacity-50" : ""}`}>
+        <Icon name="upload" size={22} />
+        <span className="text-[14.5px] font-semibold">{fileName || "Choose FitNotes CSV"}</span>
+        <span className="text-[12px] text-fin-faint">Stays on your device until you press Import</span>
+        <input type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => pick(e.target.files?.[0])} />
+      </label>
+      {error && <div className="mt-3 rounded-xl bg-red-500/10 px-3 py-2 text-[13px] text-fin-danger">{error}</div>}
+      {plan && (
+        <div className="mt-4">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              ["Workouts", plan.sessions.length],
+              ["Sets", plan.stats.sets.toLocaleString("en-IN")],
+              ["Exercises", plan.stats.exercises],
+            ].map(([k, v]) => (
+              <div key={k} className="rounded-2xl bg-fin-input px-3 py-2.5 text-center">
+                <div className="text-[12px] text-fin-muted">{k}</div>
+                <div className="tabular text-[18px] font-extrabold">{v}</div>
+              </div>
+            ))}
+          </div>
+          <ul className="mt-3 space-y-1 text-[13.5px] text-fin-muted">
+            <li>{prettyDate(plan.stats.from, { day: "numeric", month: "short", year: "numeric" })} → {prettyDate(plan.stats.to, { day: "numeric", month: "short", year: "numeric" })}</li>
+            {plan.cardio.length > 0 && <li>{plan.cardio.length} cardio entries (walks, runs)</li>}
+            {plan.customs.length > 0 && <li>{plan.customs.length} exercises added to My exercises (e.g. {plan.customs.slice(0, 3).map((c) => c.exercise).join(", ")})</li>}
+            {plan.stats.skipped > 0 && <li>{plan.stats.skipped} day{plan.stats.skipped === 1 ? "" : "s"} already in LifeOS — skipped</li>}
+            <li>Names like "Barbell Squat" are matched to LifeOS's "Squat", so your plan shows your old numbers.</li>
+          </ul>
+          {nothing && <div className="mt-3 text-[14px] font-semibold text-white/85">Everything in this file is already in LifeOS.</div>}
+          {busy && (
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-fin-input">
+              <div className="h-full rounded-full bg-fin-accent transition-all" style={{ width: `${Math.max(4, progress * 100)}%` }} />
+            </div>
+          )}
+        </div>
+      )}
+    </Sheet>
   );
 }
 

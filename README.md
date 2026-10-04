@@ -120,6 +120,12 @@ Blue theme. Tabs: **Train**, **Nutrition**, **Body** (← → to switch).
   workout, plate calculator (bar + plates you own), timers (stopwatch, EMOM,
   AMRAP, Tabata), progress graph metrics with trend line and range, rep maxes
   (1/3/5/8/10/12 RM), goals per exercise, statistics, CSV export.
+  **Import from FitNotes** (History → Import): pick the CSV from FitNotes →
+  Settings → Spreadsheet Export. Sets become LifeOS workouts (Push/Pull/Legs
+  guessed from the muscles trained), walks/runs become cardio, unknown
+  exercises become your own, and common names are matched to the LifeOS
+  library (Barbell Squat → Squat). Days already in LifeOS are skipped, so a
+  newer export can be imported again safely. Uses `POST /api/<collection>/bulk`.
 - **Nutrition** — Diary by meal with ~120 built-in Indian/Kerala foods,
   recent foods, quick add, copy yesterday, servings; water tracker. Targets
   from Mifflin–St Jeor + activity + goal (or your own). Insights: calories and

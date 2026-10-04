@@ -100,6 +100,32 @@ export function FitProvider({ children }) {
     [showToast, fail]
   );
 
+  // ---------- import (FitNotes etc.): many workouts at once ----------
+  const importData = useCallback(
+    async ({ sessions = [], cardio = [], customs = [] }, onProgress) => {
+      const made = { sessions: [], cardio: [] };
+      const total = sessions.length + cardio.length || 1;
+      try {
+        for (const [key, items] of [["sessions", sessions], ["cardio", cardio]])
+          for (let i = 0; i < items.length; i += 40) {
+            const docs = await api.bulkCreate(C[key], items.slice(i, i + 40));
+            made[key].push(...docs);
+            onProgress?.((made.sessions.length + made.cardio.length) / total);
+          }
+        if (customs.length) {
+          const have = ref.current.settings?.customExercises || [];
+          const names = new Set(have.map((c) => c.exercise.toLowerCase()));
+          const add = customs.filter((c) => !names.has(c.exercise.toLowerCase()));
+          if (add.length) await saveSettings({ customExercises: [...have, ...add] });
+        }
+        return made;
+      } finally {
+        setD((x) => ({ ...x, sessions: [...made.sessions, ...x.sessions].sort(byDateDesc), cardio: [...made.cardio, ...x.cardio].sort(byDateDesc) }));
+      }
+    },
+    [saveSettings]
+  );
+
   // ---------- simple lists (sessions, cardio, custom foods) ----------
   const listOps = useCallback(
     (key, label) => ({
@@ -205,6 +231,7 @@ export function FitProvider({ children }) {
     saveFood: (date, patch) => saveDay("food", date, patch),
     saveBody: (date, patch) => saveDay("body", date, patch),
     removeBody: bodyOps.remove,
+    importData,
   };
   return <FitContext.Provider value={value}>{children}</FitContext.Provider>;
 }
