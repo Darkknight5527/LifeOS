@@ -83,6 +83,26 @@ Hair, Body care. Skin has four views:
 API: `skincare-steps` (routine), `doneSteps` on `skin-logs`. Older skin logs
 (fixed cleanser/moisturizer/sunscreen fields) are read automatically.
 
+**Hair** and **Body care** use the same four views:
+
+- **Today** — the day's routine (hair: wash-day steps such as oil the night
+  before, shampoo, conditioner; body: brushing, floss, tongue, shower,
+  deodorant, lotion), "did it anyway" chips for unscheduled steps, and
+  periodic tasks with due dates (haircut, hair mask, beard, nails, ears, nose,
+  brows, scrub, towels, replace toothbrush, dental check-up…). Hair also has a
+  check-in: hair fall, scalp, note.
+- **History** — calendar; edit any day's steps and tasks.
+- **Insights** — consistency, step-by-step, tasks target vs actual; hair fall
+  trend + scalp (hair), brushed-twice / floss rates (body).
+- **Routine** — add/edit/reorder steps (weekdays) and tasks (every N days).
+
+API: `care-items` (steps and tasks, `area` hair/body) and `care-logs` (one per
+area per day, `done` keys + hair check-in). On first run the default routines
+are created and older `hair-logs`, `grooming-brush` and `grooming-tasks`
+entries are copied over.
+
+Keyboard: ← → switch Skin / Hair / Body care (as in Finances); ↑ ↓ switch domains.
+
 ## Morning Paper
 
 `/paper` — a newspaper-style front page for the day: today's and tomorrow's

@@ -7,15 +7,15 @@ import TodayView from "./grooming/skin/TodayView.jsx";
 import HistoryView from "./grooming/skin/HistoryView.jsx";
 import InsightsView, { RANGES } from "./grooming/skin/InsightsView.jsx";
 import RoutineView from "./grooming/skin/RoutineView.jsx";
-import HairSection from "./physical/HairSection.jsx";
-import GroomingSection from "./physical/GroomingSection.jsx";
+import { CareProvider, useCare } from "./grooming/care/CareContext.jsx";
+import { CareHistory, CareInsights, CareRoutine, CareToday } from "./grooming/care/CareViews.jsx";
 
 const TABS = [
   { id: "skin", label: "Skin", icon: "drop" },
   { id: "hair", label: "Hair", icon: "hair" },
   { id: "body", label: "Body care", icon: "scissors" },
 ];
-const SKIN_VIEWS = [
+const VIEWS = [
   { value: "today", label: "Today" },
   { value: "history", label: "History" },
   { value: "insights", label: "Insights" },
@@ -24,33 +24,41 @@ const SKIN_VIEWS = [
 const KEY = "lifeos_groom_view";
 let restored = false;
 
+const FRESH = { tab: "skin", views: { skin: "today", hair: "today", body: "today" } };
+
 // Skin › Today when you come in; after a refresh, wherever you were.
 function initial() {
   if (IS_RELOAD && !restored) {
     restored = true;
     try {
       const v = JSON.parse(sessionStorage.getItem(KEY) || "null");
-      if (v?.tab && v?.view) return v;
+      if (v?.tab && v?.views) return { ...FRESH, ...v, views: { ...FRESH.views, ...v.views } };
     } catch {
       /* ignore */
     }
   }
-  return { tab: "skin", view: "today" };
+  return FRESH;
 }
 
 export default function GroomingPage() {
   return (
     <SkinProvider>
-      <GroomingShell />
+      <CareProvider>
+        <GroomingShell />
+      </CareProvider>
     </SkinProvider>
   );
 }
 
 function GroomingShell() {
   const skin = useSkin();
+  const care = useCare();
   const [state, setState] = useState(initial);
   const [range, setRange] = useState(30);
-  const { tab, view } = state;
+  const { tab } = state;
+  const view = state.views[tab];
+  const setView = (v) => setState((s) => ({ ...s, views: { ...s.views, [s.tab]: v } }));
+  const src = tab === "skin" ? skin : care;
 
   useEffect(() => {
     try {
@@ -74,45 +82,37 @@ function GroomingShell() {
         setState((s) => ({ ...s, tab: t }));
         window.scrollTo({ top: 0 });
       }}
-      syncing={tab === "skin" && skin.syncing && skin.hasData}
-      failed={tab === "skin" && Boolean(skin.error) && skin.hasData}
-      onRetry={skin.reload}
+      syncing={src.syncing && src.hasData}
+      failed={Boolean(src.error) && src.hasData}
+      onRetry={src.reload}
     >
-      {tab === "skin" && (
-        <div key="skin">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <Segmented
-              className="w-full max-w-[460px] [&_button]:!py-2 [&_button]:!text-[14px]"
-              value={view}
-              onChange={(v) => setState((s) => ({ ...s, view: v }))}
-              options={SKIN_VIEWS}
-            />
-            {view === "insights" && (
-              <Segmented className="w-full sm:w-[260px] sm:shrink-0 [&_button]:!py-1.5 [&_button]:!text-[13px]" value={range} onChange={setRange} options={RANGES} />
-            )}
-          </div>
-          {skin.loading ? (
-            <Loading />
-          ) : skin.error && !skin.hasData ? (
-            <div className="mt-10 rounded-[28px] bg-fin-card p-8 text-center">
-              <div className="text-[18px] font-bold">Couldn't load your skincare</div>
-              <div className="mt-2 text-[15px] text-fin-muted">{skin.error}</div>
-              <button onClick={skin.reload} className="mt-5 rounded-2xl bg-fin-tile px-5 py-2.5 font-semibold">Try again</button>
-            </div>
-          ) : (
-            <div key={view} className="animate-fade-in">
-              {view === "today" && <TodayView />}
-              {view === "history" && <HistoryView />}
-              {view === "insights" && <InsightsView range={range} />}
-              {view === "routine" && <RoutineView />}
-            </div>
-          )}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Segmented className="w-full max-w-[460px] [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={VIEWS} />
+        {view === "insights" && (
+          <Segmented className="w-full sm:w-[260px] sm:shrink-0 [&_button]:!py-1.5 [&_button]:!text-[13px]" value={range} onChange={setRange} options={RANGES} />
+        )}
+      </div>
+      {src.loading ? (
+        <Loading />
+      ) : src.error && !src.hasData ? (
+        <div className="mt-10 rounded-[28px] bg-fin-card p-8 text-center">
+          <div className="text-[18px] font-bold">Couldn't load your {tab === "skin" ? "skincare" : tab === "hair" ? "hair care" : "body care"}</div>
+          <div className="mt-2 text-[15px] text-fin-muted">{src.error}</div>
+          <button onClick={src.reload} className="mt-5 rounded-2xl bg-fin-tile px-5 py-2.5 font-semibold">Try again</button>
         </div>
-      )}
-      {/* Hair and Body care keep their current forms for now, in dark colours */}
-      {tab !== "skin" && (
-        <div key={tab} className="dark legacy-dark animate-fade-in rounded-[24px] bg-fin-card p-5 sm:p-6">
-          {tab === "hair" ? <HairSection /> : <GroomingSection />}
+      ) : tab === "skin" ? (
+        <div key={`skin-${view}`} className="animate-fade-in">
+          {view === "today" && <TodayView />}
+          {view === "history" && <HistoryView />}
+          {view === "insights" && <InsightsView range={range} />}
+          {view === "routine" && <RoutineView />}
+        </div>
+      ) : (
+        <div key={`${tab}-${view}`} className="animate-fade-in">
+          {view === "today" && <CareToday area={tab} />}
+          {view === "history" && <CareHistory area={tab} />}
+          {view === "insights" && <CareInsights area={tab} range={range} />}
+          {view === "routine" && <CareRoutine area={tab} />}
         </div>
       )}
     </DomainShell>
