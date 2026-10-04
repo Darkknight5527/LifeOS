@@ -210,24 +210,35 @@ export function TrainToday() {
                 </div>
               ))}
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {split !== "rest" && (
-                <button onClick={() => start()} className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-[15px] font-bold text-[#1d4ed8] shadow-lg transition hover:brightness-95 active:scale-[0.98]">
-                  <Icon name="dumbbell" size={18} stroke={2.2} /> {doneToday ? "Start another" : "Start workout"}
-                </button>
-              )}
-              {SPLITS.filter((s) => s.id !== "rest" && s.id !== split).map((s) => (
-                <button key={s.id} onClick={() => setPickSplit(s.id)} className="rounded-2xl bg-black/15 px-3 py-2.5 text-[14px] font-semibold text-white/90 hover:bg-black/25">
-                  {s.label}
-                </button>
-              ))}
+            <div className="mt-3 grid grid-cols-3 gap-1 rounded-2xl bg-black/15 p-1" role="radiogroup" aria-label="Workout">
+              {SPLITS.filter((s) => s.id !== "rest").map((s) => {
+                const on = split === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setPickSplit(s.id)}
+                    className={`relative rounded-xl py-2 text-[14.5px] font-bold transition ${on ? "bg-white text-[#1d4ed8] shadow" : "text-white/85 hover:bg-white/10"}`}
+                  >
+                    {s.label}
+                    {todaySplit === s.id && <span className={`absolute right-2 top-1.5 h-1.5 w-1.5 rounded-full ${on ? "bg-[#1d4ed8]" : "bg-white/70"}`} title="Today's plan" />}
+                  </button>
+                );
+              })}
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5 text-[13px] font-semibold">
-              <button onClick={() => setTool("plates")} className="rounded-xl bg-black/15 px-3 py-1.5 hover:bg-black/25">Plate calculator</button>
-              <button onClick={() => setTool("timers")} className="rounded-xl bg-black/15 px-3 py-1.5 hover:bg-black/25">Timers</button>
-              <button onClick={() => split !== "rest" ? start(split, isoDate(addDays(parseISO(today), -1))) : start("push", isoDate(addDays(parseISO(today), -1)))} className="rounded-xl bg-black/15 px-3 py-1.5 hover:bg-black/25" title="Log a workout for an earlier day (change the date at the top)">
-                Log past workout
+            <div className="mt-2 flex gap-1.5">
+              <button
+                onClick={() => split !== "rest" && start()}
+                disabled={split === "rest"}
+                className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-white py-2.5 text-[15px] font-bold text-[#1d4ed8] shadow-lg transition hover:brightness-95 active:scale-[0.99] disabled:bg-white/25 disabled:text-white/85 disabled:shadow-none"
+              >
+                <Icon name="dumbbell" size={18} stroke={2.2} />
+                <span className="truncate">{split === "rest" ? "Pick a workout above" : `${doneToday ? "Start another" : "Start"} ${sp.label} workout`}</span>
               </button>
+              <button onClick={() => setTool("plates")} title="Plate calculator" className="rounded-2xl bg-black/15 px-3 text-[13px] font-semibold hover:bg-black/25">Plates</button>
+              <button onClick={() => setTool("timers")} title="Timers: stopwatch, EMOM, AMRAP, Tabata" className="rounded-2xl bg-black/15 px-3 text-[13px] font-semibold hover:bg-black/25">Timers</button>
+              <button onClick={() => start(split !== "rest" ? split : "push", isoDate(addDays(parseISO(today), -1)))} title="Log a workout for an earlier day (change the date at the top)" className="rounded-2xl bg-black/15 px-3 text-[13px] font-semibold hover:bg-black/25">Past</button>
             </div>
           </div>
         </section>

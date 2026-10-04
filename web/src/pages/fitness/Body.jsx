@@ -127,9 +127,17 @@ export function BodyView() {
             <div className={`${kicker} mt-4`}>Recent weigh-ins</div>
             <div className="fin-scroll space-y-1 lg:max-h-[calc(100dvh-520px)] lg:overflow-y-auto">
               {[...fit.body].filter((b) => b.weight || b.waist).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).map((b) => (
-                <div key={b._id} className="tabular flex justify-between gap-3 text-[13.5px]">
+                <div key={b._id} className="tabular group flex items-center justify-between gap-3 rounded-lg py-0.5 pl-1 text-[13.5px] hover:bg-white/[0.03]">
                   <span className="text-fin-muted">{prettyDate(b.date)}</span>
-                  <span>{[b.weight && `${b.weight} kg`, b.waist && `waist ${b.waist}`, b.bodyFat && `${b.bodyFat}% fat`].filter(Boolean).join(" · ")}</span>
+                  <span className="ml-auto">{[b.weight && `${b.weight} kg`, b.waist && `waist ${b.waist}`, b.bodyFat && `${b.bodyFat}% fat`].filter(Boolean).join(" · ")}</span>
+                  <button
+                    onClick={() => fit.removeBody(b)}
+                    aria-label={`Delete weigh-in from ${prettyDate(b.date)}`}
+                    title="Delete"
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-fin-faint transition hover:bg-red-500/10 hover:text-fin-danger"
+                  >
+                    <Icon name="trash" size={14} />
+                  </button>
                 </div>
               ))}
             </div>

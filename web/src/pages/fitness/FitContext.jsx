@@ -150,6 +150,7 @@ export function FitProvider({ children }) {
   const sessions = useMemo(() => listOps("sessions", "Workout"), [listOps]);
   const cardio = useMemo(() => listOps("cardio", "Cardio"), [listOps]);
   const custom = useMemo(() => listOps("custom", "Food"), [listOps]);
+  const bodyOps = useMemo(() => listOps("body", "Weigh-in"), [listOps]);
 
   // ---------- one document per date (food logs, body logs) ----------
   const saveDay = useCallback(
@@ -203,6 +204,7 @@ export function FitProvider({ children }) {
     customOps: custom,
     saveFood: (date, patch) => saveDay("food", date, patch),
     saveBody: (date, patch) => saveDay("body", date, patch),
+    removeBody: bodyOps.remove,
   };
   return <FitContext.Provider value={value}>{children}</FitContext.Provider>;
 }
