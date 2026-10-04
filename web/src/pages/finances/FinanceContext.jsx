@@ -170,6 +170,9 @@ export function FinanceProvider({ children }) {
     [state.transactions, bucketOf]
   );
 
+  // Money received outside salary: cashback, refunds, loans paid back…
+  const received = useMemo(() => state.transactions.filter((t) => t.type === "income" && t.bucket === "received"), [state.transactions]);
+
   const monthRecord = useCallback((key) => state.months.find((m) => m.month === key) || null, [state.months]);
 
   // Most recent month before `key` that has a salary — used for "same as last month?".
@@ -184,7 +187,7 @@ export function FinanceProvider({ children }) {
   // ---------- actions: transactions ----------
   const addExpense = useCallback(
     async (data) => {
-      const doc = await attempt(() => api.create(COLLECTIONS.transactions, { type: "expense", ...data }), "Expense saved");
+      const doc = await attempt(() => api.create(COLLECTIONS.transactions, { type: "expense", ...data }), data.type === "income" ? "Money received saved" : "Expense saved");
       if (doc) patchList("transactions", (l) => [doc, ...l].sort(byDateDesc));
       return doc;
     },
@@ -206,7 +209,7 @@ export function FinanceProvider({ children }) {
       if (!ok) return;
       patchList("transactions", (l) => l.filter((t) => t._id !== tx._id));
       const { _id, __v, ...rest } = tx;
-      showToast("Expense deleted", false, {
+      showToast(tx.type === "income" ? "Entry deleted" : "Expense deleted", false, {
         action: {
           label: "Undo",
           onClick: async () => {
@@ -378,6 +381,7 @@ export function FinanceProvider({ children }) {
     ...state,
     ratio,
     expenses,
+    received,
     currentMonth: monthKey(),
     monthRecord,
     previousRecord,

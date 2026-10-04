@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
 import { BUCKETS, BUCKET, addDays, formatMoney, isoDate, todayISO } from "./lib";
 import { GhostButton, Icon, Pill, PrimaryButton, Segmented, Sheet, TextField } from "./fin-ui.jsx";
+import { TypeSwitch } from "./ReceivedSheet.jsx";
 
 const QUICK_ADD = [50, 100, 500, 1000];
 
@@ -10,7 +11,7 @@ const QUICK_ADD = [50, 100, 500, 1000];
  * Subcategories are picked as chips (no dropdown), grouped under the
  * selected bucket, and a new one can be created inline.
  */
-export default function LogExpenseSheet({ open, onClose, editing, initialAmount }) {
+export default function LogExpenseSheet({ open, onClose, editing, initialAmount, onSwitchToReceived }) {
   const { categories, addExpense, updateExpense, removeExpense, addCategory } = useFinance();
 
   const [amount, setAmount] = useState("");
@@ -100,6 +101,7 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount 
         </>
       }
     >
+      {!editing && onSwitchToReceived && <TypeSwitch value="expense" onReceived={onSwitchToReceived} />}
       {/* Amount */}
       <div className="rounded-[24px] bg-fin-input px-5 py-5 text-center">
         <div className="flex items-baseline justify-center gap-1">

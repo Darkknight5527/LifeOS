@@ -6,7 +6,7 @@ import { BucketBadge, FinCard, GhostButton, Icon, Money, MoneyField, PrimaryButt
 import ExpenseRow from "./ExpenseRow.jsx";
 import SalarySheet from "./SalarySheet.jsx";
 
-export default function HomeTab({ onEdit, onGoTo }) {
+export default function HomeTab({ onEdit, onGoTo, onReceived }) {
   const { currentMonth, previousRecord, setSalary, ratio, expenses, prevMonthKey } = useFinance();
   const stats = useMonthStats(currentMonth);
   const last = useMonthStats(prevMonthKey(currentMonth));
@@ -16,7 +16,7 @@ export default function HomeTab({ onEdit, onGoTo }) {
 
   const hasSalary = stats.salary > 0;
   const prev = previousRecord(currentMonth);
-  const remaining = stats.salary - stats.total;
+  const remaining = stats.left; // salary + money received − spent
   const daysLeft = daysInMonth(currentMonth) - new Date().getDate() + 1;
   // What's left in Needs + Wants, spread over the remaining days (savings are not for spending).
   const spendable = hasSalary
@@ -49,7 +49,8 @@ export default function HomeTab({ onEdit, onGoTo }) {
                 <Money value={remaining} />
               </div>
               <div className="mt-1 text-[15px] text-white/90">
-                of {formatMoney(stats.salary)} · {daysLeft} day{daysLeft === 1 ? "" : "s"} to go
+                of {formatMoney(stats.salary)}
+                {stats.received > 0 && <> + {formatMoney(stats.received)} received</>} · {daysLeft} day{daysLeft === 1 ? "" : "s"} to go
               </div>
               <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/15 px-3.5 py-1.5 text-[14px] font-semibold backdrop-blur-sm">
                 <Icon name="sparkle" size={16} />
@@ -163,15 +164,43 @@ export default function HomeTab({ onEdit, onGoTo }) {
       </FinCard>
 
       </div>
-      <div className="space-y-5 lg:col-span-2 xl:col-span-1">
+      <div className="space-y-5 lg:col-span-2 xl:col-span-1 xl:flex xl:max-h-[calc(100dvh-98px)] xl:flex-col xl:space-y-0 xl:gap-4">
+      {/* Money received */}
+      <FinCard
+        title="Money received"
+        delay={140}
+        action={
+          <button onClick={onReceived} className="flex items-center gap-1.5 rounded-xl bg-fin-savings/15 px-3 py-1.5 text-[13.5px] font-semibold text-fin-savings transition hover:bg-fin-savings/25" title="Add money received (R)">
+            <Icon name="plus" size={14} stroke={2.6} /> Add
+          </button>
+        }
+      >
+        {stats.receivedList.length ? (
+          <>
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="text-[26px] font-extrabold text-fin-savings">
+                +<Money value={stats.received} />
+              </div>
+              <div className="text-[13px] text-fin-muted">this month · {stats.receivedList.length} entr{stats.receivedList.length === 1 ? "y" : "ies"}</div>
+            </div>
+            <div className="-mx-2 mt-1">
+              {stats.receivedList.slice(0, 2).map((t) => (
+                <ExpenseRow key={t._id} tx={t} onClick={() => onEdit(t)} showDate dateLabel={dayHeading(t.date)} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="text-[14px] text-fin-muted">Cashback, refunds or a loan someone paid back? Add it here and it counts towards what's left.</div>
+        )}
+      </FinCard>
       {/* Last month leftover */}
       {last.salary > 0 && (
         <FinCard title="Last month leftover" delay={160}>
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="text-[14px] text-fin-muted">{monthLabel(last.rec.month)}</div>
-              <div className={`mt-1 text-[30px] font-extrabold ${last.salary - last.total < 0 ? "text-fin-danger" : "text-fin-savings"}`}>
-                <Money value={last.salary - last.total} />
+              <div className={`mt-1 text-[30px] font-extrabold ${last.left < 0 ? "text-fin-danger" : "text-fin-savings"}`}>
+                <Money value={last.left} />
               </div>
             </div>
             <div className="text-right text-[14px] text-fin-muted">
@@ -186,12 +215,13 @@ export default function HomeTab({ onEdit, onGoTo }) {
       <FinCard
         title="Recent expenses"
         delay={200}
+        className="xl:flex xl:min-h-0 xl:flex-1 xl:flex-col"
         action={expenses.length > 0 && (
           <button onClick={() => onGoTo("expenses")} className="text-[14px] font-semibold text-fin-accent hover:brightness-125">See all</button>
         )}
       >
         {expenses.length ? (
-          <div className="-mx-2">
+          <div className="fin-scroll -mx-2 xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
             {expenses.slice(0, 5).map((t) => (
               <ExpenseRow key={t._id} tx={t} onClick={() => onEdit(t)} showDate dateLabel={dayHeading(t.date)} />
             ))}

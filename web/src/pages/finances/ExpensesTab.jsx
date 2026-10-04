@@ -18,7 +18,7 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
 
   // Old income entries (from before the rework) still show up, marked as income.
   const all = useMemo(() => {
-    const income = transactions.filter((t) => t.type === "income").map((t) => ({ ...t, bucket: "savings" }));
+    const income = transactions.filter((t) => t.type === "income").map((t) => ({ ...t, bucket: t.bucket === "received" ? "received" : "savings" }));
     return [...expenses, ...income].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
   }, [expenses, transactions]);
 

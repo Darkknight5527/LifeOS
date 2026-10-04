@@ -4,15 +4,19 @@ import { BUCKETS, addDays, isoDate, sum, todayISO, weekStart } from "./lib";
 
 // Spending numbers for one month, shared by Home and Insights.
 export function useMonthStats(key) {
-  const { expenses, monthRecord } = useFinance();
+  const { expenses, received, monthRecord } = useFinance();
   return useMemo(() => {
     const rec = monthRecord(key);
+    const receivedList = received.filter((t) => (t.date || "").slice(0, 7) === key);
+    const got = sum(receivedList, (t) => t.amount);
     const list = expenses.filter((t) => (t.date || "").slice(0, 7) === key);
     const spent = Object.fromEntries(BUCKETS.map((b) => [b.id, sum(list.filter((t) => t.bucket === b.id), (t) => t.amount)]));
     const total = sum(list, (t) => t.amount);
     const alloc = rec ? { needs: rec.needs || 0, wants: rec.wants || 0, savings: rec.savings || 0 } : null;
-    return { rec, list, spent, total, alloc, salary: rec?.salary || 0 };
-  }, [expenses, monthRecord, key]);
+    const salary = rec?.salary || 0;
+    // left = salary + money received − spent
+    return { rec, list, spent, total, alloc, salary, received: got, receivedList, left: salary + got - total };
+  }, [expenses, received, monthRecord, key]);
 }
 
 // Today / this week / this month totals relative to the real current date.

@@ -349,7 +349,7 @@ function MoneyMini() {
   const yesterday = isoDate(addDays(new Date(), -1));
   const spentY = expenses.filter((t) => t.date === yesterday).reduce((s, t) => s + t.amount, 0);
   return (
-    <Mini icon="wallet" title="Money" meta={`${formatMoney(stats.salary - stats.total, { compact: true })} left`} delay={60}>
+    <Mini icon="wallet" title="Money" meta={`${formatMoney(stats.left, { compact: true })} left`} delay={60}>
       <div className="flex items-baseline justify-between gap-2">
         <div className="tabular text-[24px] font-extrabold leading-none">{formatMoney(Math.floor(spendable / Math.max(1, daysLeft)))}</div>
         <div className="text-right text-[12px] text-fin-muted">safe to spend today</div>

@@ -9,6 +9,7 @@ import WealthTab from "./finances/WealthTab.jsx";
 import SettingsTab from "./finances/SettingsTab.jsx";
 import LogExpenseSheet from "./finances/LogExpenseSheet.jsx";
 import Calculator from "./finances/Calculator.jsx";
+import ReceivedSheet from "./finances/ReceivedSheet.jsx";
 import { MenuButton } from "../components/AppMenu.jsx";
 import { IS_RELOAD } from "../lib/navigation.js";
 
@@ -61,6 +62,8 @@ function FinanceShell() {
   const [expenseFilter, setExpenseFilter] = useState({ bucket: "all", n: 0 });
   const [sheet, setSheet] = useState({ open: false, editing: null, amount: null });
   const [calcOpen, setCalcOpen] = useState(false);
+  const [recv, setRecv] = useState({ open: false, editing: null });
+  const openReceived = useCallback(() => setRecv({ open: true, editing: null }), []);
 
   const goTo = useCallback((id, opts = {}) => {
     setTab(id);
@@ -69,11 +72,12 @@ function FinanceShell() {
   }, []);
 
   const openNew = useCallback(() => setSheet({ open: true, editing: null, amount: null }), []);
-  const openEdit = useCallback((tx) => setSheet({ open: true, editing: tx, amount: null }), []);
+  // Money-received entries open their own sheet.
+  const openEdit = useCallback((tx) => (tx.type === "income" && tx.bucket === "received" ? setRecv({ open: true, editing: tx }) : setSheet({ open: true, editing: tx, amount: null })), []);
   const close = useCallback(() => setSheet((s) => ({ ...s, open: false })), []);
 
   // Keyboard shortcuts (ignored while typing or while a popup is open):
-  //   N = log expense · K = calculator · ← → = previous / next tab
+  //   N = log expense · R = money received · K = calculator · ← → = previous / next tab
   useEffect(() => {
     const onKey = (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
@@ -84,6 +88,9 @@ function FinanceShell() {
       if (k.toLowerCase() === "n" && !e.shiftKey) {
         e.preventDefault();
         openNew();
+      } else if (k.toLowerCase() === "r" && !e.shiftKey) {
+        e.preventDefault();
+        openReceived();
       } else if (k.toLowerCase() === "k" && !e.shiftKey) {
         e.preventDefault();
         setCalcOpen(true);
@@ -100,7 +107,7 @@ function FinanceShell() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openNew]);
+  }, [openNew, openReceived]);
 
   // Move keyboard focus with the active tab so screen readers announce it.
   useEffect(() => {
@@ -171,7 +178,7 @@ function FinanceShell() {
           </div>
         ) : (
           <div key={tab}>
-            {tab === "home" && <HomeTab onEdit={openEdit} onGoTo={goTo} />}
+            {tab === "home" && <HomeTab onEdit={openEdit} onGoTo={goTo} onReceived={openReceived} />}
             {tab === "expenses" && <ExpensesTab key={expenseFilter.n} onEdit={openEdit} initialBucket={expenseFilter.bucket} />}
             {tab === "insights" && <InsightsTab />}
             {tab === "wealth" && <WealthTab />}
@@ -212,7 +219,25 @@ function FinanceShell() {
         </div>
       </nav>
 
-      <LogExpenseSheet open={sheet.open} editing={sheet.editing} initialAmount={sheet.amount} onClose={close} />
+      <LogExpenseSheet
+        open={sheet.open}
+        editing={sheet.editing}
+        initialAmount={sheet.amount}
+        onClose={close}
+        onSwitchToReceived={() => {
+          close();
+          openReceived();
+        }}
+      />
+      <ReceivedSheet
+        open={recv.open}
+        editing={recv.editing}
+        onClose={() => setRecv((r) => ({ ...r, open: false }))}
+        onSwitchToExpense={() => {
+          setRecv((r) => ({ ...r, open: false }));
+          openNew();
+        }}
+      />
       <Calculator
         open={calcOpen}
         onClose={() => setCalcOpen(false)}
