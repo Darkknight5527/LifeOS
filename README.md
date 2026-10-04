@@ -103,6 +103,28 @@ entries are copied over.
 
 Keyboard: ← → switch Skin / Hair / Body care (as in Finances); ↑ ↓ switch domains.
 
+## Fitness & Nutrition
+
+Blue theme. Tabs: **Train**, **Nutrition**, **Body** (← → to switch).
+
+- **Train** — Today: your Push/Pull/Legs day, week strip, muscle recovery
+  (Fitbod-style), personal records, weekly totals, cardio/sport log. *Start
+  workout* opens a live logger (Strong/Hevy-style): previous numbers per set,
+  tick a set to start the rest timer (beeps), add sets/exercises, finish for a
+  summary with new PRs (Epley 1RM). History calendar, Progress (1RM chart per
+  exercise, workouts/week, sets per muscle vs 10–20), Program (exercises,
+  sets × reps, weekly schedule, rest timer).
+- **Nutrition** — Diary by meal with ~120 built-in Indian/Kerala foods,
+  recent foods, quick add, copy yesterday, servings; water tracker. Targets
+  from Mifflin–St Jeor + activity + goal (or your own). Insights: calories and
+  protein vs target, macro split, top protein sources. Custom foods.
+- **Body** — weigh-ins with a smoothed trend, weekly change, BMI, goal ETA,
+  measurements, and an adaptive "real calorie burn" from intake vs trend
+  (MacroFactor-style) once there's ~3 weeks of data.
+
+API: `fit-settings`, `workout-strength` (sessions), `workout-cardio`,
+`food-logs` (one per day: entries + water), `custom-foods`, `body-logs`.
+
 ## Morning Paper
 
 `/paper` — a newspaper-style front page for the day: today's and tomorrow's

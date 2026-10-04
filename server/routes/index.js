@@ -30,6 +30,10 @@ import paperRoutes from "./paper.js";
 import Reminder from "../models/Reminder.js";
 import CareItem from "../models/CareItem.js";
 import CareLog from "../models/CareLog.js";
+import FitSettings from "../models/FitSettings.js";
+import FoodLog from "../models/FoodLog.js";
+import CustomFood from "../models/CustomFood.js";
+import BodyLog from "../models/BodyLog.js";
 import booksRoutes from "./books.js";
 
 const router = Router();
@@ -57,6 +61,10 @@ router.use("/learning-sessions", createCrudRouter(LearningSession, { sortField: 
 router.use("/finance", financeRoutes);
 router.use("/paper", paperRoutes);
 router.use("/books", booksRoutes);
+router.use("/fit-settings", createCrudRouter(FitSettings, { sortField: "createdAt", sortOrder: 1 }));
+router.use("/food-logs", createCrudRouter(FoodLog, { sortField: "date", sortOrder: -1 }));
+router.use("/custom-foods", createCrudRouter(CustomFood, { sortField: "name", sortOrder: 1 }));
+router.use("/body-logs", createCrudRouter(BodyLog, { sortField: "date", sortOrder: -1 }));
 router.use("/care-items", createCrudRouter(CareItem, { sortField: "order", sortOrder: 1 }));
 router.use("/care-logs", createCrudRouter(CareLog, { sortField: "date", sortOrder: -1 }));
 router.use("/reminders", createCrudRouter(Reminder, { sortField: "date", sortOrder: 1 }));

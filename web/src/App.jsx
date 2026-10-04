@@ -28,7 +28,7 @@ const READY = NAV_ITEMS.filter((n) => n.ready);
 
 // Dark pages that draw their own full-screen layout and header
 // (they put the menu button in their own header via useAppMenu()).
-const DARK_PAGES = ["/", "/finances", "/grooming", "/paper"];
+const DARK_PAGES = ["/", "/finances", "/grooming", "/paper", "/fitness"];
 
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));

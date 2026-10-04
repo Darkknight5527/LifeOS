@@ -4,6 +4,7 @@ const SetSchema = new mongoose.Schema(
   {
     reps: { type: Number, default: 0 },
     weight: { type: Number, default: 0 },
+    done: { type: Boolean, default: true },
   },
   { _id: false }
 );
@@ -21,6 +22,8 @@ const WorkoutStrengthSchema = new mongoose.Schema({
   date: { type: String, required: true },
   splitDay: { type: String, default: "" }, // e.g. "Push", "Pull", "Legs"
   exercises: { type: [ExerciseSchema], default: [] },
+  duration: { type: Number, default: 0 }, // minutes
+  notes: { type: String, default: "" },
   createdAt: { type: Number, default: () => Date.now() },
 });
 
