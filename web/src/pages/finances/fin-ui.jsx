@@ -44,6 +44,7 @@ const PATHS = {
   clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
   pin: "M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
   book: "M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z",
+  calc: "M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01",
   external: "M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
 };
 
@@ -117,12 +118,22 @@ export function Segmented({ options, value, onChange, className = "" }) {
         className="absolute bottom-1 top-1 rounded-xl bg-fin-tile shadow transition-all duration-300 ease-out"
         style={{ left: `calc(${(idx / options.length) * 100}% + 4px)`, width: `calc(${100 / options.length}% - 8px)` }}
       />
-      {options.map((o) => (
+      {options.map((o, i) => (
         <button
           key={o.value}
           role="tab"
           aria-selected={o.value === value}
+          tabIndex={o.value === value ? 0 : -1}
           onClick={() => onChange(o.value)}
+          onKeyDown={(e) => {
+            // ← → move between options, like any tab strip
+            if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+            e.preventDefault();
+            e.stopPropagation();
+            const next = (i + (e.key === "ArrowRight" ? 1 : -1) + options.length) % options.length;
+            onChange(options[next].value);
+            e.currentTarget.parentElement.querySelectorAll('[role="tab"]')[next]?.focus();
+          }}
           className={`relative z-10 flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-[15px] font-semibold transition-colors ${
             o.value === value ? "text-white" : "text-fin-muted hover:text-white/80"
           }`}

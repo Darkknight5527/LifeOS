@@ -1,0 +1,272 @@
+// A quick calculator for splitting bills, adding up receipts, working out
+// percentages. Works fully from the keyboard; the answer can be logged as an
+// expense in one step.
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Icon, Sheet } from "./fin-ui.jsx";
+
+const OPS = { "+": "+", "-": "−", "*": "×", "/": "÷" };
+
+/* ---------- safe evaluator (no eval) ----------
+ * expr   := term (("+" | "-") term)*
+ * term   := factor (("*" | "/") factor)*
+ * factor := "-" factor | number "%"?
+ * "a + b%" means a plus b percent of a (like a phone calculator);
+ * elsewhere "b%" is just b ÷ 100.
+ */
+function evaluate(src) {
+  const s = src.replace(/\s+/g, "");
+  if (!s) return null;
+  let i = 0;
+  const peek = () => s[i];
+  function number() {
+    const m = /^\d*\.?\d+|^\d+\.?/.exec(s.slice(i));
+    if (!m) throw new Error("Expected a number");
+    i += m[0].length;
+    return parseFloat(m[0]);
+  }
+  function factor() {
+    if (peek() === "-") {
+      i++;
+      const f = factor();
+      return { v: -f.v, pct: f.pct };
+    }
+    const v = number();
+    if (peek() === "%") {
+      i++;
+      return { v, pct: true };
+    }
+    return { v, pct: false };
+  }
+  function term() {
+    const first = factor();
+    let v = first.pct ? first.v / 100 : first.v;
+    let lonePct = first.pct && peek() !== "*" && peek() !== "/";
+    while (peek() === "*" || peek() === "/") {
+      const op = s[i++];
+      const f = factor();
+      const r = f.pct ? f.v / 100 : f.v;
+      if (op === "/" && r === 0) throw new Error("Can't divide by zero");
+      v = op === "*" ? v * r : v / r;
+      lonePct = false;
+    }
+    return { v, lonePct, raw: first.v };
+  }
+  function expr() {
+    let { v } = term();
+    while (peek() === "+" || peek() === "-") {
+      const op = s[i++];
+      const t = term();
+      const r = t.lonePct ? (v * t.raw) / 100 : t.v;
+      v = op === "+" ? v + r : v - r;
+    }
+    return v;
+  }
+  const v = expr();
+  if (i < s.length) throw new Error("Check the expression");
+  if (!Number.isFinite(v)) throw new Error("Result too large");
+  return Math.round(v * 1e10) / 1e10;
+}
+
+const fmt = (n) => (n == null ? "" : n.toLocaleString("en-IN", { maximumFractionDigits: 8 }));
+const pretty = (e) => e.replace(/[+\-*/]/g, (c) => ` ${OPS[c]} `).replace(/\s+/g, " ").trim();
+
+const KEYS = [
+  ["C", "clear"],
+  ["⌫", "back"],
+  ["%", "%"],
+  ["÷", "/"],
+  ["7"],
+  ["8"],
+  ["9"],
+  ["×", "*"],
+  ["4"],
+  ["5"],
+  ["6"],
+  ["−", "-"],
+  ["1"],
+  ["2"],
+  ["3"],
+  ["+", "+"],
+  ["00"],
+  ["0"],
+  [".", "."],
+  ["=", "="],
+];
+
+export default function Calculator({ open, onClose, onUseAmount }) {
+  const [expr, setExpr] = useState("");
+  const [history, setHistory] = useState([]);
+  const [flash, setFlash] = useState(null); // which key to light up
+  const [justSolved, setJustSolved] = useState(false);
+  const flashTimer = useRef(null);
+
+  let preview = null;
+  let err = null;
+  try {
+    preview = evaluate(expr.replace(/[+\-*/.]$/, ""));
+  } catch (e) {
+    err = e.message;
+  }
+
+  const press = useCallback(
+    (k) => {
+      setFlash(k);
+      clearTimeout(flashTimer.current);
+      flashTimer.current = setTimeout(() => setFlash(null), 120);
+      setExpr((cur) => {
+        if (k === "clear") {
+          setJustSolved(false);
+          return "";
+        }
+        if (k === "back") {
+          setJustSolved(false);
+          return cur.slice(0, -1);
+        }
+        if (k === "=") {
+          try {
+            const v = evaluate(cur.replace(/[+\-*/.]$/, ""));
+            if (v == null) return cur;
+            setHistory((h) => [{ expr: cur, v }, ...h].slice(0, 5));
+            setJustSolved(true);
+            return String(v);
+          } catch {
+            return cur;
+          }
+        }
+        const isOp = "+-*/".includes(k);
+        // Typing a digit right after "=" starts fresh; an operator continues.
+        let base = justSolved && !isOp && k !== "%" ? "" : cur;
+        setJustSolved(false);
+        if (isOp) {
+          if (!base) return k === "-" ? "-" : base;
+          if ("+-*/".includes(base.slice(-1))) return base.slice(0, -1) + k;
+          return base + k;
+        }
+        if (k === "%") return base && /[\d.]$/.test(base) ? base + "%" : base;
+        if (k === ".") {
+          const lastNum = base.split(/[+\-*/]/).pop();
+          if (lastNum.includes(".") || lastNum.includes("%")) return base;
+          return base + (lastNum === "" ? "0." : ".");
+        }
+        if (/%$/.test(base)) return base; // need an operator after a percent
+        return (base + k).slice(0, 60);
+      });
+    },
+    [justSolved]
+  );
+
+  // Keyboard: digits, + − × ÷ (also * / x), %, ., Enter or =, Backspace, Delete or C to clear.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key;
+      let mapped = null;
+      if (/^\d$/.test(k)) mapped = k;
+      else if (k === "+" || k === "-" || k === "*" || k === "/" || k === "%" || k === ".") mapped = k;
+      else if (k === "x" || k === "X") mapped = "*";
+      else if (k === "," ) mapped = ".";
+      else if (k === "Enter" || k === "=") mapped = "=";
+      else if (k === "Backspace") mapped = "back";
+      else if (k === "Delete" || k === "c" || k === "C") mapped = "clear";
+      if (!mapped) return;
+      // Let Enter activate a focused button other than the keypad (e.g. "Log as expense").
+      if (k === "Enter" && document.activeElement?.dataset?.calcAction) return;
+      e.preventDefault();
+      e.stopPropagation();
+      press(mapped);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open, press]);
+
+  const value = justSolved ? Number(expr) : preview;
+  const canUse = value != null && value > 0;
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Calculator"
+      footer={
+        <button
+          data-calc-action="use"
+          disabled={!canUse}
+          onClick={() => onUseAmount(Math.round(value * 100) / 100)}
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-[color:var(--fin-grad-from)] to-[color:var(--fin-grad-to)] py-3.5 text-[16px] font-bold text-white transition hover:brightness-110 disabled:opacity-40"
+        >
+          <Icon name="plus" size={18} stroke={2.6} /> Log {canUse ? `₹${fmt(Math.round(value * 100) / 100)}` : "result"} as expense
+        </button>
+      }
+    >
+      {/* Display */}
+      <div className="rounded-[22px] bg-fin-input px-5 py-4 text-right [@media(max-height:760px)]:py-2.5" aria-live="polite">
+        <div className="min-h-[22px] truncate text-[15px] text-fin-muted">{justSolved ? (history[0] ? `${pretty(history[0].expr)} =` : "") : pretty(expr) || " "}</div>
+        <div className={`tabular mt-1 truncate text-[40px] font-extrabold leading-tight tracking-tight ${err && expr ? "text-fin-muted" : "text-white"}`}>
+          {justSolved ? fmt(Number(expr)) : preview != null ? fmt(preview) : expr === "-" ? "−" : "0"}
+        </div>
+        {err && expr && !/[+\-*/.]$/.test(expr) && <div className="mt-1 text-[12.5px] text-fin-danger">{err}</div>}
+      </div>
+
+      {/* Keypad */}
+      <div className="mt-4 grid grid-cols-4 gap-2.5" role="group" aria-label="Keypad">
+        {KEYS.map(([label, key = label]) => {
+          const op = ["/", "*", "-", "+", "%"].includes(key);
+          const eq = key === "=";
+          const fn = key === "clear" || key === "back";
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => {
+                if (key === "00") {
+                  press("0");
+                  press("0");
+                } else press(key);
+              }}
+              aria-label={{ clear: "Clear", back: "Delete last", "/": "Divide", "*": "Multiply", "-": "Minus", "+": "Plus", "%": "Percent", "=": "Equals", ".": "Decimal point" }[key] || label}
+              className={`h-14 rounded-2xl text-[22px] [@media(max-height:760px)]:h-11 font-semibold transition active:scale-95 ${
+                eq
+                  ? "bg-gradient-to-br from-[color:var(--fin-grad-from)] to-[color:var(--fin-grad-to)] text-white"
+                  : op
+                  ? "bg-fin-accent/15 text-fin-accent hover:bg-fin-accent/25"
+                  : fn
+                  ? "bg-fin-tile text-fin-muted hover:text-white"
+                  : "bg-fin-tile text-white hover:bg-[#30303a]"
+              } ${flash === key ? "scale-95 brightness-150" : ""}`}
+            >
+              {label === "⌫" ? <Icon name="left" size={22} stroke={2.4} className="mx-auto" /> : label}
+            </button>
+          );
+        })}
+      </div>
+
+      {history.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-1.5 text-[12.5px] font-semibold text-fin-muted">Recent · click to reuse</div>
+          <div className="flex flex-wrap gap-1.5">
+            {history.map((h, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  setExpr(String(h.v));
+                  setJustSolved(true);
+                }}
+                title={`${pretty(h.expr)} = ${fmt(h.v)}`}
+                className="tabular rounded-full bg-fin-input px-3 py-1.5 text-[13px] text-white/80 hover:bg-fin-tile"
+              >
+                {fmt(h.v)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <p className="mt-4 text-[12px] leading-relaxed text-fin-faint">
+        Keyboard: numbers, + − * /, % , Enter for =, Backspace, C to clear, Esc to close. "500 + 18%" adds 18% of 500.
+      </p>
+    </Sheet>
+  );
+}
+
+export { evaluate };

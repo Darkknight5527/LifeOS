@@ -10,7 +10,7 @@ const QUICK_ADD = [50, 100, 500, 1000];
  * Subcategories are picked as chips (no dropdown), grouped under the
  * selected bucket, and a new one can be created inline.
  */
-export default function LogExpenseSheet({ open, onClose, editing }) {
+export default function LogExpenseSheet({ open, onClose, editing, initialAmount }) {
   const { categories, addExpense, updateExpense, removeExpense, addCategory } = useFinance();
 
   const [amount, setAmount] = useState("");
@@ -32,7 +32,7 @@ export default function LogExpenseSheet({ open, onClose, editing }) {
       setDate(editing.date);
       setNote(editing.note || "");
     } else {
-      setAmount("");
+      setAmount(initialAmount ? String(initialAmount) : "");
       setBucket("needs");
       setCategory("");
       setDate(todayISO());

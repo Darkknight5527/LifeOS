@@ -8,6 +8,7 @@ import InsightsTab from "./finances/InsightsTab.jsx";
 import WealthTab from "./finances/WealthTab.jsx";
 import SettingsTab from "./finances/SettingsTab.jsx";
 import LogExpenseSheet from "./finances/LogExpenseSheet.jsx";
+import Calculator from "./finances/Calculator.jsx";
 import { MenuButton } from "../components/AppMenu.jsx";
 import { IS_RELOAD } from "../lib/navigation.js";
 
@@ -58,7 +59,8 @@ function FinanceShell() {
     }
   }, [tab]);
   const [expenseFilter, setExpenseFilter] = useState({ bucket: "all", n: 0 });
-  const [sheet, setSheet] = useState({ open: false, editing: null });
+  const [sheet, setSheet] = useState({ open: false, editing: null, amount: null });
+  const [calcOpen, setCalcOpen] = useState(false);
 
   const goTo = useCallback((id, opts = {}) => {
     setTab(id);
@@ -66,22 +68,45 @@ function FinanceShell() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const openNew = useCallback(() => setSheet({ open: true, editing: null }), []);
-  const openEdit = useCallback((tx) => setSheet({ open: true, editing: tx }), []);
+  const openNew = useCallback(() => setSheet({ open: true, editing: null, amount: null }), []);
+  const openEdit = useCallback((tx) => setSheet({ open: true, editing: tx, amount: null }), []);
   const close = useCallback(() => setSheet((s) => ({ ...s, open: false })), []);
 
-  // "N" anywhere (outside a text field) opens the log sheet.
+  // Keyboard shortcuts (ignored while typing or while a popup is open):
+  //   N = log expense · K = calculator · ← → = previous / next tab
   useEffect(() => {
     const onKey = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
       const t = e.target;
-      if (e.key.toLowerCase() !== "n" || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (t.closest?.("input, textarea, select, [contenteditable]") || sheet.open) return;
-      e.preventDefault();
-      openNew();
+      if (t.closest?.("input, textarea, select, [contenteditable]")) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      const k = e.key;
+      if (k.toLowerCase() === "n" && !e.shiftKey) {
+        e.preventDefault();
+        openNew();
+      } else if (k.toLowerCase() === "k" && !e.shiftKey) {
+        e.preventDefault();
+        setCalcOpen(true);
+      } else if (k === "ArrowLeft" || k === "ArrowRight") {
+        e.preventDefault();
+        setTab((cur) => {
+          const i = TABS.findIndex((x) => x.id === cur);
+          const next = TABS[(i + (k === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length].id;
+          if (next === "expenses") setExpenseFilter((f) => ({ bucket: "all", n: f.n + 1 }));
+          return next;
+        });
+        window.scrollTo({ top: 0 });
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openNew, sheet.open]);
+  }, [openNew]);
+
+  // Move keyboard focus with the active tab so screen readers announce it.
+  useEffect(() => {
+    const el = document.querySelector(`[data-fin-tab="${tab}"]`);
+    if (el && document.activeElement?.dataset?.finTab) el.focus();
+  }, [tab]);
 
   return (
     <div className="fin-scope min-h-screen bg-fin-bg font-fin text-white antialiased">
@@ -96,15 +121,19 @@ function FinanceShell() {
           </div>
           <SyncStatus syncing={syncing && hasData} failed={Boolean(error) && hasData} onRetry={reload} />
           {/* Tabs live in the header on computers; phones use the bottom bar */}
-          <nav className="mx-auto hidden items-center gap-1 rounded-2xl bg-[#141418] p-1 lg:flex" aria-label="Finance sections">
+          <nav className="mx-auto hidden items-center gap-1 rounded-2xl bg-[#141418] p-1 lg:flex" aria-label="Finance sections (use ← → to switch)" role="tablist">
             {TABS.map((t) => {
               const active = tab === t.id;
               return (
                 <button
                   key={t.id}
+                  role="tab"
+                  data-fin-tab={t.id}
+                  aria-selected={active}
+                  tabIndex={active ? 0 : -1}
+                  title={`${t.label} (← → to switch tabs)`}
                   onClick={() => goTo(t.id)}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[14px] font-semibold transition ${
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[14px] font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-fin-accent ${
                     active ? "bg-fin-tile text-fin-accent shadow" : "text-fin-muted hover:bg-white/5 hover:text-white"
                   }`}
                 >
@@ -114,7 +143,17 @@ function FinanceShell() {
               );
             })}
           </nav>
-          <PrimaryButton onClick={openNew} className="ml-auto hidden items-center gap-2 !rounded-xl !py-2.5 !text-[15px] md:flex lg:ml-0">
+          <button
+            onClick={() => setCalcOpen(true)}
+            aria-label="Calculator (K)"
+            title="Calculator (K)"
+            className="ml-auto flex shrink-0 items-center gap-2 rounded-xl bg-fin-tile px-3 py-2.5 text-[15px] font-semibold text-white/85 transition hover:bg-[#30303a] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-fin-accent lg:ml-0"
+          >
+            <Icon name="calc" size={19} />
+            <span className="hidden xl:inline">Calculator</span>
+            <kbd className="hidden rounded-md bg-black/25 px-1.5 text-[11px] font-semibold text-fin-muted xl:inline">K</kbd>
+          </button>
+          <PrimaryButton onClick={openNew} className="hidden items-center gap-2 !rounded-xl !py-2.5 !text-[15px] md:flex">
             <Icon name="plus" size={18} stroke={2.6} /> Log expense
             <kbd className="ml-1 rounded-md bg-black/20 px-1.5 text-[11px] font-semibold">N</kbd>
           </PrimaryButton>
@@ -173,7 +212,15 @@ function FinanceShell() {
         </div>
       </nav>
 
-      <LogExpenseSheet open={sheet.open} editing={sheet.editing} onClose={close} />
+      <LogExpenseSheet open={sheet.open} editing={sheet.editing} initialAmount={sheet.amount} onClose={close} />
+      <Calculator
+        open={calcOpen}
+        onClose={() => setCalcOpen(false)}
+        onUseAmount={(amount) => {
+          setCalcOpen(false);
+          setSheet({ open: true, editing: null, amount });
+        }}
+      />
     </div>
   );
 }
