@@ -123,3 +123,80 @@ export const prettyDate = (iso, opts = { weekday: "short", day: "numeric", month
 export const r1 = (n) => Math.round(n * 10) / 10;
 export const fmtKg = (n) => `${r1(n).toLocaleString("en-IN")} kg`;
 export const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+/* ---------- FitNotes-style extras ---------- */
+export const EX_TYPES = [
+  { value: "weight_reps", label: "Weight & reps" },
+  { value: "reps", label: "Reps (bodyweight)" },
+  { value: "time", label: "Time" },
+  { value: "distance_time", label: "Distance & time" },
+];
+const BODYWEIGHT = ["pull-ups", "push-ups", "dips", "tricep dips", "hanging leg raise", "crunches", "russian twist", "chin-ups"];
+const TIMED = ["plank", "side plank", "wall sit", "dead hang"];
+export function typeOf(name, customs = []) {
+  const c = customs.find((x) => x.exercise.toLowerCase() === String(name).toLowerCase());
+  if (c?.type) return c.type;
+  const n = String(name).toLowerCase();
+  if (TIMED.includes(n)) return "time";
+  if (BODYWEIGHT.includes(n)) return "reps";
+  return "weight_reps";
+}
+
+// Sets that count: done, not warm-up.
+export const working = (sets) => (sets || []).filter((s) => s.done !== false && !s.warmup);
+
+// Best weight lifted for at least N reps (FitNotes "rep maxes").
+export const REP_MAX = [1, 3, 5, 8, 10, 12];
+export function repMaxes(entries) {
+  const out = {};
+  for (const r of REP_MAX) out[r] = null;
+  for (const e of entries) for (const s of e.sets) for (const r of REP_MAX) if (s.reps >= r && s.weight > 0 && (!out[r] || s.weight > out[r].weight)) out[r] = { weight: s.weight, reps: s.reps, date: e.date };
+  return out;
+}
+
+// Metrics for the progress graph, per session entry.
+export const METRICS = [
+  { value: "e1rm", label: "Est. 1RM", unit: "kg", of: (e) => Math.round(e.e1rm * 10) / 10 },
+  { value: "maxw", label: "Max weight", unit: "kg", of: (e) => Math.max(0, ...e.sets.map((s) => s.weight || 0)) },
+  { value: "vol", label: "Volume", unit: "kg", of: (e) => e.sets.reduce((a, s) => a + (s.weight || 0) * (s.reps || 0), 0) },
+  { value: "reps", label: "Total reps", unit: "", of: (e) => e.sets.reduce((a, s) => a + (s.reps || 0), 0) },
+  { value: "maxreps", label: "Max reps", unit: "", of: (e) => Math.max(0, ...e.sets.map((s) => s.reps || 0)) },
+  { value: "time", label: "Time", unit: "s", of: (e) => e.sets.reduce((a, s) => a + (s.time || 0), 0) },
+  { value: "dist", label: "Distance", unit: "km", of: (e) => Math.round(e.sets.reduce((a, s) => a + (s.distance || 0), 0) * 100) / 100 },
+];
+export const metricsFor = (type) =>
+  type === "time" ? METRICS.filter((m) => m.value === "time") : type === "distance_time" ? METRICS.filter((m) => ["dist", "time"].includes(m.value)) : type === "reps" ? METRICS.filter((m) => ["maxreps", "reps", "maxw"].includes(m.value)) : METRICS.filter((m) => !["time", "dist"].includes(m.value));
+
+// Least-squares trend line values for y[].
+export function trendLine(ys) {
+  const pts = ys.map((y, i) => [i, y]).filter(([, y]) => y != null);
+  if (pts.length < 2) return ys.map(() => null);
+  const n = pts.length;
+  const sx = pts.reduce((a, [x]) => a + x, 0);
+  const sy = pts.reduce((a, [, y]) => a + y, 0);
+  const sxx = pts.reduce((a, [x]) => a + x * x, 0);
+  const sxy = pts.reduce((a, [x, y]) => a + x * y, 0);
+  const m = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1);
+  const b = (sy - m * sx) / n;
+  return ys.map((_, i) => Math.round((m * i + b) * 10) / 10);
+}
+
+// Plates per side for a target barbell weight (greedy, using pairs you have).
+export const DEFAULT_PLATES = { bar: 20, available: [25, 20, 15, 10, 5, 2.5, 1.25] };
+export function platesFor(target, bar = 20, available = DEFAULT_PLATES.available) {
+  let side = (target - bar) / 2;
+  if (side < 0) return { plates: [], left: target - bar, achieved: bar };
+  const plates = [];
+  for (const p of [...available].sort((a, b) => b - a)) {
+    while (side >= p - 1e-9) {
+      plates.push(p);
+      side -= p;
+    }
+  }
+  return { plates, left: Math.round(side * 2 * 100) / 100, achieved: Math.round((target - side * 2) * 100) / 100 };
+}
+
+export const fmtTime = (sec) => {
+  const s = Math.max(0, Math.round(sec || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};

@@ -1,41 +1,64 @@
 // Small shared pieces for the Fitness screens.
 import { useMemo, useState } from "react";
-import { GROUP_LABEL, LIBRARY } from "./lib";
+import { EX_TYPES, GROUP_LABEL, LIBRARY } from "./lib";
 import { Icon, Sheet, TextField } from "../finances/fin-ui.jsx";
 
 export const kicker = "mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-fin-muted";
 
-// Pick an exercise from the library (search, grouped) or type your own.
-export function ExercisePicker({ open, onClose, onPick, exclude = [] }) {
+// Pick an exercise from the library + your own (search, grouped), or create one.
+export function ExercisePicker({ open, onClose, onPick, exclude = [], customs = [], onCreate }) {
   const [q, setQ] = useState("");
+  const [draft, setDraft] = useState(null); // { group, type } when creating
+  const lib = useMemo(() => [...customs.map((c) => ({ ...c, label: GROUP_LABEL[c.group] || "My exercises", mine: true })), ...LIBRARY], [customs]);
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return LIBRARY.filter((x) => !exclude.includes(x.exercise) && (!s || x.exercise.toLowerCase().includes(s) || x.label.toLowerCase().includes(s)));
-  }, [q, exclude]);
-  const groups = [...new Set(list.map((x) => x.group))];
-  const custom = q.trim() && !LIBRARY.some((x) => x.exercise.toLowerCase() === q.trim().toLowerCase());
+    return lib.filter((x) => !exclude.includes(x.exercise) && (!s || x.exercise.toLowerCase().includes(s) || x.label.toLowerCase().includes(s)));
+  }, [q, exclude, lib]);
+  const groups = [...new Set(list.map((x) => x.group || "mine"))];
+  const name = q.trim();
+  const custom = name && !lib.some((x) => x.exercise.toLowerCase() === name.toLowerCase());
+  const close = () => {
+    setQ("");
+    setDraft(null);
+    onClose();
+  };
+  function create() {
+    const ex = { exercise: name, group: draft.group, type: draft.type };
+    onCreate?.(ex);
+    onPick(ex);
+    setQ("");
+    setDraft(null);
+  }
   return (
-    <Sheet open={open} onClose={() => { setQ(""); onClose(); }} title="Add exercise">
+    <Sheet open={open} onClose={close} title="Add exercise">
       <TextField autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search, e.g. press, curl, squat" />
-      {custom && (
-        <button
-          onClick={() => { onPick({ exercise: q.trim(), group: "" }); setQ(""); }}
-          className="mt-3 flex w-full items-center gap-2 rounded-2xl bg-fin-accent/10 px-4 py-3 text-left text-[15px] font-semibold text-fin-accent"
-        >
-          <Icon name="plus" size={16} stroke={2.4} /> Add “{q.trim()}” as a new exercise
+      {custom && !draft && (
+        <button onClick={() => setDraft({ group: "", type: "weight_reps" })} className="mt-3 flex w-full items-center gap-2 rounded-2xl bg-fin-accent/10 px-4 py-3 text-left text-[15px] font-semibold text-fin-accent">
+          <Icon name="plus" size={16} stroke={2.4} /> Create “{name}”
         </button>
+      )}
+      {custom && draft && (
+        <div className="mt-3 rounded-2xl bg-fin-input p-3">
+          <div className="text-[15px] font-semibold">New exercise: {name}</div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <select value={draft.group} onChange={(e) => setDraft((d) => ({ ...d, group: e.target.value }))} className="rounded-xl bg-fin-tile px-3 py-2 text-[14px] text-white outline-none [color-scheme:dark]" aria-label="Muscle group">
+              <option value="">Muscle group…</option>
+              {Object.entries(GROUP_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <select value={draft.type} onChange={(e) => setDraft((d) => ({ ...d, type: e.target.value }))} className="rounded-xl bg-fin-tile px-3 py-2 text-[14px] text-white outline-none [color-scheme:dark]" aria-label="Exercise type">
+              {EX_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+          <button onClick={create} className="mt-2 w-full rounded-xl bg-fin-accent py-2 text-[14px] font-bold text-white">Create & add</button>
+        </div>
       )}
       <div className="mt-3 space-y-4">
         {groups.map((g) => (
           <div key={g}>
-            <div className={kicker}>{GROUP_LABEL[g] || g}</div>
+            <div className={kicker}>{GROUP_LABEL[g] || "My exercises"}</div>
             <div className="flex flex-wrap gap-1.5">
-              {list.filter((x) => x.group === g).map((x) => (
-                <button
-                  key={x.exercise}
-                  onClick={() => { onPick(x); setQ(""); }}
-                  className="rounded-full bg-fin-input px-3 py-1.5 text-[14px] text-white/85 transition hover:bg-fin-tile hover:text-white"
-                >
+              {list.filter((x) => (x.group || "mine") === g).map((x) => (
+                <button key={x.exercise} onClick={() => { onPick(x); setQ(""); }} className={`rounded-full px-3 py-1.5 text-[14px] transition hover:bg-fin-tile hover:text-white ${x.mine ? "bg-fin-accent/10 text-fin-accent" : "bg-fin-input text-white/85"}`}>
                   {x.exercise}
                 </button>
               ))}

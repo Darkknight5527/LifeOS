@@ -114,6 +114,12 @@ Blue theme. Tabs: **Train**, **Nutrition**, **Body** (← → to switch).
   summary with new PRs (Epley 1RM). History calendar, Progress (1RM chart per
   exercise, workouts/week, sets per muscle vs 10–20), Program (exercises,
   sets × reps, weekly schedule, rest timer).
+  FitNotes features: exercise types (weight & reps, bodyweight reps, time,
+  distance & time), custom exercises, warm-up sets, RPE, set / exercise /
+  workout notes, supersets, live 🏆 PRs, log past dates, edit or repeat a
+  workout, plate calculator (bar + plates you own), timers (stopwatch, EMOM,
+  AMRAP, Tabata), progress graph metrics with trend line and range, rep maxes
+  (1/3/5/8/10/12 RM), goals per exercise, statistics, CSV export.
 - **Nutrition** — Diary by meal with ~120 built-in Indian/Kerala foods,
   recent foods, quick add, copy yesterday, servings; water tracker. Targets
   from Mifflin–St Jeor + activity + goal (or your own). Insights: calories and

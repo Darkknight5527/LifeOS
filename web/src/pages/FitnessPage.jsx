@@ -107,7 +107,7 @@ function FitnessShell() {
       ) : (
         <div key={`${tab}-${view}`} className="animate-fade-in">
           {tab === "train" && view === "today" && <TrainToday />}
-          {tab === "train" && view === "history" && <TrainHistory />}
+          {tab === "train" && view === "history" && <TrainHistory onOpenSession={() => setView("today")} />}
           {tab === "train" && view === "progress" && <TrainProgress />}
           {tab === "train" && view === "program" && <TrainProgram />}
           {tab === "nutrition" && view === "today" && <NutritionToday onTargets={() => setView("targets")} />}
