@@ -12,17 +12,19 @@ import FinancesPage from "./pages/FinancesPage.jsx";
 import PaperPage from "./pages/PaperPage.jsx";
 import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 
+// ready: built pages that ↑ / ↓ cycles through (empty placeholders are skipped)
 const NAV_ITEMS = [
-  { to: "/", label: "North Star", end: true },
-  { to: "/paper", label: "Morning Paper" },
+  { to: "/", label: "North Star", end: true, ready: true },
+  { to: "/paper", label: "Morning Paper", ready: true },
   { to: "/mental", label: "Mental & Psych" },
-  { to: "/grooming", label: "Grooming" },
-  { to: "/fitness", label: "Fitness & Nutrition" },
-  { to: "/finances", label: "Finances" },
+  { to: "/grooming", label: "Grooming", ready: true },
+  { to: "/fitness", label: "Fitness & Nutrition", ready: true },
+  { to: "/finances", label: "Finances", ready: true },
   { to: "/goals", label: "Goals" },
   { to: "/technical", label: "Technical & Projects" },
   { to: "/learning", label: "Learning" },
 ];
+const READY = NAV_ITEMS.filter((n) => n.ready);
 
 // Dark pages that draw their own full-screen layout and header
 // (they put the menu button in their own header via useAppMenu()).
@@ -48,6 +50,36 @@ export default function App() {
     if (!IS_RELOAD && window.location.pathname !== "/") navigate("/", { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ↑ / ↓ move to the previous / next domain. Ignored while typing, in popups,
+  // or when a control already uses the arrows (sliders etc.). On North Star the
+  // arrows scroll the story; ↑ at the very top or ↓ at the very bottom (or
+  // Shift+↑ / ↓ anywhere) switches domain.
+  const [hint, setHint] = useState(null);
+  const hintTimer = useRef(null);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      if (!getToken() || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target.closest?.('input, textarea, select, [contenteditable], [role="slider"], [role="listbox"]')) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      if (location.pathname === "/" && !e.shiftKey) {
+        const atTop = window.scrollY <= 2;
+        const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+        if (!(e.key === "ArrowUp" && atTop) && !(e.key === "ArrowDown" && atBottom)) return; // let it scroll
+      }
+      const i = Math.max(0, READY.findIndex((n) => n.to === location.pathname));
+      const next = (i + (e.key === "ArrowDown" ? 1 : -1) + READY.length) % READY.length;
+      e.preventDefault();
+      navigate(READY[next].to);
+      window.scrollTo({ top: 0 });
+      setHint(next);
+      clearTimeout(hintTimer.current);
+      hintTimer.current = setTimeout(() => setHint(null), 1300);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [location.pathname, navigate]);
 
   // Close the menu on navigation and with Escape.
   useEffect(() => setMenuOpen(false), [location.pathname]);
@@ -139,6 +171,7 @@ export default function App() {
   return (
     <ToastProvider>
       <MenuContext.Provider value={menuApi}>
+        <DomainHint index={hint} />
         <div className="flex min-h-screen">
           {/* Slide-in menu */}
           <div className={`fixed inset-0 z-[80] ${menuOpen ? "" : "pointer-events-none"}`} aria-hidden={!menuOpen}>
@@ -198,5 +231,29 @@ export default function App() {
         </div>
       </MenuContext.Provider>
     </ToastProvider>
+  );
+}
+
+// Brief overlay while switching domains with ↑ / ↓.
+function DomainHint({ index }) {
+  return (
+    <div
+      aria-live="polite"
+      className={`pointer-events-none fixed left-5 top-1/2 z-[90] -translate-y-1/2 transition-all duration-300 ${index == null ? "-translate-x-3 opacity-0" : "translate-x-0 opacity-100"}`}
+    >
+      <div className="rounded-2xl bg-[#0b0b0f]/95 p-2 font-fin shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
+        {READY.map((n, i) => (
+          <div
+            key={n.to}
+            className={`flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-[14px] font-semibold transition-colors ${i === index ? "bg-white/10 text-white" : "text-white/40"}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${i === index ? "bg-[#f2c14e]" : "bg-white/20"}`} />
+            {n.label}
+          </div>
+        ))}
+        <div className="mt-1 border-t border-white/10 px-3 pt-1.5 text-[11.5px] text-white/40">↑ ↓ to switch</div>
+      </div>
+      <span className="sr-only">{index != null ? READY[index].label : ""}</span>
+    </div>
   );
 }
