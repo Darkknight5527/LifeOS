@@ -1,5 +1,5 @@
 // Small shared pieces for the Fitness screens.
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { EX_TYPES, GROUP_LABEL, LIBRARY } from "./lib";
 import { Icon, Sheet, TextField } from "../finances/fin-ui.jsx";
 
@@ -71,8 +71,21 @@ export function ExercisePicker({ open, onClose, onPick, exclude = [], customs = 
 }
 
 // Minimal line chart: points [{x: label, y}] — hover shows the value.
-export function LineChart({ points, height = 150, color = "rgb(var(--fin-accent))", format = (v) => v, second }) {
+// Nice round tick values between min and max (about `count` of them).
+function niceTicks(min, max, count = 4) {
+  const raw = (max - min) / count;
+  const mag = 10 ** Math.floor(Math.log10(raw || 1));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((x) => x >= raw) || raw;
+  const out = [];
+  for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) out.push(Math.round(v * 1000) / 1000);
+  return out;
+}
+
+// Line chart with value axis, date labels and a crosshair: hover (or touch and
+// drag on a phone) to read any point. `second` is an optional dashed line.
+export function LineChart({ points, height = 150, color = "rgb(var(--fin-accent))", format = (v) => v, axisFormat, second, secondLabel = "Trend" }) {
   const [hover, setHover] = useState(null);
+  const box = useRef(null);
   if (!points.length) return null;
   const all = [...points.map((p) => p.y), ...(second ? second.map((p) => p.y) : [])].filter((v) => v != null);
   let min = Math.min(...all);
@@ -84,34 +97,75 @@ export function LineChart({ points, height = 150, color = "rgb(var(--fin-accent)
   const pad = (max - min) * 0.12;
   min -= pad;
   max += pad;
+  const ticks = niceTicks(min, max);
+  const n = points.length;
   const W = 600;
   const H = height;
-  const X = (i) => (points.length === 1 ? W / 2 : 12 + (i / (points.length - 1)) * (W - 24));
-  const Y = (v) => H - 10 - ((v - min) / (max - min)) * (H - 20);
+  const X = (i) => (n === 1 ? W / 2 : 8 + (i / (n - 1)) * (W - 16));
+  const Y = (v) => H - ((v - min) / (max - min)) * H;
   const path = (pts) => pts.map((p, i) => (p.y == null ? null : `${i && pts[i - 1]?.y != null ? "L" : "M"}${X(i).toFixed(1)} ${Y(p.y).toFixed(1)}`)).filter(Boolean).join("");
+  const xLabels = n === 1 ? [0] : [...new Set([0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1])];
+  const pick = (e) => {
+    const r = box.current.getBoundingClientRect();
+    const fx = ((e.clientX - r.left) / r.width) * W;
+    const i = n === 1 ? 0 : Math.round(((fx - 8) / (W - 16)) * (n - 1));
+    setHover(Math.max(0, Math.min(n - 1, i)));
+  };
+  const p = hover != null ? points[hover] : null;
+  const left = hover != null ? (X(hover) / W) * 100 : 0;
+  const af = axisFormat || format;
   return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible" preserveAspectRatio="none" style={{ height }}>
-        {[0.25, 0.5, 0.75].map((g) => (
-          <line key={g} x1="0" x2={W} y1={H * g} y2={H * g} stroke="rgba(255,255,255,.05)" strokeDasharray="4 6" />
+    <div className="flex gap-2">
+      <div className="tabular relative w-10 shrink-0 text-right text-[11px] text-fin-faint" style={{ height }} aria-hidden="true">
+        {ticks.map((t) => (
+          <span key={t} className="absolute right-0 -translate-y-1/2 whitespace-nowrap" style={{ top: Y(t) }}>{af(t)}</span>
         ))}
-        {second && <path d={path(second)} fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeDasharray="5 5" />}
-        <path d={path(points)} fill="none" stroke={color} strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-      </svg>
-      <div className="absolute inset-0 flex">
-        {points.map((p, i) => (
-          <div key={i} className="relative flex-1" onPointerEnter={() => setHover(i)} onPointerLeave={() => setHover(null)}>
-            {hover === i && p.y != null && (
-              <>
-                <span className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[#18181d]" style={{ left: "50%", top: Y(p.y) * (height / H), background: color }} />
-                <div className={`pointer-events-none absolute bottom-full z-20 mb-1 whitespace-nowrap rounded-xl bg-[#2e2e36] px-3 py-1.5 text-[12.5px] shadow-xl ring-1 ring-white/10 ${i < points.length / 2 ? "left-0" : "right-0"}`}>
-                  <div className="text-fin-muted">{p.x}</div>
-                  <div className="font-bold">{format(p.y)}</div>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div
+          ref={box}
+          className="relative touch-none select-none"
+          style={{ height }}
+          onPointerMove={pick}
+          onPointerDown={pick}
+          onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
+          role="img"
+          aria-label={`Chart of ${n} values, latest ${format(points[n - 1].y)}`}
+        >
+          <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full overflow-visible" preserveAspectRatio="none">
+            {ticks.map((t) => (
+              <line key={t} x1="0" x2={W} y1={Y(t)} y2={Y(t)} stroke="rgba(255,255,255,.06)" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />
+            ))}
+            {second && <path d={path(second)} fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeDasharray="5 5" />}
+            <path d={path(points)} fill="none" stroke={color} strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            {n <= 40 && points.map((q, i) => q.y != null && <circle key={i} cx={X(i)} cy={Y(q.y)} r="2.2" fill={color} vectorEffect="non-scaling-stroke" />)}
+          </svg>
+          {p && p.y != null && (
+            <>
+              <div className="pointer-events-none absolute inset-y-0 w-px bg-white/25" style={{ left: `${left}%` }} />
+              <span className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[#18181d]" style={{ left: `${left}%`, top: Y(p.y), background: color }} />
+              <div
+                className="pointer-events-none absolute top-0 z-20 whitespace-nowrap rounded-xl bg-[#2e2e36] px-3 py-1.5 text-[12.5px] shadow-xl ring-1 ring-white/10"
+                style={left < 50 ? { left: `calc(${left}% + 10px)` } : { right: `calc(${100 - left}% + 10px)` }}
+              >
+                <div className="text-fin-muted">{p.x}</div>
+                <div className="text-[15px] font-bold">{format(p.y)}</div>
+                {second?.[hover]?.y != null && <div className="text-[11.5px] text-fin-faint">{secondLabel} {format(second[hover].y)}</div>}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="relative mt-1.5 h-4 text-[11px] text-fin-faint" aria-hidden="true">
+          {xLabels.map((i, k) => (
+            <span
+              key={i}
+              className="absolute whitespace-nowrap"
+              style={k === 0 ? { left: 0 } : i === n - 1 ? { right: 0 } : { left: `${(X(i) / W) * 100}%`, transform: "translateX(-50%)" }}
+            >
+              {points[i].x}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

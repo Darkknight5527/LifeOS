@@ -71,7 +71,7 @@ export function useExerciseHistory() {
         const sets = (ex.sets || []).filter(counts);
         if (!sets.length) continue;
         const best = bestSet(sets);
-        (m[ex.exercise] ||= []).push({ date: s.date, sets, best, e1rm: best ? e1rm(best.weight, best.reps) : 0, id: s._id, type: ex.type || "weight_reps" });
+        (m[ex.exercise] ||= []).push({ date: s.date, sets, best, e1rm: best ? e1rm(best.weight, best.reps) : 0, id: s._id, type: ex.type || "weight_reps", group: ex.group || "" });
       }
     }
     return m;
@@ -1095,6 +1095,16 @@ export function TrainProgress() {
   const fit = useFit();
   const history = useExerciseHistory();
   const names = Object.keys(history).sort((a, b) => history[b].length - history[a].length);
+  // Exercise picker grouped by muscle, most-trained first within each group.
+  const groupedNames = useMemo(() => {
+    const customs = fit.settings?.customExercises || [];
+    const by = {};
+    for (const n of names) {
+      const g = [...history[n]].reverse().find((x) => x.group)?.group || customs.find((c) => c.exercise === n)?.group || groupOf(n) || "other";
+      (by[g] ||= []).push(n);
+    }
+    return [...Object.keys(GROUP_LABEL), "other"].filter((g) => by[g]).map((g) => ({ g, label: GROUP_LABEL[g] || "Other", list: by[g] }));
+  }, [history, fit.settings?.customExercises]); // eslint-disable-line react-hooks/exhaustive-deps
   const [ex, setEx] = useState(names[0] || "");
   const [metric, setMetric] = useState("e1rm");
   const [range, setRange] = useState(0);
@@ -1152,7 +1162,11 @@ export function TrainProgress() {
         action={
           names.length > 0 && (
             <select value={ex} onChange={(e) => setEx(e.target.value)} className="max-w-[230px] rounded-xl bg-fin-tile px-3 py-1.5 text-[14px] font-semibold text-white outline-none [color-scheme:dark]" aria-label="Exercise">
-              {names.map((n) => <option key={n}>{n}</option>)}
+              {groupedNames.map(({ g, label, list }) => (
+                <optgroup key={g} label={`${label} (${list.length})`}>
+                  {list.map((n) => <option key={n} value={n}>{n}</option>)}
+                </optgroup>
+              ))}
             </select>
           )
         }
@@ -1167,11 +1181,42 @@ export function TrainProgress() {
             </div>
             {h.length ? (
               <div className="mt-3">
-                <LineChart points={h.map((x, i) => ({ x: prettyDate(x.date, { day: "numeric", month: "short" }), y: ys[i] }))} second={trend.map((y, i) => ({ x: h[i].date, y }))} format={(v) => (m.value === "time" ? fmtTime(v) : `${v}${m.unit ? ` ${m.unit}` : ""}`)} height={160} />
-                <div className="mt-1 flex justify-between text-[12px] text-fin-faint">
-                  <span>{h.length} session{h.length === 1 ? "" : "s"}</span>
-                  <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 border-t-2 border-dashed border-white/40" /> Trend</span>
-                </div>
+                {(() => {
+                  const fmt = (v) => (m.value === "time" ? fmtTime(Math.round(v)) : `${r1(v).toLocaleString("en-IN")}${m.unit ? ` ${m.unit}` : ""}`);
+                  const multiYear = h[0].date.slice(0, 4) !== h[h.length - 1].date.slice(0, 4);
+                  const vals = ys.filter((v) => v != null);
+                  const bestV = Math.max(...vals);
+                  const bestI = ys.indexOf(bestV);
+                  const delta = vals.length > 1 ? vals[vals.length - 1] - vals[0] : null;
+                  return (
+                    <>
+                      <div className="mb-3 grid grid-cols-3 gap-2">
+                        {[
+                          ["Latest", fmt(vals[vals.length - 1]), prettyDate(h[h.length - 1].date, { day: "numeric", month: "short", year: "numeric" })],
+                          ["Best", fmt(bestV), prettyDate(h[bestI].date, { day: "numeric", month: "short", year: "numeric" })],
+                          ["Change", delta == null ? "—" : `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${fmt(Math.abs(delta))}`, `over ${h.length} session${h.length === 1 ? "" : "s"}`],
+                        ].map(([k, v, sub]) => (
+                          <div key={k} className="rounded-2xl bg-fin-input px-3 py-2">
+                            <div className="text-[11.5px] text-fin-muted">{k}</div>
+                            <div className={`tabular text-[17px] font-extrabold ${k === "Change" && delta ? (delta > 0 ? "text-emerald-400" : "text-fin-danger") : ""}`}>{v}</div>
+                            <div className="truncate text-[11px] text-fin-faint">{sub}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <LineChart
+                        points={h.map((x, i) => ({ x: prettyDate(x.date, multiYear ? { day: "numeric", month: "short", year: "2-digit" } : { day: "numeric", month: "short" }), y: ys[i] }))}
+                        second={trend.map((y, i) => ({ x: h[i].date, y }))}
+                        format={fmt}
+                        axisFormat={(v) => (m.value === "time" ? fmtTime(Math.round(v)) : r1(v) >= 1000 ? `${r1(v / 1000)}k` : `${r1(v)}`)}
+                        height={150}
+                      />
+                      <div className="mt-1 flex justify-between text-[12px] text-fin-faint">
+                        <span>Hover or tap the chart to see each session{m.unit ? ` · values in ${m.unit}` : ""}</span>
+                        <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 border-t-2 border-dashed border-white/40" /> Trend</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <div className="mt-3 rounded-2xl bg-fin-input p-4 text-center text-[13.5px] text-fin-muted">No sessions in this range.</div>

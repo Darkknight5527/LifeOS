@@ -117,8 +117,10 @@ export function BodyView() {
             <LineChart
               points={shown.map((t) => ({ x: prettyDate(t.date, { day: "numeric", month: "short" }), y: t.trend }))}
               second={shown.map((t) => ({ x: t.date, y: t.weight }))}
-              format={(v) => `${v} kg`}
-              height={210}
+              format={(v) => `${r1(v)} kg`}
+              axisFormat={(v) => `${r1(v)}`}
+              secondLabel="Scale"
+              height={200}
             />
             <div className="mt-2 flex gap-4 text-[12px] text-fin-muted">
               <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-fin-accent" /> Trend</span>
