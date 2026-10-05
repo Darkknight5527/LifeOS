@@ -6,7 +6,7 @@ import { FitProvider, useFit } from "./fitness/FitContext.jsx";
 import { TrainHistory, TrainProgram, TrainProgress, TrainToday } from "./fitness/Train.jsx";
 import { NutritionInsights, NutritionTargets, NutritionToday } from "./fitness/Nutrition.jsx";
 import { BodyView } from "./fitness/Body.jsx";
-import { CaliProvider, CaliTraining, CaliTree, CaliTutorials } from "./fitness/cali/Cali.jsx";
+import { CaliGuides, CaliProvider, CaliTraining, CaliTree, CaliTutorials } from "./fitness/cali/Cali.jsx";
 
 const TABS = [
   { id: "train", label: "Train", icon: "dumbbell" },
@@ -25,6 +25,7 @@ const VIEWS = {
     { value: "tree", label: "Skill tree" },
     { value: "training", label: "Training" },
     { value: "tutorials", label: "Tutorials" },
+    { value: "guides", label: "Guides" },
   ],
   nutrition: [
     { value: "today", label: "Diary" },
@@ -124,6 +125,7 @@ function FitnessShell() {
           {tab === "cali" && view === "tree" && <CaliTree />}
           {tab === "cali" && view === "training" && <CaliTraining />}
           {tab === "cali" && view === "tutorials" && <CaliTutorials />}
+          {tab === "cali" && view === "guides" && <CaliGuides />}
           {tab === "body" && <BodyView />}
         </div>
         </CaliProvider>

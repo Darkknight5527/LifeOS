@@ -126,16 +126,22 @@ Blue theme. Tabs: **Train**, **Nutrition**, **Body** (← → to switch).
   exercises become your own, and common names are matched to the LifeOS
   library (Barbell Squat → Squat). Days already in LifeOS are skipped, so a
   newer export can be imported again safely. Uses `POST /api/<collection>/bulk`.
-- **Calisthenics** — modelled on the WINGS skill tree (wingssw.com). 66 skills
-  in six families (horizontal/vertical push and pull, core, legs), each a tree
+- **Calisthenics** — modelled on the WINGS skill tree and training guides
+  (wingssw.com). The same 85 skills as WINGS' tutorial list in six families
+  (horizontal push 20, vertical push 15, horizontal pull 15, vertical pull 15,
+  legs 10, core/misc 10), each a tree
   from easiest to hardest with difficulty F→S. *Skill tree*: tap any skill;
   colours show your level (locked, unlocked = 1 rep / 2 s, in progress = 3 reps
   / 6 s, mastered = 6+ reps / 12+ s), dashed = ready to learn. *Tutorials*:
   overview (difficulty, time to learn, muscles, strain), step-by-step,
   recommended exercises, progressions (base → regression → current →
   progression → target), good/bad form cues, YouTube tutorials. *Training*:
-  one focus skill per family with a set logger and hold timer. Skill content
-  lives in `web/src/pages/fitness/cali/skills.js`; logs in `cali-logs`.
+  one focus skill per family with a set logger and hold timer. *Guides*: the
+  seven WINGS guides (beginner, progressive overload, handstand, push roadmap,
+  pull skills, front lever, workout structure) in our own words, with skill
+  links and a foundation checklist filled from your logged bests. Skills live
+  in `web/src/pages/fitness/cali/families/*.js`, guides in `cali/guides.js`;
+  logs in `cali-logs`.
 - **Nutrition** — Diary by meal with ~120 built-in Indian/Kerala foods,
   recent foods, quick add, copy yesterday, servings; water tracker. Targets
   from Mifflin–St Jeor + activity + goal (or your own). Insights: calories and

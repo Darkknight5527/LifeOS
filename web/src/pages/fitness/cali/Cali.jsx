@@ -6,6 +6,7 @@ import { prettyDate, todayISO } from "../lib";
 import { kicker } from "../fit-ui.jsx";
 import { FinCard, Icon, IconButton, Pill, Sheet } from "../../finances/fin-ui.jsx";
 import { CATEGORIES, DIFFICULTY, LEVELS, SKILL, SKILLS, catLabel, chain, layout, levelFor, nextTarget } from "./skills.js";
+import { FOUNDATION, GUIDES } from "./guides.js";
 
 /* ---------------- data ---------------- */
 function useCaliState() {
@@ -477,10 +478,10 @@ export function CaliTraining() {
       <div className="space-y-4">
         <FinCard title="How to train">
           <ul className="space-y-1.5 text-[13.5px] leading-relaxed text-fin-muted">
-            <li><b className="text-white/85">2–4 sessions a week</b>, one skill from each family you care about.</li>
-            <li><b className="text-white/85">Reps:</b> 3–5 sets, stopping 1–2 reps before failure.</li>
-            <li><b className="text-white/85">Holds:</b> 3–5 sets a few seconds short of your best.</li>
-            <li><b className="text-white/85">Rest</b> 2–3 minutes between sets; quality over quantity.</li>
+            <li><b className="text-white/85">Beginner:</b> full body 3× a week, 3 × 8–12 per exercise, 2–4 min rest.</li>
+            <li><b className="text-white/85">Strength:</b> 3 × 4–8, 3–5 min rest, then split days (push ×2, pull ×2).</li>
+            <li><b className="text-white/85">Holds:</b> a new skill joins your workouts at 6–8 s.</li>
+            <li>Work at <b className="text-white/85">80–90% effort</b> — consistency beats intensity.</li>
             <li>Move up when a skill turns <span style={{ color: LEVELS[3].color }}>mastered</span> — the next one becomes ready.</li>
           </ul>
         </FinCard>
@@ -605,6 +606,124 @@ function FocusCard({ cat, skill: s, st, today, onOpen, onFocus }) {
   );
 }
 
+/* ---------------- guides ---------------- */
+export function CaliGuides() {
+  const st = useCaliState();
+  const open = useOpenSkill();
+  const [id, setId] = useState(() => {
+    try {
+      return sessionStorage.getItem("lifeos_cali_guide") || "beginner";
+    } catch {
+      return "beginner";
+    }
+  });
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("lifeos_cali_guide", id);
+    } catch {
+      /* ignore */
+    }
+  }, [id]);
+  const g = GUIDES.find((x) => x.id === id) || GUIDES[0];
+  const pane = useRef(null);
+  useEffect(() => pane.current?.scrollTo({ top: 0 }), [id]);
+
+  return (
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[250px_1fr] lg:gap-4 [&>*]:min-w-0">
+      <FinCard title="Guides" className="lg:h-[calc(100dvh-178px)]">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible" data-no-swipe>
+          {GUIDES.map((x) => (
+            <button
+              key={x.id}
+              onClick={() => setId(x.id)}
+              aria-pressed={id === x.id}
+              className={`flex shrink-0 items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-[14px] font-semibold transition ${id === x.id ? "bg-fin-accent/15 text-fin-accent ring-1 ring-fin-accent/50" : "bg-fin-input hover:bg-white/[0.06]"}`}
+            >
+              <Icon name={x.icon} size={17} />
+              {x.title}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 hidden text-[12px] leading-relaxed text-fin-faint lg:block">Summarised from the WINGS Calisthenics Training Guides. Tap a skill to open its tutorial.</div>
+      </FinCard>
+
+      <section ref={pane} className="fin-scroll animate-fade-up rounded-[28px] bg-fin-card p-5 shadow-card sm:p-6 lg:h-[calc(100dvh-178px)] lg:overflow-y-auto lg:rounded-[24px] lg:p-6">
+        <h2 className="text-[24px] font-extrabold tracking-tight">{g.title}</h2>
+        <p className="mt-1.5 max-w-[720px] text-[15px] leading-relaxed text-white/80">{g.intro}</p>
+
+        {g.foundation && <Foundation st={st} open={open} />}
+
+        <div className="mt-5 grid gap-5 xl:grid-cols-2">
+          {g.sections.map((sec) => {
+            const List = sec.ordered ? "ol" : "ul";
+            return (
+              <div key={sec.h} className="rounded-2xl bg-fin-input p-4">
+                <h3 className={kicker}>{sec.h}</h3>
+                <List className="space-y-2 text-[14px] leading-relaxed text-white/85">
+                  {sec.items.map((it, i) => {
+                    const text = typeof it === "string" ? it : it.t;
+                    const sk = typeof it === "string" ? null : SKILL[it.s];
+                    return (
+                      <li key={i} className="flex gap-2.5">
+                        <span className={`mt-[3px] shrink-0 ${sec.ordered ? "tabular grid h-5 w-5 place-items-center rounded-full bg-fin-accent/15 text-[11px] font-bold text-fin-accent" : "mt-[9px] h-1.5 w-1.5 rounded-full bg-white/30"}`}>{sec.ordered ? i + 1 : ""}</span>
+                        <span className="min-w-0">
+                          {text}
+                          {sk && (
+                            <button onClick={() => open(sk.id)} className="ml-2 inline-flex items-center gap-1.5 rounded-lg bg-fin-tile px-2 py-0.5 align-middle text-[12px] font-semibold text-white/85 hover:text-fin-accent">
+                              <LevelDot level={st.level[sk.id]} size={8} />
+                              {sk.name}
+                            </button>
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </List>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// WINGS' foundation phase, filled in from your logged bests.
+function Foundation({ st, open }) {
+  const rows = FOUNDATION.map((f) => {
+    const s = SKILL[f.skill];
+    const b = st.best[f.skill];
+    const have = b ? (s.hold ? b.hold : b.reps) : 0;
+    return { ...f, s, have, done: have >= f.goal };
+  });
+  const done = rows.filter((r) => r.done).length;
+  return (
+    <div className="mt-5 rounded-2xl bg-gradient-to-br from-fin-accent/15 to-transparent p-4 ring-1 ring-fin-accent/25">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-[16px] font-bold">Foundation phase</h3>
+        <span className="tabular text-[13px] text-fin-muted">{done} / {rows.length} reached — from your logged sets</span>
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {rows.map((r) => (
+          <button key={r.skill} onClick={() => open(r.skill)} className="rounded-xl bg-fin-card/80 px-3 py-2.5 text-left transition hover:bg-fin-card">
+            <div className="flex items-center justify-between gap-2 text-[13.5px] font-semibold">
+              <span className="truncate">{r.label}</span>
+              <span className={`tabular shrink-0 ${r.done ? "text-[#c5d68f]" : "text-fin-muted"}`}>
+                {r.done ? "✓ " : ""}
+                {r.have}/{r.goal}
+                {r.s.hold ? " s" : ""}
+              </span>
+            </div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, (r.have / r.goal) * 100)}%`, background: r.done ? "#c5d68f" : "rgb(var(--fin-accent))" }} />
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- tutorials list ---------------- */
 export function CaliTutorials() {
   const st = useCaliState();
@@ -624,7 +743,8 @@ export function CaliTutorials() {
           {CATEGORIES.map((c) => <Pill key={c.id} active={cat === c.id} onClick={() => setCat(c.id)} className="!px-3 !py-1 !text-[13px]">{c.label}</Pill>)}
         </div>
       </div>
-      <div className="fin-scroll grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-h-[calc(100dvh-236px)] lg:grid-cols-3 lg:overflow-y-auto lg:pr-1 xl:grid-cols-4">
+      {cat !== "all" && <p className="-mt-1 max-w-[760px] text-[13.5px] text-fin-muted">{CATEGORIES.find((c) => c.id === cat)?.desc}</p>}
+      <div className={`fin-scroll grid grid-cols-1 gap-3 sm:grid-cols-2 ${cat !== "all" ? "lg:max-h-[calc(100dvh-266px)]" : "lg:max-h-[calc(100dvh-236px)]"} lg:grid-cols-3 lg:overflow-y-auto lg:pr-1 xl:grid-cols-4`}>
         {list.map((s) => {
           const lv = st.level[s.id];
           return (
