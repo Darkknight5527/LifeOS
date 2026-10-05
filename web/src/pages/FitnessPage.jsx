@@ -6,9 +6,11 @@ import { FitProvider, useFit } from "./fitness/FitContext.jsx";
 import { TrainHistory, TrainProgram, TrainProgress, TrainToday } from "./fitness/Train.jsx";
 import { NutritionInsights, NutritionTargets, NutritionToday } from "./fitness/Nutrition.jsx";
 import { BodyView } from "./fitness/Body.jsx";
+import { CaliProvider, CaliTraining, CaliTree, CaliTutorials } from "./fitness/cali/Cali.jsx";
 
 const TABS = [
   { id: "train", label: "Train", icon: "dumbbell" },
+  { id: "cali", label: "Calisthenics", icon: "figure" },
   { id: "nutrition", label: "Nutrition", icon: "flame" },
   { id: "body", label: "Body", icon: "chart" },
 ];
@@ -18,6 +20,11 @@ const VIEWS = {
     { value: "history", label: "History" },
     { value: "progress", label: "Progress" },
     { value: "program", label: "Program" },
+  ],
+  cali: [
+    { value: "tree", label: "Skill tree" },
+    { value: "training", label: "Training" },
+    { value: "tutorials", label: "Tutorials" },
   ],
   nutrition: [
     { value: "today", label: "Diary" },
@@ -31,7 +38,7 @@ const RANGES = [
   { value: 30, label: "30 days" },
 ];
 const KEY = "lifeos_fit_view";
-const FRESH = { tab: "train", views: { train: "today", nutrition: "today", body: "" } };
+const FRESH = { tab: "train", views: { train: "today", cali: "tree", nutrition: "today", body: "" } };
 let restored = false;
 
 // Train › Today when you come in; after a refresh, wherever you were.
@@ -105,6 +112,7 @@ function FitnessShell() {
           <button onClick={fit.reload} className="mt-5 rounded-2xl bg-fin-tile px-5 py-2.5 font-semibold">Try again</button>
         </div>
       ) : (
+        <CaliProvider>
         <div key={`${tab}-${view}`} className="animate-fade-in">
           {tab === "train" && view === "today" && <TrainToday />}
           {tab === "train" && view === "history" && <TrainHistory onOpenSession={() => setView("today")} />}
@@ -113,8 +121,12 @@ function FitnessShell() {
           {tab === "nutrition" && view === "today" && <NutritionToday onTargets={() => setView("targets")} />}
           {tab === "nutrition" && view === "insights" && <NutritionInsights range={range} />}
           {tab === "nutrition" && view === "targets" && <NutritionTargets />}
+          {tab === "cali" && view === "tree" && <CaliTree />}
+          {tab === "cali" && view === "training" && <CaliTraining />}
+          {tab === "cali" && view === "tutorials" && <CaliTutorials />}
           {tab === "body" && <BodyView />}
         </div>
+        </CaliProvider>
       )}
     </DomainShell>
   );

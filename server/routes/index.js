@@ -34,6 +34,7 @@ import FitSettings from "../models/FitSettings.js";
 import FoodLog from "../models/FoodLog.js";
 import CustomFood from "../models/CustomFood.js";
 import BodyLog from "../models/BodyLog.js";
+import CaliLog from "../models/CaliLog.js";
 import booksRoutes from "./books.js";
 
 const router = Router();
@@ -65,6 +66,7 @@ router.use("/fit-settings", createCrudRouter(FitSettings, { sortField: "createdA
 router.use("/food-logs", createCrudRouter(FoodLog, { sortField: "date", sortOrder: -1 }));
 router.use("/custom-foods", createCrudRouter(CustomFood, { sortField: "name", sortOrder: 1 }));
 router.use("/body-logs", createCrudRouter(BodyLog, { sortField: "date", sortOrder: -1 }));
+router.use("/cali-logs", createCrudRouter(CaliLog, { sortField: "date", sortOrder: -1 }));
 router.use("/care-items", createCrudRouter(CareItem, { sortField: "order", sortOrder: 1 }));
 router.use("/care-logs", createCrudRouter(CareLog, { sortField: "date", sortOrder: -1 }));
 router.use("/reminders", createCrudRouter(Reminder, { sortField: "date", sortOrder: 1 }));
