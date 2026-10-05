@@ -3,6 +3,7 @@ import { NavLink, Route, Routes, Navigate, useLocation, useNavigate } from "reac
 import { getToken, setToken } from "./api";
 import { ToastProvider } from "./components/Toast.jsx";
 import { PdfReaderHost } from "./components/PdfReader.jsx";
+import { HealthSyncHost } from "./components/HealthSync.jsx";
 import { MenuContext, MenuButton } from "./components/AppMenu.jsx";
 import { IS_RELOAD } from "./lib/navigation.js";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -174,6 +175,7 @@ export default function App() {
       <MenuContext.Provider value={menuApi}>
         <DomainHint index={hint} />
         <PdfReaderHost />
+        {authed && <HealthSyncHost />}
         <div className="flex min-h-screen">
           {/* Slide-in menu */}
           <div className={`fixed inset-0 z-[80] ${menuOpen ? "" : "pointer-events-none"}`} aria-hidden={!menuOpen}>

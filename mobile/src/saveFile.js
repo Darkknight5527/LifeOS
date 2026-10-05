@@ -2,25 +2,8 @@
 // folder on the phone. The first time, Android asks you to pick the folder
 // (e.g. Download); LifeOS remembers it after that.
 import { Alert, Platform, ToastAndroid } from "react-native";
-import { Directory, File, Paths } from "expo-file-system";
-
-const PREFS = new File(Paths.document, "lifeos-prefs.json");
-
-function readPrefs() {
-  try {
-    return PREFS.exists ? JSON.parse(PREFS.textSync()) : {};
-  } catch {
-    return {};
-  }
-}
-function writePrefs(p) {
-  try {
-    if (!PREFS.exists) PREFS.create();
-    PREFS.write(JSON.stringify(p));
-  } catch {
-    /* not critical */
-  }
-}
+import { Directory } from "expo-file-system";
+import { readPrefs, writePrefs } from "./prefs";
 
 function toast(msg) {
   if (Platform.OS === "android") ToastAndroid.show(msg, ToastAndroid.LONG);
@@ -40,7 +23,7 @@ async function pickFolder() {
   if (!ok) return null;
   try {
     const dir = await Directory.pickDirectoryAsync();
-    writePrefs({ ...readPrefs(), saveDir: dir.uri });
+    writePrefs({ saveDir: dir.uri });
     return dir;
   } catch {
     return null; // picker closed
@@ -58,8 +41,7 @@ export async function saveIncomingFile({ name, mime, data }) {
       return toast(`Saved ${name}`);
     } catch {
       // The remembered folder may be gone or no longer allowed — ask again once.
-      prefs = { ...prefs, saveDir: null };
-      writePrefs(prefs);
+      prefs = writePrefs({ saveDir: null });
     }
   }
   toast("Couldn't save the file");

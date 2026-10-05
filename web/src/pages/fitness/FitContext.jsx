@@ -69,6 +69,13 @@ export function FitProvider({ children }) {
     load();
   }, [load]);
 
+  // Reload when data changes elsewhere (e.g. the smart scale sync in the app).
+  useEffect(() => {
+    const on = () => load();
+    window.addEventListener("lifeos:data-changed", on);
+    return () => window.removeEventListener("lifeos:data-changed", on);
+  }, [load]);
+
   useEffect(() => {
     if (status.syncing || status.error || !d.settings) return;
     try {

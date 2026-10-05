@@ -11,7 +11,16 @@ What the shell adds:
 - links to other sites (YouTube, Google Calendar, news) open in the phone's
   browser/apps;
 - status and navigation bars take the colour of the page you're on;
-- loading screen and an offline "Try again" screen.
+- loading screen and an offline "Try again" screen;
+- saves exports/backups to a folder you pick once, and opens the reference
+  books in a built-in PDF reader;
+- **smart scale sync**: reads Weight and Body fat from Health Connect
+  (`src/health.js`, react-native-health-connect). FitDays → Google Fit /
+  Samsung Health → Health Connect → LifeOS. Runs when the app opens or comes
+  back (at most every 10 min) and from the Body tab's "Smart scale" card; the
+  website saves readings as body-logs (`web/src/components/HealthSync.jsx`)
+  and confirms, and only then does the app remember the sync point. First
+  sync reads up to a year back.
 
 The page gets an `in-app` class on `<html>` and `LifeOSApp/1.0` in its user
 agent, in case the website ever needs to behave differently inside the app.

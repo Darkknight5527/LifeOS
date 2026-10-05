@@ -2,13 +2,14 @@
 // The site loads from Render, so every website update appears here without
 // installing a new APK. Sign-in, data and the phone layout are the website's own.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, BackHandler, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, BackHandler, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import Constants from "expo-constants";
 import { saveIncomingFile } from "./src/saveFile";
+import { commitSync, healthStatus, openHealthSettings, readWeighIns } from "./src/health";
 
 const SITE = Constants.expoConfig?.extra?.webUrl || "https://lifeos-web-qjrj.onrender.com";
 const hostOf = (url) => (String(url).match(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i) || [])[1] || "";
@@ -68,6 +69,39 @@ function Shell() {
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(DARK).catch(() => {});
   }, []);
+
+  // ---- Talking to the website ----
+  // Events go in as window "lifeos:native" CustomEvents.
+  const toWeb = useCallback((type, detail = {}) => {
+    const js = `window.dispatchEvent(new CustomEvent("lifeos:native",{detail:${JSON.stringify({ type, ...detail })}}));true;`;
+    web.current?.injectJavaScript(js);
+  }, []);
+  const pendingSync = useRef(null);
+  const lastAuto = useRef(0);
+  const syncHealth = useCallback(
+    async (interactive) => {
+      try {
+        const res = await readWeighIns({ interactive });
+        pendingSync.current = res.pending || null;
+        const { pending, ...rest } = res;
+        toWeb("health", rest);
+      } catch (e) {
+        toWeb("health", { status: "error", error: String(e?.message || e) });
+      }
+    },
+    [toWeb]
+  );
+  // Quietly pick up new weigh-ins when the app opens or comes back (at most every 10 min).
+  const autoSync = useCallback(async () => {
+    if (Date.now() - lastAuto.current < 10 * 60 * 1000) return;
+    lastAuto.current = Date.now();
+    const st = await healthStatus();
+    if (st.status === "connected") syncHealth(false);
+  }, [syncHealth]);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => s === "active" && autoSync());
+    return () => sub.remove();
+  }, [autoSync]);
 
   // Android back button goes back inside LifeOS before leaving the app.
   useEffect(() => {
@@ -143,13 +177,24 @@ function Shell() {
             onNavigationStateChange={(nav) => {
               canGoBack.current = nav.canGoBack;
             }}
-            onLoadEnd={() => setLoading(false)}
+            onLoadEnd={() => {
+              setLoading(false);
+              setTimeout(autoSync, 1500);
+            }}
             onError={() => setFailed(true)}
             onRenderProcessGone={() => retry()}
             onMessage={(e) => {
               try {
                 const m = JSON.parse(e.nativeEvent.data);
                 if (m.type === "save-file") saveIncomingFile(m);
+                else if (m.type === "health-status") healthStatus().then((st) => toWeb("health-status", st));
+                else if (m.type === "health-connect") syncHealth(true);
+                else if (m.type === "health-sync") syncHealth(false);
+                else if (m.type === "health-settings") openHealthSettings();
+                else if (m.type === "health-saved") {
+                  commitSync(pendingSync.current);
+                  pendingSync.current = null;
+                }
                 else if (m.top && m.bottom) setBars({ top: m.top, bottom: m.bottom });
               } catch {
                 /* ignore */

@@ -148,7 +148,9 @@ Blue theme. Tabs: **Train**, **Nutrition**, **Body** (← → to switch).
   protein vs target, macro split, top protein sources. Custom foods.
 - **Body** — weigh-ins with a smoothed trend, weekly change, BMI, goal ETA,
   measurements, and an adaptive "real calorie burn" from intake vs trend
-  (MacroFactor-style) once there's ~3 weeks of data.
+  (MacroFactor-style) once there's ~3 weeks of data. In the Android app, a
+  "Smart scale" card syncs weigh-ins and body fat from Health Connect (e.g.
+  FitDays via Google Fit / Samsung Health).
 
 API: `fit-settings`, `workout-strength` (sessions), `workout-cardio`, `cali-logs`,
 `food-logs` (one per day: entries + water), `custom-foods`, `body-logs`.

@@ -38,3 +38,15 @@ export function openPdfReader(blob, { page = 1, title = "" } = {}) {
 export function closePdfReader() {
   window.dispatchEvent(new CustomEvent("lifeos:pdf", { detail: null }));
 }
+
+/** Send a message to the Android app (no-op in a normal browser). */
+export function sendToApp(type, data = {}) {
+  if (IN_APP) window.ReactNativeWebView.postMessage(JSON.stringify({ type, ...data }));
+}
+
+/** Listen for messages from the Android app. Returns an unsubscribe function. */
+export function onAppMessage(handler) {
+  const on = (e) => e.detail && handler(e.detail);
+  window.addEventListener("lifeos:native", on);
+  return () => window.removeEventListener("lifeos:native", on);
+}

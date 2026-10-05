@@ -6,6 +6,8 @@ import { useFit } from "./FitContext.jsx";
 import { dayTotals, daysBetween, lastNDays, prettyDate, r1, todayISO, weightTrend } from "./lib";
 import { LineChart, NumberBox, kicker } from "./fit-ui.jsx";
 import { EmptyState, FinCard, Icon, PrimaryButton, Segmented } from "../finances/fin-ui.jsx";
+import { IN_APP } from "../../lib/inApp.js";
+import { connectScale, openHealthSettings, syncScale, useHealthState } from "../../components/HealthSync.jsx";
 
 const FIELDS = [
   ["waist", "Waist", "cm"],
@@ -105,6 +107,7 @@ export function BodyView() {
           </div>
           <PrimaryButton className="mt-3 w-full" onClick={save}>{log ? "Update today" : "Save weigh-in"}</PrimaryButton>
         </FinCard>
+        {IN_APP && <SmartScaleCard />}
       </div>
 
       <FinCard
@@ -187,5 +190,60 @@ export function BodyView() {
         </FinCard>
       </div>
     </div>
+  );
+}
+
+// Smart scale via Health Connect (only inside the Android app).
+const ago = (t) => {
+  if (!t) return "never";
+  const m = Math.round((Date.now() - t) / 60000);
+  return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+};
+
+function SmartScaleCard() {
+  const h = useHealthState();
+  const btn = "rounded-xl bg-fin-tile px-3 py-2 text-[13.5px] font-semibold text-white/85 hover:text-white disabled:opacity-40";
+  return (
+    <FinCard title={<span className="flex items-center gap-2"><Icon name="trend" size={15} /> Smart scale</span>}>
+      {h.status === "connected" ? (
+        <>
+          <div className="flex items-center gap-2 text-[14.5px] font-semibold">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> Connected to Health Connect
+          </div>
+          <div className="mt-1 text-[13px] text-fin-muted">
+            {h.busy ? "Syncing…" : `Last sync ${ago(h.lastSync)}`}
+            {h.sources?.length ? ` · from ${h.sources.join(", ")}` : ""}
+            {h.lastResult && !h.busy ? ` · ${h.lastResult.added} new, ${h.lastResult.updated} updated` : ""}
+          </div>
+          {!h.busy && h.lastSync && !h.sources?.length && (
+            <div className="mt-2 rounded-xl bg-amber-400/10 px-3 py-2 text-[12.5px] text-amber-200">No weigh-ins found yet — check that FitDays shares to Google Fit or Samsung Health, and that app shares with Health Connect.</div>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button onClick={syncScale} disabled={h.busy} className={btn}>Sync now</button>
+            <button onClick={openHealthSettings} className={btn}>Health Connect settings</button>
+          </div>
+        </>
+      ) : h.status === "unavailable" || h.status === "update" ? (
+        <div className="text-[13.5px] leading-relaxed text-fin-muted">
+          {h.status === "update" ? "Health Connect needs an update from the Play Store." : "Health Connect isn't available on this phone."}{" "}
+          {h.status === "update" && <button onClick={connectScale} className="font-semibold text-fin-accent">Update it</button>}
+        </div>
+      ) : (
+        <>
+          <div className="text-[13.5px] leading-relaxed text-fin-muted">
+            Weigh in on your scale and LifeOS fills in your weight and body fat automatically — no typing.
+          </div>
+          <ol className="mt-2 space-y-1 text-[13px] text-fin-muted">
+            <li>1. In <b className="text-white/85">FitDays</b>: Me → Settings → connect <b className="text-white/85">Google Fit</b> (or Samsung Health).</li>
+            <li>2. In that app, turn on sharing with <b className="text-white/85">Health Connect</b>.</li>
+            <li>3. Tap Connect below and allow <b className="text-white/85">Weight</b> and <b className="text-white/85">Body fat</b>.</li>
+          </ol>
+          <PrimaryButton className="mt-3 w-full" onClick={connectScale} disabled={h.busy || h.status === "checking"}>
+            {h.busy ? "Connecting…" : "Connect scale"}
+          </PrimaryButton>
+          {h.status === "error" && <div className="mt-2 text-[12.5px] text-fin-danger">{h.error}</div>}
+        </>
+      )}
+    </FinCard>
   );
 }
