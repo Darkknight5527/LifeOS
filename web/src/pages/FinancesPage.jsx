@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSwipeTabs } from "../components/useSwipeTabs.js";
 import { FinanceProvider, useFinance } from "./finances/FinanceContext.jsx";
 import { monthLabel } from "./finances/lib";
 import { Icon, LogoMark, PrimaryButton } from "./finances/fin-ui.jsx";
@@ -72,6 +73,9 @@ function FinanceShell() {
   }, []);
 
   const openNew = useCallback(() => setSheet({ open: true, editing: null, amount: null }), []);
+  // Swipe left / right on a phone to move between tabs.
+  const mainRef = useRef(null);
+  useSwipeTabs(mainRef, TABS.map((t) => t.id), tab, goTo);
   // Money-received entries open their own sheet.
   const openEdit = useCallback((tx) => (tx.type === "income" && tx.bucket === "received" ? setRecv({ open: true, editing: tx }) : setSheet({ open: true, editing: tx, amount: null })), []);
   const close = useCallback(() => setSheet((s) => ({ ...s, open: false })), []);
@@ -116,7 +120,7 @@ function FinanceShell() {
   }, [tab]);
 
   return (
-    <div className="fin-scope min-h-screen bg-fin-bg font-fin text-white antialiased">
+    <div className="fin-scope min-h-screen overflow-x-clip bg-fin-bg font-fin text-white antialiased">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-fin-line bg-fin-bg/80 backdrop-blur-xl">
         <div className="flex items-center gap-3 px-3 py-4 sm:px-5 lg:py-2.5">
@@ -167,7 +171,7 @@ function FinanceShell() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:max-w-[1320px] lg:pb-4 lg:pt-3">
+      <main ref={mainRef} className="mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:max-w-[1320px] lg:pb-4 lg:pt-3">
         {loading ? (
           <LoadingState />
         ) : error && !hasData ? (

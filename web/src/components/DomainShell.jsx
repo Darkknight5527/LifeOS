@@ -1,7 +1,8 @@
 // Dark page frame shared by the redesigned domains (same look as Finances):
 // header with menu + logo + tabs, phone bottom bar, sync status pill.
 // Each domain passes its own colour theme class (e.g. "theme-teal").
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useSwipeTabs } from "./useSwipeTabs.js";
 import { MenuButton } from "./AppMenu.jsx";
 import { Icon, LogoMark, PrimaryButton, ThemeContext } from "../pages/finances/fin-ui.jsx";
 
@@ -40,8 +41,12 @@ export default function DomainShell({
     return () => window.removeEventListener("keydown", onKey);
   }, [tabs, tab, onTab]);
 
+  // Swipe left / right on a phone to move between tabs.
+  const mainRef = useRef(null);
+  useSwipeTabs(mainRef, tabs?.map((t) => t.id), tab, onTab);
+
   return (
-    <div className={`fin-scope ${theme} min-h-screen bg-fin-bg font-fin text-white antialiased`}>
+    <div className={`fin-scope ${theme} min-h-screen overflow-x-clip bg-fin-bg font-fin text-white antialiased`}>
       <header className="sticky top-0 z-30 border-b border-fin-line bg-fin-bg/80 backdrop-blur-xl">
         <div className="flex items-center gap-3 px-3 py-4 sm:px-5 lg:py-2.5">
           <MenuButton className="-ml-2 text-white/70 hover:bg-white/5 hover:text-white" />
@@ -88,7 +93,7 @@ export default function DomainShell({
         </div>
       </header>
 
-      <main className={`mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:pb-4 lg:pt-3 ${maxWidth}`}>
+      <main ref={mainRef} className={`mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:pb-4 lg:pt-3 ${maxWidth}`}>
         <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
       </main>
 
