@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "LifeOS",
+    "slug": "lifeos",
+    "scheme": "lifeos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0b0b0d",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0b0b0d"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.darkknight.lifeos"
+    },
+    "android": {
+      "package": "com.darkknight.lifeos",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#f56a12",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["android.permission.POST_NOTIFICATIONS", "android.permission.SCHEDULE_EXACT_ALARM", "android.permission.RECEIVE_BOOT_COMPLETED"]
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#60a5fa"
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "",
+      "webUrl": "https://lifeos-web-qjrj.onrender.com"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
