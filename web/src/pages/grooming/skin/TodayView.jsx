@@ -20,7 +20,7 @@ export default function TodayView() {
     : "Almost there.";
 
   return (
-    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 lg:gap-4 xl:grid-cols-3 [&>*]:min-w-0">
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-4 [&>*]:min-w-0">
       <div className="space-y-5 lg:space-y-4">
         {/* Hero */}
         <section className="relative animate-fade-up overflow-hidden rounded-[28px] bg-gradient-to-br from-[#36d6c2] via-[#1fb5a6] to-[#0e7f77] p-6 shadow-glow lg:rounded-[24px] lg:p-5">
@@ -46,8 +46,11 @@ export default function TodayView() {
         </section>
         <SkinCheckIn date={today} delay={60} />
       </div>
-      <RoutineChecklist date={today} period="am" delay={40} />
-      <RoutineChecklist date={today} period="pm" delay={80} />
+      {/* Morning above evening */}
+      <div className="space-y-5 lg:space-y-4">
+        <RoutineChecklist date={today} period="am" delay={40} />
+        <RoutineChecklist date={today} period="pm" delay={80} />
+      </div>
     </div>
   );
 }

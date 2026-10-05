@@ -112,7 +112,7 @@ export default function HistoryView() {
           />
         </div>
         {panel === "routine" ? (
-          <div key={selected} className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div key={selected} className="space-y-4">
             <RoutineChecklist date={selected} period="am" compact />
             <RoutineChecklist date={selected} period="pm" compact />
           </div>
