@@ -8,6 +8,7 @@ import * as SystemUI from "expo-system-ui";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import Constants from "expo-constants";
+import { saveIncomingFile } from "./src/saveFile";
 
 const SITE = Constants.expoConfig?.extra?.webUrl || "https://lifeos-web-qjrj.onrender.com";
 const hostOf = (url) => (String(url).match(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i) || [])[1] || "";
@@ -148,7 +149,8 @@ function Shell() {
             onMessage={(e) => {
               try {
                 const m = JSON.parse(e.nativeEvent.data);
-                if (m.top && m.bottom) setBars({ top: m.top, bottom: m.bottom });
+                if (m.type === "save-file") saveIncomingFile(m);
+                else if (m.top && m.bottom) setBars({ top: m.top, bottom: m.bottom });
               } catch {
                 /* ignore */
               }

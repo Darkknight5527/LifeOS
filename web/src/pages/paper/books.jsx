@@ -6,6 +6,7 @@ import { api } from "../../api";
 import { useToast } from "../../components/Toast.jsx";
 import { BOOKS } from "./facts.js";
 import { GhostButton, Icon, PrimaryButton, Sheet } from "../finances/fin-ui.jsx";
+import { IN_APP, closePdfReader, openPdfReader } from "../../lib/inApp.js";
 
 const CACHE = "lifeos-books-v1";
 const LIST_KEY = "lifeos_books_cache_v1";
@@ -73,6 +74,21 @@ async function cachedBlob(key, version) {
 export async function openBook(key, printedPage, version) {
   const book = BOOKS[key];
   const pdfPage = Math.max(1, printedPage + (book?.offset || 0));
+  if (IN_APP) {
+    // The app's WebView has no PDF viewer — use our own reader.
+    const pending = cachedBlob(key, version);
+    openPdfReader(pending, { page: pdfPage, title: `${book?.short || "Book"} · page ${printedPage}` });
+    try {
+      if (!(await pending)) {
+        closePdfReader();
+        return "missing";
+      }
+    } catch (err) {
+      closePdfReader();
+      throw err;
+    }
+    return "ok";
+  }
   const win = window.open("", "_blank");
   if (win) {
     win.document.title = `${book?.short || "Book"} · p ${printedPage}`;

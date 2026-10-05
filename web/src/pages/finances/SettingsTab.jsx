@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
 import { BUCKETS, PRESETS, clamp, formatMoney, monthLabel, splitByRatio, todayISO } from "./lib";
 import { BucketBadge, FinCard, GhostButton, Icon, IconButton, MoneyField, Pill, PrimaryButton, Segmented, Sheet, TextField } from "./fin-ui.jsx";
+import { saveFile } from "../../lib/inApp.js";
 
 export default function SettingsTab() {
   return (
@@ -367,12 +368,7 @@ function DataBackup() {
     const data = await backup();
     if (!data) return;
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `lifeos-finances-${todayISO()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    await saveFile(blob, `lifeos-finances-${todayISO()}.json`);
   }
 
   async function copy() {

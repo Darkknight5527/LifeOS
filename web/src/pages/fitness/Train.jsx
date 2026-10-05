@@ -36,6 +36,7 @@ import { daysInMonth, monthKey, monthLabel, shiftMonth } from "../finances/lib";
 import { EmptyState, FinCard, GhostButton, Icon, IconButton, Pill, PrimaryButton, Ring, Segmented, Sheet, TextField } from "../finances/fin-ui.jsx";
 import { useToast } from "../../components/Toast.jsx";
 import { fromFitNotes } from "./fitnotes.js";
+import { saveFile } from "../../lib/inApp.js";
 
 export const ACTIVE_KEY = "lifeos_fit_active_v1";
 const H = "lg:h-[calc(100dvh-178px)] lg:min-h-[380px]";
@@ -814,11 +815,7 @@ function exportCSV(sessions) {
   for (const s of [...sessions].sort((a, b) => a.date.localeCompare(b.date)))
     for (const e of s.exercises || []) (e.sets || []).forEach((x, i) => rows.push([s.date, s.splitDay || "", e.exercise, i + 1, x.warmup ? "yes" : "", x.weight || 0, x.reps || 0, x.time || 0, x.distance || 0, x.rpe ?? "", (x.note || e.note || "").replace(/"/g, "'")]));
   const csv = rows.map((r) => r.map((v) => (/[",\n]/.test(String(v)) ? `"${v}"` : v)).join(",")).join("\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  a.download = `lifeos-workouts-${todayISO()}.csv`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  saveFile(new Blob([csv], { type: "text/csv" }), `lifeos-workouts-${todayISO()}.csv`);
 }
 
 export function TrainHistory({ onOpenSession }) {

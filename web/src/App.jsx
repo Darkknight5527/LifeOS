@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { getToken, setToken } from "./api";
 import { ToastProvider } from "./components/Toast.jsx";
+import { PdfReaderHost } from "./components/PdfReader.jsx";
 import { MenuContext, MenuButton } from "./components/AppMenu.jsx";
 import { IS_RELOAD } from "./lib/navigation.js";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -172,6 +173,7 @@ export default function App() {
     <ToastProvider>
       <MenuContext.Provider value={menuApi}>
         <DomainHint index={hint} />
+        <PdfReaderHost />
         <div className="flex min-h-screen">
           {/* Slide-in menu */}
           <div className={`fixed inset-0 z-[80] ${menuOpen ? "" : "pointer-events-none"}`} aria-hidden={!menuOpen}>
