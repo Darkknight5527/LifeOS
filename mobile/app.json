@@ -3,7 +3,7 @@
     "name": "LifeOS",
     "slug": "lifeos",
     "scheme": "lifeos",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -19,26 +19,16 @@
     },
     "android": {
       "package": "com.darkknight.lifeos",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#f56a12",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "permissions": ["android.permission.POST_NOTIFICATIONS", "android.permission.SCHEDULE_EXACT_ALARM", "android.permission.RECEIVE_BOOT_COMPLETED"]
+      "softwareKeyboardLayoutMode": "resize"
     },
-    "plugins": [
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#60a5fa"
-        }
-      ]
-    ],
     "extra": {
-      "apiUrl": "https://lifeos-jvep.onrender.com/api",
       "webUrl": "https://lifeos-web-qjrj.onrender.com"
     },
     "web": {

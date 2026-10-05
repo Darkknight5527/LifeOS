@@ -10,7 +10,7 @@ LifeOS/
 ├── server/    Express + Mongoose API (MongoDB Atlas)
 ├── web/       React + Vite + Tailwind web app
 ├── shared/    Constants + API client shared by web and (later) mobile
-└── mobile/    Android app (Expo) — water reminders first; see mobile/README.md
+└── mobile/    Android app (Expo) — the full website in an app; see mobile/README.md
 ```
 
 ## Local setup
@@ -183,4 +183,4 @@ Also on the paper:
 - Web: skeleton with auth, routing, and an Overview page. Each domain page
   (Physical, Goals, Technical & Projects, Learning, Mental & Psych) still
   needs to be ported over from the prototype artifact's logic.
-- Mobile: Android app in `mobile/` (water tracking + reminders); APK built by GitHub Actions.
+- Mobile: Android app in `mobile/` (whole website in a native shell); APK built by GitHub Actions.
