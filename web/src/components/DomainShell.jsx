@@ -26,7 +26,7 @@ export default function DomainShell({
     if (!(tabs?.length > 1)) return;
     const onKey = (e) => {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return; // Shift+←/→ = views
       if (e.target.closest?.('input, textarea, select, [contenteditable], [role="slider"]')) return;
       if (document.querySelector('[role="dialog"]')) return;
       e.preventDefault();
@@ -58,7 +58,7 @@ export default function DomainShell({
           <SyncStatus syncing={syncing} failed={failed} onRetry={onRetry} />
 
           {tabs?.length > 1 && (
-            <nav className="mx-auto hidden items-center gap-1 rounded-2xl bg-[#141418] p-1 lg:flex" aria-label={`${title} sections (use ← → to switch)`} role="tablist">
+            <nav className="mx-auto hidden items-center gap-1 rounded-2xl bg-[#141418] p-1 lg:flex" aria-label={`${title} sections (← → tabs · 1–9 or Shift + ← → views)`} role="tablist">
               {tabs.map((t) => {
                 const active = tab === t.id;
                 return (

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSwipeTabs } from "../components/useSwipeTabs.js";
+import { useViewKeys } from "../components/useViewKeys.js";
 import { FinanceProvider, useFinance } from "./finances/FinanceContext.jsx";
 import { monthLabel } from "./finances/lib";
 import { Icon, LogoMark, PrimaryButton } from "./finances/fin-ui.jsx";
@@ -76,6 +77,8 @@ function FinanceShell() {
   // Swipe left / right on a phone to move between tabs.
   const mainRef = useRef(null);
   useSwipeTabs(mainRef, TABS.map((t) => t.id), tab, goTo);
+  // 1–5 jump straight to a tab (Finances has a single row).
+  useViewKeys(TABS, tab, goTo);
   // Money-received entries open their own sheet.
   const openEdit = useCallback((tx) => (tx.type === "income" && tx.bucket === "received" ? setRecv({ open: true, editing: tx }) : setSheet({ open: true, editing: tx, amount: null })), []);
   const close = useCallback(() => setSheet((s) => ({ ...s, open: false })), []);
@@ -98,7 +101,7 @@ function FinanceShell() {
       } else if (k.toLowerCase() === "k" && !e.shiftKey) {
         e.preventDefault();
         setCalcOpen(true);
-      } else if (k === "ArrowLeft" || k === "ArrowRight") {
+      } else if ((k === "ArrowLeft" || k === "ArrowRight") && !e.shiftKey) {
         e.preventDefault();
         setTab((cur) => {
           const i = TABS.findIndex((x) => x.id === cur);

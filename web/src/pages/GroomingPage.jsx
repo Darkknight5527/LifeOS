@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import DomainShell from "../components/DomainShell.jsx";
+import { useViewKeys } from "../components/useViewKeys.js";
 import { reloadedHere } from "../lib/navigation.js";
 import { Segmented } from "./finances/fin-ui.jsx";
 import { SkinProvider, useSkin } from "./grooming/skin/SkinContext.jsx";
@@ -58,6 +59,7 @@ function GroomingShell() {
   const { tab } = state;
   const view = state.views[tab];
   const setView = (v) => setState((s) => ({ ...s, views: { ...s.views, [s.tab]: v } }));
+  useViewKeys(VIEWS, view, setView); // 1–4 / Shift+← → switch views
   const src = tab === "skin" ? skin : care;
 
   useEffect(() => {
@@ -88,7 +90,7 @@ function GroomingShell() {
       onRetry={src.reload}
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <Segmented className="w-full max-w-[460px] [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={VIEWS} />
+        <div className="w-full max-w-[460px]" title="Keys: 1–4 or Shift + ← →"><Segmented className="w-full [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={VIEWS} /></div>
         {view === "insights" && (
           <Segmented className="w-full sm:w-[260px] sm:shrink-0 [&_button]:!py-1.5 [&_button]:!text-[13px]" value={range} onChange={setRange} options={RANGES} />
         )}

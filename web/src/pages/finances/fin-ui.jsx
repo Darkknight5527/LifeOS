@@ -276,14 +276,14 @@ export function ProgressBar({ value, max, color, className = "" }) {
 }
 
 // Circular progress ring with content in the middle.
-export function Ring({ value, max, color, size = 64, stroke = 7, children }) {
+export function Ring({ value, max, color, size = 64, stroke = 7, track = "#121215", children }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const pct = max > 0 ? Math.min(1, value / max) : 0;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#121215" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}
