@@ -10,3 +10,9 @@ export const IS_RELOAD = (() => {
     return false;
   }
 })();
+
+// The page that was open when the browser refreshed (null if it wasn't a
+// refresh). A domain only restores its last tab after a refresh of itself —
+// arriving from another domain always starts on the first tab.
+export const RELOAD_PATH = IS_RELOAD ? window.location.pathname : null;
+export const reloadedHere = (path) => IS_RELOAD && RELOAD_PATH === path;

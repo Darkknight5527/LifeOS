@@ -12,14 +12,14 @@ import LogExpenseSheet from "./finances/LogExpenseSheet.jsx";
 import Calculator from "./finances/Calculator.jsx";
 import ReceivedSheet from "./finances/ReceivedSheet.jsx";
 import { MenuButton } from "../components/AppMenu.jsx";
-import { IS_RELOAD } from "../lib/navigation.js";
+import { reloadedHere } from "../lib/navigation.js";
 
 const TAB_KEY = "lifeos_fin_tab";
 let restoredAfterReload = false;
 
 // Home when you come into Finances; after a refresh, the sub-tab you were on.
 function initialTab() {
-  if (IS_RELOAD && !restoredAfterReload) {
+  if (reloadedHere("/finances") && !restoredAfterReload) {
     restoredAfterReload = true;
     try {
       const saved = sessionStorage.getItem(TAB_KEY);

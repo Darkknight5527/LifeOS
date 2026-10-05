@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DomainShell from "../components/DomainShell.jsx";
-import { IS_RELOAD } from "../lib/navigation.js";
+import { reloadedHere } from "../lib/navigation.js";
 import { Segmented } from "./finances/fin-ui.jsx";
 import { SkinProvider, useSkin } from "./grooming/skin/SkinContext.jsx";
 import TodayView from "./grooming/skin/TodayView.jsx";
@@ -28,7 +28,7 @@ const FRESH = { tab: "skin", views: { skin: "today", hair: "today", body: "today
 
 // Skin › Today when you come in; after a refresh, wherever you were.
 function initial() {
-  if (IS_RELOAD && !restored) {
+  if (reloadedHere("/grooming") && !restored) {
     restored = true;
     try {
       const v = JSON.parse(sessionStorage.getItem(KEY) || "null");
@@ -79,7 +79,8 @@ function GroomingShell() {
       tabs={TABS}
       tab={tab}
       onTab={(t) => {
-        setState((s) => ({ ...s, tab: t }));
+        // Each tab opens on its first view (Today, Skill tree, Diary…).
+        setState((s) => ({ ...s, tab: t, views: { ...s.views, [t]: FRESH.views[t] } }));
         window.scrollTo({ top: 0 });
       }}
       syncing={src.syncing && src.hasData}
