@@ -19,6 +19,7 @@ const PATHS = {
   upload: "M12 20V8M7 13l5-5 5 5M5 4h14",
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   reset: "M4 4v6h6M20 20v-6h-6M5 15a7 7 0 0 0 12.5 2.5M19 9A7 7 0 0 0 6.5 6.5",
+  history: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2",
   bag: "M6 8h12l-1 12H7zM9 8V6a3 3 0 0 1 6 0v2",
   piggy: "M5 11a7 6 0 0 1 12-3h2v3l2 1v3h-2l-2 3v2h-3v-1H10v1H7v-2.5A6 6 0 0 1 5 11zM15 10h.01M2 9c0 1.5 1 2.5 3 2.5",
   trend: "M3 17l6-6 4 4 8-8M15 7h6v6",
@@ -149,12 +150,14 @@ export function Segmented({ options, value, onChange, className = "" }) {
   );
 }
 
-export function Pill({ active, onClick, children, color, className = "" }) {
+export function Pill({ active, onClick, children, color, className = "", ...rest }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-[14px] font-semibold transition active:scale-95 ${
+      aria-pressed={active === undefined ? undefined : Boolean(active)}
+      {...rest}
+      className={`flex min-h-[40px] max-w-full shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-left text-[14px] font-semibold [overflow-wrap:anywhere] transition active:scale-95 ${
         active
           ? "border-fin-accent bg-fin-accent/10 text-fin-accent"
           : "border-transparent bg-fin-input text-white/85 hover:bg-fin-tile"
@@ -188,14 +191,15 @@ export function GhostButton({ children, className = "", ...props }) {
   );
 }
 
-export function IconButton({ icon, label, onClick, className = "", size = 18 }) {
+export function IconButton({ icon, label, onClick, className = "", size = 18, disabled }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
       title={label}
-      className={`grid h-9 w-9 place-items-center rounded-xl text-fin-muted transition hover:bg-fin-tile hover:text-white active:scale-95 ${className}`}
+      className={`relative grid h-9 w-9 place-items-center rounded-xl text-fin-muted transition before:absolute before:-inset-1 before:content-[''] hover:bg-fin-tile hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-25 ${className}`}
     >
       <Icon name={icon} size={size} />
     </button>
@@ -211,21 +215,38 @@ export function TextField({ className = "", ...props }) {
   );
 }
 
-export function MoneyField({ value, onChange, placeholder = "0", className = "", autoFocus, onEnter }) {
+// Money input: digits and up to 2 decimals only (no "1e3", no minus), at
+// most 8 digits before the point (just under ₹10 Cr).
+export function cleanMoneyInput(raw) {
+  let v = String(raw ?? "").replace(/[^0-9.]/g, "");
+  const dot = v.indexOf(".");
+  if (dot >= 0) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, "").slice(0, 2);
+  const [int, dec] = v.split(".");
+  const i = int.replace(/^0+(?=\d)/, "").slice(0, 8);
+  return dec !== undefined ? `${i || "0"}.${dec}` : i;
+}
+
+export function MoneyField({ value, onChange, placeholder = "0", className = "", autoFocus, onEnter, label = "Amount in rupees", id, error }) {
   return (
-    <div className={`flex items-center rounded-2xl border border-transparent bg-fin-input px-4 transition focus-within:border-fin-accent/60 ${className}`}>
-      <span className="text-fin-faint">₹</span>
-      <input
-        type="number"
-        inputMode="decimal"
-        min="0"
-        value={value}
-        autoFocus={autoFocus}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
-        placeholder={placeholder}
-        className="tabular w-full bg-transparent px-2 py-3.5 text-[16px] text-white placeholder:text-fin-faint outline-none"
-      />
+    <div>
+      <div className={`flex items-center rounded-2xl border bg-fin-input px-4 transition focus-within:border-fin-accent/60 ${error ? "border-fin-danger/70" : "border-transparent"} ${className}`}>
+        <span className="text-fin-faint" aria-hidden="true">₹</span>
+        <input
+          id={id}
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          aria-label={label}
+          aria-invalid={Boolean(error) || undefined}
+          value={value}
+          autoFocus={autoFocus}
+          onChange={(e) => onChange(cleanMoneyInput(e.target.value))}
+          onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
+          placeholder={placeholder}
+          className="tabular w-full bg-transparent px-2 py-3.5 text-[16px] text-white placeholder:text-fin-faint outline-none"
+        />
+      </div>
+      {error && <div role="alert" className="mt-1.5 px-1 text-[13px] text-fin-danger">{error}</div>}
     </div>
   );
 }
@@ -311,7 +332,7 @@ export function MonthNav({ label, sub, onPrev, onNext, canNext = true }) {
         <div className="text-[18px] font-bold lg:text-[17px]">{label}</div>
         {sub && <div className="text-[13px] text-fin-muted">{sub}</div>}
       </div>
-      <IconButton icon="right" label="Next month" onClick={onNext} className={canNext ? "" : "pointer-events-none opacity-25"} />
+      <IconButton icon="right" label="Next month" onClick={onNext} disabled={!canNext} />
     </div>
   );
 }
@@ -321,19 +342,61 @@ export function MonthNav({ label, sub, onPrev, onNext, canNext = true }) {
 export const ThemeContext = createContext("");
 
 // ---------- sheet (bottom sheet on phones, centred dialog on larger screens) ----------
+let openSheets = 0; // the page behind is made inert while any sheet is open
+
 export function Sheet({ open, onClose, title, children, footer, titleExtra, wide = false }) {
   const theme = useContext(ThemeContext);
+  const panel = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
+    const opener = document.activeElement;
+    const root = document.getElementById("root");
+    openSheets++;
+    root?.setAttribute("inert", "");
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Move focus into the sheet (unless a field inside already took it).
+    const t = setTimeout(() => {
+      if (panel.current && !panel.current.contains(document.activeElement)) panel.current.focus();
+    }, 30);
+
+    const onKey = (e) => {
+      // Only the top-most sheet reacts.
+      const dialogs = document.querySelectorAll('[data-sheet="1"]');
+      if (dialogs[dialogs.length - 1] !== panel.current) return;
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        closeRef.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      // Keep Tab inside the sheet.
+      const items = [...panel.current.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])')].filter((el) => el.offsetParent !== null);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
     return () => {
+      clearTimeout(t);
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
+      openSheets--;
+      if (!openSheets) root?.removeAttribute("inert");
+      // Give focus back to whatever opened the sheet.
+      if (opener && document.contains(opener)) setTimeout(() => opener.focus?.({ preventScroll: true }), 0);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   // Rendered into <body> so it always covers the whole screen, even when opened
@@ -342,11 +405,11 @@ export function Sheet({ open, onClose, title, children, footer, titleExtra, wide
     <div className={`fin-scope ${theme}`} style={{ display: "contents" }}>
     <div className="fixed inset-0 z-[60] flex items-end justify-center font-fin text-white sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 animate-fade-in bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative flex max-h-[92vh] w-full ${wide ? "max-w-4xl" : "max-w-lg"} animate-sheet-up flex-col rounded-t-[30px] bg-fin-card shadow-2xl ring-1 ring-white/5 sm:animate-pop-in sm:rounded-[30px]`}>
+      <div ref={panel} data-sheet="1" tabIndex={-1} className={`relative flex max-h-[92dvh] w-full outline-none ${wide ? "max-w-4xl" : "max-w-lg"} animate-sheet-up flex-col rounded-t-[30px] bg-fin-card shadow-2xl ring-1 ring-white/5 sm:animate-pop-in sm:rounded-[30px]`}>
         <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-white/15 sm:hidden" />
         <div className="flex items-center justify-between px-6 pb-2 pt-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-[20px] font-bold">{title}</h3>
+            <h2 className="text-[20px] font-bold">{title}</h2>
             {titleExtra}
           </div>
           <IconButton icon="close" label="Close" onClick={onClose} />

@@ -9,6 +9,7 @@ import {
   monthKey,
   shiftMonth,
   splitByRatio,
+  todayISO,
 } from "./lib";
 
 const FinanceContext = createContext(null);
@@ -69,9 +70,35 @@ export function FinanceProvider({ children }) {
   });
   const booted = useRef(false);
 
-  const patchList = useCallback((key, fn) => setState((s) => ({ ...s, [key]: fn(s[key]) })), []);
+  // The date as of the last check — re-checked when the page comes back into
+  // view and every minute, so "today" and "this month" roll over at midnight.
+  const [today, setToday] = useState(todayISO);
+  useEffect(() => {
+    const check = () => setToday((t) => (t === todayISO() ? t : todayISO()));
+    const id = setInterval(check, 60_000);
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, []);
 
-  const load = useCallback(async () => {
+  // Latest state for actions that must not act on a stale copy (double taps).
+  const live = useRef(state);
+  live.current = state;
+  // Counts local changes, so a slow background load that started before a
+  // change doesn't overwrite it with older server data.
+  const changes = useRef(0);
+
+  const patchList = useCallback((key, fn) => {
+    changes.current++;
+    setState((s) => ({ ...s, [key]: fn(s[key]) }));
+  }, []);
+
+  const load = useCallback(async (attemptNo = 0) => {
+    const startedAt = changes.current;
     try {
       const [categories, transactions, months, settingsList, investments, goals] = await Promise.all(
         ["categories", "transactions", "months", "settings", "investments", "goals"].map((k) => api.list(COLLECTIONS[k]))
@@ -103,6 +130,9 @@ export function FinanceProvider({ children }) {
           ratioSavings: DEFAULT_RATIO.savings,
         });
       }
+
+      // Something changed while we were loading — load again so it's included.
+      if (changes.current !== startedAt && attemptNo < 3) return load(attemptNo + 1);
 
       setState({
         loading: false,
@@ -223,17 +253,27 @@ export function FinanceProvider({ children }) {
   );
 
   // ---------- actions: salary & split ----------
+  // Saves for the same month run one after another, so a double tap can't
+  // create two records for one month.
+  const monthQueue = useRef(Promise.resolve());
   const upsertMonth = useCallback(
-    async (key, data, success) => {
-      const existing = state.months.find((m) => m.month === key);
-      const doc = await attempt(
-        () => (existing ? api.update(COLLECTIONS.months, existing._id, data) : api.create(COLLECTIONS.months, { month: key, ...data })),
-        success
-      );
-      if (doc) patchList("months", (l) => (existing ? l.map((m) => (m._id === doc._id ? doc : m)) : [...l, doc]));
-      return doc;
+    (key, data, success) => {
+      const run = monthQueue.current.then(async () => {
+        const existing = live.current.months.find((m) => m.month === key);
+        const doc = await attempt(
+          () => (existing ? api.update(COLLECTIONS.months, existing._id, data) : api.create(COLLECTIONS.months, { month: key, ...data })),
+          success
+        );
+        if (doc) {
+          live.current = { ...live.current, months: existing ? live.current.months.map((m) => (m._id === doc._id ? doc : m)) : [...live.current.months, doc] };
+          patchList("months", (l) => (l.some((m) => m._id === doc._id) ? l.map((m) => (m._id === doc._id ? doc : m)) : [...l, doc]));
+        }
+        return doc;
+      });
+      monthQueue.current = run.catch(() => null);
+      return run;
     },
-    [state.months, attempt, patchList]
+    [attempt, patchList]
   );
 
   const setSalary = useCallback(
@@ -256,6 +296,7 @@ export function FinanceProvider({ children }) {
         })
       );
       if (!doc) return null;
+      changes.current++;
       setState((s) => ({ ...s, settings: doc }));
       const rec = applyToKey && state.months.find((m) => m.month === applyToKey);
       if (rec) return upsertMonth(applyToKey, splitByRatio(rec.salary, next), "Ratio applied");
@@ -284,22 +325,35 @@ export function FinanceProvider({ children }) {
 
   const updateCategory = useCallback(
     async (cat, data) => {
+      if (data.name !== undefined) {
+        const clean = data.name.trim();
+        if (!clean) return null;
+        if (clean.toLowerCase() !== cat.name.toLowerCase() && live.current.categories.some((c) => c._id !== cat._id && c.name.toLowerCase() === clean.toLowerCase())) {
+          showToast(`"${clean}" already exists`, true);
+          return null;
+        }
+        data = { ...data, name: clean };
+      }
       const doc = await attempt(() => api.update(COLLECTIONS.categories, cat._id, data));
       if (!doc) return null;
       patchList("categories", (l) => l.map((c) => (c._id === doc._id ? doc : c)).sort(byOrder));
       // A rename carries over to past expenses so history stays grouped.
       if (data.name && data.name !== cat.name) {
-        const affected = state.transactions.filter((t) => t.category === cat.name);
+        // Only expenses: money-received entries use their own categories.
+        const affected = live.current.transactions.filter((t) => t.type !== "income" && t.category === cat.name);
         const updated = await Promise.all(
           affected.map((t) => api.update(COLLECTIONS.transactions, t._id, { category: data.name, bucket: t.bucket || cat.bucket }).catch(() => null))
         );
-        const map = Object.fromEntries(updated.filter(Boolean).map((t) => [t._id, t]));
+        const done = updated.filter(Boolean);
+        const map = Object.fromEntries(done.map((t) => [t._id, t]));
         patchList("transactions", (l) => l.map((t) => map[t._id] || t));
-        showToast(affected.length ? `Renamed · ${affected.length} expense${affected.length > 1 ? "s" : ""} updated` : "Renamed");
+        const failed = affected.length - done.length;
+        if (failed) showToast(`Renamed, but ${failed} expense${failed > 1 ? "s" : ""} still use the old name — try renaming again`, true);
+        else showToast(affected.length ? `Renamed · ${affected.length} expense${affected.length > 1 ? "s" : ""} updated` : "Renamed");
       }
       return doc;
     },
-    [attempt, patchList, state.transactions, showToast]
+    [attempt, patchList, showToast]
   );
 
   const removeCategory = useCallback(
@@ -357,32 +411,36 @@ export function FinanceProvider({ children }) {
 
   // ---------- actions: data ----------
   const backup = useCallback(() => attempt(() => api.financeBackup()), [attempt]);
-  const restore = useCallback(
-    async (data) => {
-      const ok = await attempt(() => api.financeRestore(data), "Backup restored");
-      if (ok) {
-        setState((s) => ({ ...s, syncing: true }));
-        await load();
+  // These return true, or an error message to show next to the password box.
+  const replaceData = useCallback(
+    async (fn, success) => {
+      try {
+        await fn();
+      } catch (err) {
+        return err.message || "Something went wrong";
       }
-      return ok;
-    },
-    [attempt, load]
-  );
-  const resetAll = useCallback(async () => {
-    const ok = await attempt(() => api.financeReset(), "Finances reset");
-    if (ok) {
+      showToast(success);
       setState((s) => ({ ...s, syncing: true }));
       await load();
-    }
-    return ok;
-  }, [attempt, load]);
+      return true;
+    },
+    [load, showToast]
+  );
+  const restore = useCallback((backupFile, password) => replaceData(() => api.financeRestore(backupFile, password), "Backup restored"), [replaceData]);
+  const resetAll = useCallback((password) => replaceData(() => api.financeReset(password), "Finances reset — a restore point was saved"), [replaceData]);
+  const restoreSnapshot = useCallback(
+    (id, password) => replaceData(() => api.financeRestoreSnapshot(id, password), "Restore point put back"),
+    [replaceData]
+  );
+  const listSnapshots = useCallback(() => attempt(() => api.financeSnapshots()), [attempt]);
 
   const value = {
     ...state,
     ratio,
     expenses,
     received,
-    currentMonth: monthKey(),
+    today,
+    currentMonth: today.slice(0, 7),
     monthRecord,
     previousRecord,
     prevMonthKey: (k) => shiftMonth(k, -1),
@@ -403,6 +461,8 @@ export function FinanceProvider({ children }) {
     backup,
     restore,
     resetAll,
+    restoreSnapshot,
+    listSnapshots,
   };
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;

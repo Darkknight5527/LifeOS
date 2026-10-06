@@ -130,7 +130,7 @@ export function parseNews(text, limit = 8) {
     if (!title || seen.has(key)) continue;
     seen.add(key);
     const published = it.pubDate ? new Date(it.pubDate) : null;
-    out.push({ title, source, link: String(it.link || ""), published: published && !isNaN(published) ? published.toISOString() : null });
+    out.push({ title, source, link: /^https?:\/\//i.test(String(it.link || "")) ? String(it.link) : "", published: published && !isNaN(published) ? published.toISOString() : null });
     if (out.length >= limit) break;
   }
   return out;

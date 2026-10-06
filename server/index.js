@@ -4,8 +4,13 @@ import cors from "cors";
 import { connectDB } from "./config/db.js";
 import apiRoutes from "./routes/index.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
+import { securityHeaders } from "./utils/security.js";
 
 const app = express();
+app.disable("x-powered-by");
+// Render sits in front of the app, so trust its forwarded client IP (used by the login limiter).
+app.set("trust proxy", 1);
+app.use(securityHeaders);
 
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
   .split(",")
@@ -17,6 +22,8 @@ app.use(
     exposedHeaders: ["X-Uploaded-At"],
   })
 );
+// Login requests are tiny; everything else may carry imports or backups.
+app.use("/api/auth", express.json({ limit: "10kb" }));
 app.use(express.json({ limit: "10mb" }));
 
 app.get("/health", (req, res) => res.json({ ok: true }));

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
-import { formatMoney, monthKey, parseISO, sum, todayISO } from "./lib";
+import { MAX_AMOUNT, amountError, formatMoney, monthKey, parseISO, sum, toAmount, todayISO } from "./lib";
 import { EmptyState, FinCard, GhostButton, Icon, IconButton, Money, MoneyField, Pill, PrimaryButton, Ring, Sheet, TextField, Tile } from "./fin-ui.jsx";
 
 const TYPES = [
@@ -27,6 +27,15 @@ function Goals() {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(null); // goal open in the edit sheet
   const [contrib, setContrib] = useState(null); // goal being topped up with a custom amount
+  const [busy, setBusy] = useState(null); // goal id while a quick +₹ is saving (stops double counting)
+  const today = todayISO();
+
+  async function quickAdd(g, n) {
+    if (busy) return;
+    setBusy(g._id);
+    await goalsCrud.update(g._id, { currentAmount: Math.min(MAX_AMOUNT, g.currentAmount + n) }, `Added ${formatMoney(n)}`);
+    setBusy(null);
+  }
 
   return (
     <FinCard
@@ -44,7 +53,8 @@ function Goals() {
             const pct = g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
             const done = g.currentAmount >= g.targetAmount;
             let perMonth = null;
-            if (g.targetDate && !done) {
+            const overdue = !done && g.targetDate && g.targetDate < today;
+            if (g.targetDate && !done && !overdue) {
               const now = new Date();
               const t = parseISO(g.targetDate);
               const months = Math.max(1, (t.getFullYear() - now.getFullYear()) * 12 + (t.getMonth() - now.getMonth()));
@@ -71,6 +81,8 @@ function Goals() {
                     <div className="mt-0.5 text-[13px] text-fin-muted">
                       {done
                         ? "Goal reached 🎉"
+                        : overdue
+                        ? <span className="font-semibold text-fin-danger">Past the target date · {formatMoney(g.targetAmount - g.currentAmount)} to go</span>
                         : [g.targetDate && `by ${parseISO(g.targetDate).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}`, perMonth && `${formatMoney(Math.ceil(perMonth))}/month needed`].filter(Boolean).join(" · ") || `${formatMoney(g.targetAmount - g.currentAmount)} to go`}
                     </div>
                   </div>
@@ -80,13 +92,14 @@ function Goals() {
                     {[1000, 5000].map((n) => (
                       <button
                         key={n}
-                        onClick={() => goalsCrud.update(g._id, { currentAmount: g.currentAmount + n }, `Added ${formatMoney(n)}`)}
-                        className="rounded-full bg-fin-input px-3 py-1.5 text-[13px] font-semibold text-white/85 transition hover:text-white active:scale-95"
+                        disabled={busy === g._id}
+                        onClick={() => quickAdd(g, n)}
+                        className="min-h-[36px] rounded-full bg-fin-input px-3 py-1.5 text-[13px] font-semibold text-white/85 transition hover:text-white active:scale-95 disabled:opacity-50"
                       >
                         +{formatMoney(n)}
                       </button>
                     ))}
-                    <button onClick={() => setContrib(g)} className="rounded-full bg-fin-input px-3 py-1.5 text-[13px] font-semibold text-fin-accent transition active:scale-95">
+                    <button onClick={() => setContrib(g)} className="min-h-[36px] rounded-full bg-fin-input px-3 py-1.5 text-[13px] font-semibold text-fin-accent transition active:scale-95">
                       Custom…
                     </button>
                   </div>
@@ -114,6 +127,7 @@ function GoalSheet({ open, onClose, goal }) {
   const [saved, setSaved] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
 
   // Fill the form each time the sheet opens.
   useEffect(() => {
@@ -125,18 +139,22 @@ function GoalSheet({ open, onClose, goal }) {
     setNotes(goal?.notes || "");
   }, [open, goal]);
 
-  const valid = title.trim() && parseFloat(target) > 0;
+  const targetErr = amountError(target, { label: "target" });
+  const savedErr = amountError(saved, { allowZero: true });
+  const valid = title.trim() && Math.round(toAmount(target)) > 0 && !targetErr && !savedErr;
 
   async function save() {
-    if (!valid) return;
+    if (!valid || busy) return;
+    setBusy(true);
     const data = {
       title: title.trim(),
-      targetAmount: Math.round(parseFloat(target)),
-      currentAmount: Math.round(parseFloat(saved) || 0),
+      targetAmount: Math.round(toAmount(target)),
+      currentAmount: Math.round(toAmount(saved) || 0),
       targetDate: date,
       notes: notes.trim(),
     };
     const ok = goal ? await goalsCrud.update(goal._id, data, "Goal updated") : await goalsCrud.create(data, "Goal added");
+    setBusy(false);
     if (ok) onClose();
   }
 
@@ -154,29 +172,29 @@ function GoalSheet({ open, onClose, goal }) {
           ) : (
             <GhostButton className="flex-1" onClick={onClose}>Cancel</GhostButton>
           )}
-          <PrimaryButton className="flex-1" disabled={!valid} onClick={save}>{goal ? "Save changes" : "Add goal"}</PrimaryButton>
+          <PrimaryButton className="flex-1" disabled={!valid || busy} onClick={save}>{busy ? "Saving…" : goal ? "Save changes" : "Add goal"}</PrimaryButton>
         </>
       }
     >
       <Label>Goal</Label>
-      <TextField autoFocus={!goal} placeholder="e.g. Emergency fund" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <TextField autoFocus={!goal} aria-label="Goal name" maxLength={80} placeholder="e.g. Emergency fund" value={title} onChange={(e) => setTitle(e.target.value)} />
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <Label>Target</Label>
-          <MoneyField value={target} onChange={setTarget} placeholder="100000" />
+          <MoneyField label="Target amount" value={target} onChange={setTarget} placeholder="100000" error={targetErr} />
         </div>
         <div>
           <Label>Saved so far</Label>
-          <MoneyField value={saved} onChange={setSaved} placeholder="0" />
+          <MoneyField label="Saved so far" value={saved} onChange={setSaved} placeholder="0" error={savedErr} />
         </div>
       </div>
       <Label>Target date (optional)</Label>
       <div className="flex gap-2">
-        <TextField type="date" value={date} onChange={(e) => setDate(e.target.value)} className="[color-scheme:dark]" />
+        <TextField type="date" aria-label="Target date" value={date} onChange={(e) => setDate(e.target.value)} className="[color-scheme:dark]" />
         {date && <GhostButton className="!px-4 !py-2 text-[14px]" onClick={() => setDate("")}>Clear</GhostButton>}
       </div>
       <Label>Notes (optional)</Label>
-      <TextField value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Keep in a liquid fund" />
+      <TextField aria-label="Notes" maxLength={200} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Keep in a liquid fund" />
     </Sheet>
   );
 }
@@ -185,12 +203,25 @@ function ContributionSheet({ goal, onClose }) {
   const { goalsCrud } = useFinance();
   const [amount, setAmount] = useState("");
   const [mode, setMode] = useState("add");
-  const n = parseFloat(amount);
+  const [busy, setBusy] = useState(false);
+  // Start fresh for each goal.
+  useEffect(() => {
+    setAmount("");
+    setMode("add");
+  }, [goal?._id]);
+  const n = Math.round(toAmount(amount));
+  const error =
+    amountError(amount) ||
+    (goal && mode === "withdraw" && n > goal.currentAmount ? `Only ${formatMoney(goal.currentAmount)} saved` : "") ||
+    (goal && mode === "add" && goal.currentAmount + n > MAX_AMOUNT ? "That's too large" : "");
+  const valid = n > 0 && !error;
 
   async function save() {
-    if (!(n > 0)) return;
+    if (!valid || busy) return;
+    setBusy(true);
     const next = mode === "add" ? goal.currentAmount + n : Math.max(0, goal.currentAmount - n);
-    const ok = await goalsCrud.update(goal._id, { currentAmount: Math.round(next) }, mode === "add" ? "Added" : "Withdrawn");
+    const ok = await goalsCrud.update(goal._id, { currentAmount: next }, mode === "add" ? "Added" : "Withdrawn");
+    setBusy(false);
     if (ok) { setAmount(""); onClose(); }
   }
 
@@ -199,13 +230,13 @@ function ContributionSheet({ goal, onClose }) {
       open={Boolean(goal)}
       onClose={onClose}
       title={goal ? goal.title : ""}
-      footer={<><GhostButton className="flex-1" onClick={onClose}>Cancel</GhostButton><PrimaryButton className="flex-1" disabled={!(n > 0)} onClick={save}>{mode === "add" ? "Add" : "Withdraw"}</PrimaryButton></>}
+      footer={<><GhostButton className="flex-1" onClick={onClose}>Cancel</GhostButton><PrimaryButton className="flex-1" disabled={!valid || busy} onClick={save}>{mode === "add" ? "Add" : "Withdraw"}</PrimaryButton></>}
     >
       <div className="flex gap-2">
         <Pill active={mode === "add"} onClick={() => setMode("add")}>Add money</Pill>
         <Pill active={mode === "withdraw"} onClick={() => setMode("withdraw")}>Withdraw</Pill>
       </div>
-      <MoneyField className="mt-4" autoFocus value={amount} onChange={setAmount} onEnter={save} />
+      <div className="mt-4"><MoneyField label={mode === "add" ? "Amount to add" : "Amount to withdraw"} autoFocus value={amount} onChange={setAmount} onEnter={save} error={error} /></div>
       {goal && <div className="mt-3 text-[14px] text-fin-muted">Currently {formatMoney(goal.currentAmount)} of {formatMoney(goal.targetAmount)}</div>}
     </Sheet>
   );
@@ -244,7 +275,7 @@ function Investments() {
         <Tile className="text-center">
           <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-fin-muted">Gain</div>
           <div className={`mt-1 text-[18px] font-extrabold sm:text-[22px] ${gain >= 0 ? "text-fin-savings" : "text-fin-danger"}`}>
-            {gain >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
+            {invested > 0 ? `${gain >= 0 ? "+" : ""}${gainPct.toFixed(1)}%` : "—"}
           </div>
         </Tile>
       </div>
@@ -284,6 +315,7 @@ function Investments() {
 function HoldingSheet({ open, onClose, holding }) {
   const { investmentsCrud } = useFinance();
   const [form, setForm] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   // Initialise the form when the sheet opens.
   if (open && !form) {
@@ -297,19 +329,33 @@ function HoldingSheet({ open, onClose, holding }) {
   if (!form) return null;
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: typeof v === "string" ? v : v.target.value }));
-  const valid = form.name.trim() && parseFloat(form.units) > 0;
+  // Units can have up to 4 decimals (mutual fund units, crypto).
+  const setUnits = (e) => {
+    let v = e.target.value.replace(/[^0-9.]/g, "");
+    const dot = v.indexOf(".");
+    if (dot >= 0) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, "").slice(0, 4);
+    setForm((f) => ({ ...f, units: v.slice(0, 14) }));
+  };
+  const units = parseFloat(form.units);
+  const buyErr = amountError(form.buyPrice, { allowZero: true, label: "price" });
+  const curErr = amountError(form.currentValue, { allowZero: true, label: "price" });
+  const valid = form.name.trim() && units > 0 && !buyErr && !curErr;
 
   async function save() {
-    if (!valid) return;
+    if (!valid || busy) return;
+    setBusy(true);
+    const buy = toAmount(form.buyPrice) || 0;
     const data = {
       name: form.name.trim(),
       type: form.type,
-      units: parseFloat(form.units) || 0,
-      buyPrice: parseFloat(form.buyPrice) || 0,
-      currentValue: parseFloat(form.currentValue) || parseFloat(form.buyPrice) || 0,
+      units: Math.round(units * 10000) / 10000,
+      buyPrice: buy,
+      // Left empty = same as the buy price; 0 is allowed (it can be worth nothing).
+      currentValue: form.currentValue === "" ? buy : toAmount(form.currentValue) || 0,
       notes: form.notes.trim(),
     };
     const ok = holding ? await investmentsCrud.update(holding._id, data, "Holding updated") : await investmentsCrud.create(data, "Holding added");
+    setBusy(false);
     if (ok) onClose();
   }
 
@@ -327,12 +373,12 @@ function HoldingSheet({ open, onClose, holding }) {
           ) : (
             <GhostButton className="flex-1" onClick={onClose}>Cancel</GhostButton>
           )}
-          <PrimaryButton className="flex-1" disabled={!valid} onClick={save}>{holding ? "Save changes" : "Add holding"}</PrimaryButton>
+          <PrimaryButton className="flex-1" disabled={!valid || busy} onClick={save}>{busy ? "Saving…" : holding ? "Save changes" : "Add holding"}</PrimaryButton>
         </>
       }
     >
       <Label>Name</Label>
-      <TextField autoFocus={!holding} placeholder="e.g. NIFTY 50 Index Fund" value={form.name} onChange={set("name")} />
+      <TextField autoFocus={!holding} aria-label="Holding name" maxLength={80} placeholder="e.g. NIFTY 50 Index Fund" value={form.name} onChange={set("name")} />
       <Label>Type</Label>
       <div className="flex flex-wrap gap-2">
         {TYPES.map((t) => (
@@ -340,19 +386,19 @@ function HoldingSheet({ open, onClose, holding }) {
         ))}
       </div>
       <Label>Units</Label>
-      <TextField type="number" inputMode="decimal" placeholder="0" value={form.units} onChange={set("units")} />
+      <TextField type="text" inputMode="decimal" autoComplete="off" aria-label="Units" placeholder="0" value={form.units} onChange={setUnits} />
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <Label>Buy price / unit</Label>
-          <MoneyField value={form.buyPrice} onChange={set("buyPrice")} />
+          <MoneyField label="Buy price per unit" value={form.buyPrice} onChange={set("buyPrice")} error={buyErr} />
         </div>
         <div>
           <Label>Current / unit</Label>
-          <MoneyField value={form.currentValue} onChange={set("currentValue")} autoFocus={Boolean(holding)} />
+          <MoneyField label="Current price per unit" value={form.currentValue} onChange={set("currentValue")} autoFocus={Boolean(holding)} error={curErr} placeholder={form.buyPrice || "0"} />
         </div>
       </div>
       <Label>Notes (optional)</Label>
-      <TextField value={form.notes} onChange={set("notes")} placeholder="e.g. monthly SIP on the 5th" />
+      <TextField aria-label="Notes" maxLength={200} value={form.notes} onChange={set("notes")} placeholder="e.g. monthly SIP on the 5th" />
     </Sheet>
   );
 }

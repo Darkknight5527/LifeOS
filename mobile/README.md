@@ -42,3 +42,13 @@ cd mobile && npm install && npx expo start   # local development
 ```
 
 Native modules are pinned to the versions in `expo/bundledNativeModules.json`.
+
+## Signing (your own key)
+
+Release APKs are signed with your own key when these four repository secrets
+exist (Settings → Secrets and variables → Actions):
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
+`ANDROID_KEY_PASSWORD`. Without them the build falls back to the shared debug
+key. Switching keys once means uninstalling the old app before installing the
+new one (your data lives on the server, so nothing is lost — just log in again).
+Never commit the keystore file.

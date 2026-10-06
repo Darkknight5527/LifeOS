@@ -30,7 +30,14 @@ async function pickFolder() {
   }
 }
 
+const MAX_BYTES = 25 * 1024 * 1024;
+const MIMES = ["text/csv", "application/json", "application/pdf", "text/plain", "application/octet-stream"];
+
 export async function saveIncomingFile({ name, mime, data }) {
+  if (typeof data !== "string" || data.length > (MAX_BYTES * 4) / 3) return toast("Couldn't save the file");
+  // A plain file name only — no folders, no hidden files.
+  name = String(name || "LifeOS-file").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").replace(/^\.+/, "").slice(0, 120) || "LifeOS-file";
+  mime = MIMES.includes(String(mime).split(";")[0].trim()) ? String(mime).split(";")[0].trim() : "application/octet-stream";
   let prefs = readPrefs();
   for (let attempt = 0; attempt < 2; attempt++) {
     let dir = prefs.saveDir ? new Directory(prefs.saveDir) : await pickFolder();

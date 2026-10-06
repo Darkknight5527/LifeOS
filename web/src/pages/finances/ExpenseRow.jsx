@@ -6,10 +6,12 @@ export default function ExpenseRow({ tx, onClick, showDate = false, dateLabel })
   const b = BUCKET[tx.bucket] || BUCKET.wants;
   const income = tx.type === "income";
   const got = income && tx.bucket === "received";
+  // Old salary-style income entries can't be edited here, so they aren't buttons.
+  const Tag = onClick ? "button" : "div";
   return (
-    <button
+    <Tag
       onClick={onClick}
-      className="group flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition hover:bg-fin-tile/70 active:scale-[0.99]"
+      className={`group flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition ${onClick ? "hover:bg-fin-tile/70 active:scale-[0.99]" : ""}`}
     >
       <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={got ? { background: "rgba(52,211,153,.14)", color: "#34d399" } : { background: b.soft, color: b.color }}>
         <Icon name={got ? "plus" : income ? "wallet" : b.icon} size={20} />
@@ -24,6 +26,6 @@ export default function ExpenseRow({ tx, onClick, showDate = false, dateLabel })
         {income ? "+" : "−"}
         {formatMoney(tx.amount).replace("-", "")}
       </div>
-    </button>
+    </Tag>
   );
 }

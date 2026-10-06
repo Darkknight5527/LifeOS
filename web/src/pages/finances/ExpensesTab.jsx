@@ -28,7 +28,8 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
     const we = isoDate(addDays(weekStart(), 6));
     const q = query.trim().toLowerCase();
     return all.filter((t) => {
-      if ((t.date || "").slice(0, 7) !== month) return false;
+      // Today / Week look at the real dates (a week can span two months).
+      if (activeRange === "month" && (t.date || "").slice(0, 7) !== month) return false;
       if (activeRange === "today" && t.date !== today) return false;
       if (activeRange === "week" && (t.date < ws || t.date > we)) return false;
       if (bucket !== "all" && (t.type === "income" || t.bucket !== bucket)) return false;
@@ -87,6 +88,9 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search subcategory or note"
+            aria-label="Search expenses"
+            type="search"
+            enterKeyHint="search"
             className="w-full bg-transparent py-3 text-[15px] text-white placeholder:text-fin-faint outline-none"
           />
           {query && (
@@ -114,7 +118,7 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
                 </div>
                 <div className="-mx-2">
                   {list.map((t) => (
-                    <ExpenseRow key={t._id} tx={t} onClick={() => t.type !== "income" && onEdit(t)} />
+                    <ExpenseRow key={t._id} tx={t} onClick={t.type !== "income" || t.bucket === "received" ? () => onEdit(t) : undefined} />
                   ))}
                 </div>
               </div>

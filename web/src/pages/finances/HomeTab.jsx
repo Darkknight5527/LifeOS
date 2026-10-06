@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
 import { useMonthStats, useNowTotals } from "./stats.js";
-import { BUCKETS, daysInMonth, dayHeading, formatMoney, greeting, monthLabel, weekRangeLabel } from "./lib";
+import { BUCKETS, amountError, daysInMonth, dayHeading, formatMoney, greeting, monthLabel, toAmount, weekRangeLabel } from "./lib";
 import { BucketBadge, FinCard, GhostButton, Icon, Money, MoneyField, PrimaryButton, ProgressBar, Tile } from "./fin-ui.jsx";
 import ExpenseRow from "./ExpenseRow.jsx";
 import SalarySheet from "./SalarySheet.jsx";
@@ -13,23 +13,28 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
   const now = useNowTotals();
   const [salaryInput, setSalaryInput] = useState("");
   const [salaryOpen, setSalaryOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const hasSalary = stats.salary > 0;
   const prev = previousRecord(currentMonth);
   const remaining = stats.left; // salary + money received − spent
   const daysLeft = daysInMonth(currentMonth) - new Date().getDate() + 1;
-  // What's left in Needs + Wants, spread over the remaining days (savings are not for spending).
+  // What's left for Needs + Wants together (plus money received), spread over
+  // the remaining days. Overspending one bucket eats into the other; savings
+  // are not for spending.
   const spendable = hasSalary
-    ? Math.max(0, stats.alloc.needs - stats.spent.needs) + Math.max(0, stats.alloc.wants - stats.spent.wants)
+    ? Math.max(0, stats.alloc.needs + stats.alloc.wants + stats.received - stats.spent.needs - stats.spent.wants)
     : 0;
   const perDay = daysLeft > 0 ? spendable / daysLeft : 0;
 
+  const salaryError = amountError(salaryInput, { label: "salary" });
   async function submitSalary(value) {
-    const n = parseFloat(value);
-    if (n > 0) {
-      const ok = await setSalary(currentMonth, Math.round(n));
-      if (ok) setSalaryInput("");
-    }
+    const n = Math.round(toAmount(value));
+    if (saving || !(n > 0) || amountError(String(value), { label: "salary" })) return;
+    setSaving(true);
+    const ok = await setSalary(currentMonth, n);
+    setSaving(false);
+    if (ok) setSalaryInput("");
   }
 
   return (
@@ -37,7 +42,7 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
     <div className="grid grid-cols-1 items-start gap-5 lg:gap-4 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
       <div className="space-y-5 lg:space-y-4">
       {/* Hero */}
-      <section className="relative animate-fade-up overflow-hidden rounded-[28px] bg-gradient-to-br from-[#ff9447] via-[#f47a2c] to-[#e2580e] p-6 shadow-glow sm:p-7">
+      <section className="relative animate-fade-up overflow-hidden rounded-[28px] bg-gradient-to-br from-[#f0802f] via-[#e0661d] to-[#c24a0b] p-6 shadow-glow sm:p-7">
         <div className="pointer-events-none absolute -right-14 -top-16 h-56 w-56 rounded-full bg-white/10" />
         <div className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-white/[0.06]" />
         <div className="relative">
@@ -95,11 +100,13 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
           <div>
             <div className="text-[16px] font-medium text-white/80">Enter your monthly take-home to begin</div>
             <div className="mt-3 flex gap-3">
-              <MoneyField className="flex-1" value={salaryInput} onChange={setSalaryInput} placeholder="e.g. 60000" onEnter={() => submitSalary(salaryInput)} />
-              <PrimaryButton onClick={() => submitSalary(salaryInput)} disabled={!(parseFloat(salaryInput) > 0)}>Set</PrimaryButton>
+              <div className="min-w-0 flex-1">
+                <MoneyField label="Monthly take-home salary" value={salaryInput} onChange={setSalaryInput} placeholder="e.g. 60000" onEnter={() => submitSalary(salaryInput)} error={salaryError} />
+              </div>
+              <PrimaryButton className="self-start" onClick={() => submitSalary(salaryInput)} disabled={saving || !(toAmount(salaryInput) > 0) || Boolean(salaryError)}>{saving ? "…" : "Set"}</PrimaryButton>
             </div>
             {prev && (
-              <GhostButton className="mt-3 w-full !py-2.5 text-[15px]" onClick={() => submitSalary(prev.salary)}>
+              <GhostButton className="mt-3 w-full !py-2.5 text-[15px]" disabled={saving} onClick={() => submitSalary(prev.salary)}>
                 Same as {monthLabel(prev.month, { short: true })} · {formatMoney(prev.salary)}
               </GhostButton>
             )}
@@ -119,7 +126,7 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
             {BUCKETS.map((b) => {
               const alloc = stats.alloc[b.id];
               const spent = stats.spent[b.id];
-              const left = alloc - spent;
+              const left = Math.round((alloc - spent) * 100) / 100;
               const pct = alloc > 0 ? Math.round((spent / alloc) * 100) : 0;
               return (
                 <button key={b.id} onClick={() => onGoTo("expenses", { bucket: b.id })} className="w-full rounded-2xl p-2 text-left transition hover:bg-fin-tile/60">
@@ -154,8 +161,9 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
             ["This week", now.week],
             ["This month", now.month],
           ].map(([label, v]) => (
-            <Tile key={label} className="text-center lg:!px-2">
-              <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-fin-muted sm:text-[13px]">{label}</div>
+            <Tile key={label} className="flex flex-col text-center lg:!px-2">
+              {/* label grows so the amounts line up even when a label wraps */}
+              <div className="flex flex-1 items-center justify-center text-[12px] font-semibold uppercase tracking-[0.06em] text-fin-muted sm:text-[13px]">{label}</div>
               <div className="mt-1 whitespace-nowrap text-[20px] font-extrabold sm:text-[24px] lg:text-[clamp(16px,1.35vw,24px)]"><Money value={v} compact={v >= 100000} /></div>
             </Tile>
           ))}

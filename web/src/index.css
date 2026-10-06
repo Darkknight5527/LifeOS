@@ -16,8 +16,9 @@ body {
    add a theme class (e.g. .theme-teal) on their page wrapper. */
 :root {
   --fin-accent: 251 138 60;
-  --fin-grad-from: #ff9a4d;
-  --fin-grad-to: #e8590c;
+  /* deep enough that white button text stays readable */
+  --fin-grad-from: #f2772a;
+  --fin-grad-to: #c2490b;
   --fin-glow: rgba(251, 138, 60, 0.55);
 }
 .theme-teal {

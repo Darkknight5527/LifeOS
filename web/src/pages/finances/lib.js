@@ -7,6 +7,9 @@ export function formatMoney(n, { compact = false } = {}) {
   const num = Number(n) || 0;
   const sign = num < 0 ? "-" : "";
   const abs = Math.abs(num);
+  if (compact && abs >= 10000000) {
+    return `${sign}${CURRENCY}${(abs / 10000000).toLocaleString("en-IN", { maximumFractionDigits: 2 })}Cr`;
+  }
   if (compact && abs >= 100000) {
     return `${sign}${CURRENCY}${(abs / 100000).toLocaleString("en-IN", { maximumFractionDigits: 1 })}L`;
   }
@@ -114,13 +117,34 @@ export function greeting() {
 
 // ---------- maths ----------
 export function sum(list, f = (x) => x) {
-  return list.reduce((s, x) => s + (Number(f(x)) || 0), 0);
+  // Rounded to paise so floating-point leftovers (0.30000000000000004) never show.
+  return Math.round(list.reduce((s, x) => s + (Number(f(x)) || 0), 0) * 100) / 100;
 }
 export function splitByRatio(salary, ratio) {
+  // Round the running totals, so the three parts always add up to the salary.
   const needs = Math.round((salary * ratio.needs) / 100);
-  const wants = Math.round((salary * ratio.wants) / 100);
-  return { needs, wants, savings: Math.max(0, salary - needs - wants) };
+  const wants = Math.max(0, Math.round((salary * (ratio.needs + ratio.wants)) / 100) - needs);
+  return { needs, wants, savings: Math.max(0, Math.round(salary) - needs - wants) };
 }
+
+// ---------- amounts typed by the user ----------
+export const MAX_AMOUNT = 99999999.99; // just under ₹10 Cr
+/** Text from a money field → number rounded to paise, or NaN. */
+export function toAmount(text) {
+  const n = Math.round(parseFloat(text) * 100) / 100;
+  return Number.isFinite(n) ? n : NaN;
+}
+/** Error message for a money field, or "" if it's fine. */
+export function amountError(text, { allowZero = false, label = "amount" } = {}) {
+  if (text === "" || text == null) return "";
+  const n = toAmount(text);
+  if (!Number.isFinite(n)) return `Enter a valid ${label}`;
+  if (n > MAX_AMOUNT) return "That's too large";
+  if (!allowZero && n <= 0) return `The ${label} must be more than ₹0`;
+  return "";
+}
+/** Compare money by paise so 0.1 + 0.2 style rounding doesn't show "Over by ₹0". */
+export const paise = (n) => Math.round((Number(n) || 0) * 100);
 export function clamp(n, lo, hi) {
   return Math.min(hi, Math.max(lo, n));
 }

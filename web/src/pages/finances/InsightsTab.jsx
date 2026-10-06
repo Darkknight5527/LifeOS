@@ -101,7 +101,11 @@ function SpendByCategory({ stats, month }) {
                 key={a.b.id}
                 onPointerEnter={() => setActive(a.b.id)}
                 onPointerLeave={() => setActive(null)}
-                className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 transition ${active === a.b.id ? "bg-fin-tile" : ""}`}
+                onFocus={() => setActive(a.b.id)}
+                onBlur={() => setActive(null)}
+                onClick={() => setActive((x) => (x === a.b.id ? null : a.b.id))}
+                aria-pressed={active === a.b.id}
+                className={`flex min-h-[44px] w-full items-center gap-3 rounded-2xl px-3 py-2.5 transition ${active === a.b.id ? "bg-fin-tile" : ""}`}
               >
                 <BucketDot bucket={a.b} size={12} />
                 <span className="flex-1 text-left text-[15px] font-semibold">{a.b.label}</span>
@@ -194,7 +198,7 @@ function BudgetVsSpent({ stats }) {
 }
 
 // Vertical bar chart with hover tooltips; bars anchored to a shared baseline.
-function Bars({ data, height = 120, renderTip, highlight }) {
+function Bars({ data, height = 120, renderTip, highlight, describe }) {
   const [hover, setHover] = useState(null);
   const max = Math.max(1, ...data.map((d) => Math.max(d.value, d.marker || 0)));
   return (
@@ -207,11 +211,15 @@ function Bars({ data, height = 120, renderTip, highlight }) {
           </div>
         ))}
         {data.map((d, i) => (
-          <div
+          <button
+            type="button"
             key={d.key}
-            className="relative flex h-full flex-1 cursor-pointer items-end justify-center"
+            aria-label={describe ? describe(d) : `${d.label}: ${formatMoney(d.value)}`}
+            className="relative flex h-full flex-1 cursor-pointer items-end justify-center rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-fin-accent/70"
             onPointerEnter={() => setHover(i)}
             onPointerLeave={() => setHover(null)}
+            onFocus={() => setHover(i)}
+            onBlur={() => setHover(null)}
             onClick={() => setHover((h) => (h === i ? null : i))}
           >
             {hover === i && <Tip align={i === 0 ? "left" : i === data.length - 1 ? "right" : "center"}>{renderTip(d)}</Tip>}
@@ -227,7 +235,7 @@ function Bars({ data, height = 120, renderTip, highlight }) {
                 opacity: hover === null || hover === i ? 1 : 0.55,
               }}
             />
-          </div>
+          </button>
         ))}
       </div>
       <div className="mt-2 flex gap-2 pl-10 sm:gap-3">
@@ -310,16 +318,18 @@ function WeekBars({ stats, month }) {
 
 // Last 6 months up to the selected month
 function MonthBars({ month }) {
-  const { expenses, monthRecord } = useFinance();
+  const { expenses, received, monthRecord } = useFinance();
   const data = useMemo(() => {
     const out = [];
     for (let i = 5; i >= 0; i--) {
       const key = shiftMonth(month, -i);
-      const spent = sum(expenses.filter((t) => (t.date || "").slice(0, 7) === key), (t) => t.amount);
-      out.push({ key, value: spent, marker: monthRecord(key)?.salary || 0, label: monthShort(key) });
+      const inMonth = (t) => (t.date || "").slice(0, 7) === key;
+      const spent = sum(expenses.filter(inMonth), (t) => t.amount);
+      const got = sum(received.filter(inMonth), (t) => t.amount);
+      out.push({ key, value: spent, marker: monthRecord(key)?.salary || 0, received: got, label: monthShort(key) });
     }
     return out;
-  }, [expenses, monthRecord, month]);
+  }, [expenses, received, monthRecord, month]);
   const any = data.some((d) => d.value > 0 || d.marker > 0);
 
   return (
@@ -333,9 +343,10 @@ function MonthBars({ month }) {
               <>
                 <div className="text-fin-muted">{monthLabel(d.key)}</div>
                 <div className="tabular font-bold">Spent {formatMoney(d.value)}</div>
+                {d.received > 0 && <div className="tabular text-fin-muted">+{formatMoney(d.received)} received</div>}
                 {d.marker > 0 && (
-                  <div className={`tabular ${d.marker - d.value >= 0 ? "text-fin-savings" : "text-fin-danger"}`}>
-                    {d.marker - d.value >= 0 ? "Left " : "Over "}{formatMoney(Math.abs(d.marker - d.value))}
+                  <div className={`tabular ${d.marker + d.received - d.value >= 0 ? "text-fin-savings" : "text-fin-danger"}`}>
+                    {d.marker + d.received - d.value >= 0 ? "Left " : "Over "}{formatMoney(Math.abs(Math.round((d.marker + d.received - d.value) * 100) / 100))}
                   </div>
                 )}
               </>

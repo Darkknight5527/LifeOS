@@ -124,7 +124,9 @@ function Shell() {
   const shouldLoad = useCallback(
     (req) => {
       const url = req.url || "";
-      if (url.startsWith("about:") || url.startsWith("blob:") || url.startsWith("data:")) return true;
+      if (url.startsWith("about:") || url.startsWith("blob:")) return true;
+      // data: pages could pretend to be LifeOS — only allow them inside frames.
+      if (url.startsWith("data:")) return req.isTopFrame === false;
       if (!/^https?:/i.test(url)) {
         openOutside(url); // tel:, mailto:, intent: …
         return false;
@@ -157,11 +159,10 @@ function Shell() {
             source={{ uri: SITE }}
             style={{ flex: 1, backgroundColor: DARK }}
             containerStyle={{ backgroundColor: DARK }}
-            originWhitelist={["*"]}
+            originWhitelist={["https://*", "http://*", "about:*", "blob:*", "data:*"]}
             javaScriptEnabled
             domStorageEnabled // keeps you signed in (the site stores its login in localStorage)
             cacheEnabled
-            allowFileAccess
             allowsBackForwardNavigationGestures
             textZoom={100}
             overScrollMode="never"
@@ -184,8 +185,11 @@ function Shell() {
             onError={() => setFailed(true)}
             onRenderProcessGone={() => retry()}
             onMessage={(e) => {
+              // Only listen to the LifeOS site itself (not other pages or embedded videos).
+              if (hostOf(e.nativeEvent.url) !== HOST) return;
               try {
                 const m = JSON.parse(e.nativeEvent.data);
+                if (!m || typeof m !== "object") return;
                 if (m.type === "save-file") saveIncomingFile(m);
                 else if (m.type === "health-status") healthStatus().then((st) => toWeb("health-status", st));
                 else if (m.type === "health-connect") syncHealth(true);

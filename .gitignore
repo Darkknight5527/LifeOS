@@ -7,3 +7,8 @@ build/
 *.log
 .vercel/
 .expo/
+
+# Signing keys never go in the repo
+*.keystore
+*.jks
+!mobile/android/app/debug.keystore

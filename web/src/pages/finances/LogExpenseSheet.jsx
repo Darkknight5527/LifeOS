@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
-import { BUCKETS, BUCKET, addDays, formatMoney, isoDate, todayISO } from "./lib";
-import { GhostButton, Icon, Pill, PrimaryButton, Segmented, Sheet, TextField } from "./fin-ui.jsx";
+import { BUCKETS, BUCKET, addDays, amountError, formatMoney, isoDate, toAmount, todayISO } from "./lib";
+import { GhostButton, Icon, Pill, PrimaryButton, Segmented, Sheet, TextField, cleanMoneyInput } from "./fin-ui.jsx";
 import { TypeSwitch } from "./ReceivedSheet.jsx";
 
 const QUICK_ADD = [50, 100, 500, 1000];
@@ -45,18 +45,27 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
 
   const bucketCats = useMemo(() => categories.filter((c) => c.bucket === bucket), [categories, bucket]);
 
-  // Fall back to the bucket's first subcategory if the picked one isn't in it.
-  const activeCategory = bucketCats.some((c) => c.name === category) ? category : bucketCats[0]?.name || "";
+  // An old expense whose subcategory was since deleted keeps it as an extra chip,
+  // so saving an edit doesn't quietly move it to another subcategory.
+  const orphan =
+    editing && editing.type !== "income" && bucket === (editing.bucket || "needs") && !bucketCats.some((c) => c.name === editing.category)
+      ? editing.category
+      : null;
 
-  const amt = parseFloat(amount);
-  const valid = amt > 0 && activeCategory;
+  // Fall back to the bucket's first subcategory if the picked one isn't in it.
+  const activeCategory =
+    bucketCats.some((c) => c.name === category) || (orphan && category === orphan) ? category : bucketCats[0]?.name || orphan || "";
+
+  const amt = toAmount(amount);
+  const error = amountError(amount);
+  const valid = amt > 0 && !error && activeCategory;
   const today = todayISO();
   const yesterday = isoDate(addDays(new Date(), -1));
 
   async function save() {
     if (!valid || saving) return;
     setSaving(true);
-    const data = { amount: Math.round(amt * 100) / 100, bucket, category: activeCategory, date, note: note.trim() };
+    const data = { amount: amt, bucket, category: activeCategory, date, note: note.trim() };
     const ok = editing ? await updateExpense(editing._id, data) : await addExpense(data);
     setSaving(false);
     if (ok) onClose();
@@ -108,23 +117,26 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
           <span className="text-[28px] font-bold text-fin-faint">₹</span>
           <input
             ref={amountRef}
-            type="number"
+            type="text"
             inputMode="decimal"
-            min="0"
+            autoComplete="off"
             placeholder="0"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => setAmount(cleanMoneyInput(e.target.value))}
+            aria-invalid={Boolean(error) || undefined}
             onKeyDown={(e) => e.key === "Enter" && save()}
             style={{ width: `${Math.max(1, amount.length) + 0.6}ch` }}
             className="tabular max-w-[260px] bg-transparent text-left text-[44px] font-extrabold leading-none text-white placeholder:text-white/20 outline-none"
             aria-label="Amount"
           />
         </div>
+        {error && <div role="alert" className="mt-2 text-[14px] text-fin-danger">{error}</div>}
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {QUICK_ADD.map((n) => (
             <button
               key={n}
-              onClick={() => setAmount(String((parseFloat(amount) || 0) + n))}
+              aria-label={`Add ${formatMoney(n)}`}
+              onClick={() => setAmount(cleanMoneyInput(String(Math.round(((toAmount(amount) || 0) + n) * 100) / 100)))}
               className="rounded-full bg-fin-tile px-3 py-1 text-[13px] font-semibold text-fin-muted transition hover:text-white active:scale-95"
             >
               +{formatMoney(n)}
@@ -150,6 +162,11 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
             {c.name}
           </Pill>
         ))}
+        {orphan && (
+          <Pill active={orphan === activeCategory} color={accent} onClick={() => setCategory(orphan)} title="This subcategory was deleted">
+            {orphan} <span className="text-[12px] font-medium opacity-70">(deleted)</span>
+          </Pill>
+        )}
         {newCat === null ? (
           <Pill onClick={() => setNewCat("")} className="!text-fin-muted">
             <Icon name="plus" size={14} stroke={2.4} /> New
@@ -207,6 +224,8 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
       <TextField
         className="mt-2"
         placeholder="e.g. Lunch with team"
+        aria-label="Note"
+        maxLength={200}
         value={note}
         onChange={(e) => setNote(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && save()}

@@ -131,7 +131,7 @@ function FinanceShell() {
           <LogoMark size={40} />
           <div className="min-w-0">
             <div className="text-[22px] font-extrabold leading-tight tracking-tight lg:text-[20px]">Finances</div>
-            <div className="truncate text-[14px] text-fin-muted">{monthLabel(currentMonth)} · week starts Monday</div>
+            <div className="truncate text-[14px] text-fin-muted">{monthLabel(currentMonth)}<span className="lg:hidden"> · week starts Monday</span></div>
           </div>
           <SyncStatus syncing={syncing && hasData} failed={Boolean(error) && hasData} onRetry={reload} />
           {/* Tabs live in the header on computers; phones use the bottom bar */}
@@ -164,17 +164,17 @@ function FinanceShell() {
             className="ml-auto flex shrink-0 items-center gap-2 rounded-xl bg-fin-tile px-3 py-2.5 text-[15px] font-semibold text-white/85 transition hover:bg-[#30303a] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-fin-accent lg:ml-0"
           >
             <Icon name="calc" size={19} />
-            <span className="hidden xl:inline">Calculator</span>
-            <kbd className="hidden rounded-md bg-black/25 px-1.5 text-[11px] font-semibold text-fin-muted xl:inline">K</kbd>
+            <span className="hidden 2xl:inline">Calculator</span>
+            <kbd className="hidden rounded-md bg-black/25 px-1.5 text-[11px] font-semibold text-fin-muted 2xl:inline">K</kbd>
           </button>
-          <PrimaryButton onClick={openNew} className="hidden items-center gap-2 !rounded-xl !py-2.5 !text-[15px] md:flex">
+          <PrimaryButton onClick={openNew} className="hidden shrink-0 items-center gap-2 whitespace-nowrap !rounded-xl !py-2.5 !text-[15px] md:flex">
             <Icon name="plus" size={18} stroke={2.6} /> Log expense
             <kbd className="ml-1 rounded-md bg-black/20 px-1.5 text-[11px] font-semibold">N</kbd>
           </PrimaryButton>
         </div>
       </header>
 
-      <main ref={mainRef} className="mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:max-w-[1320px] lg:pb-4 lg:pt-3">
+      <main ref={mainRef} aria-busy={loading || syncing} className="mx-auto max-w-[880px] px-4 pb-36 pt-5 sm:px-6 lg:max-w-[1320px] lg:pb-4 lg:pt-3">
         {loading ? (
           <LoadingState />
         ) : error && !hasData ? (
@@ -284,9 +284,10 @@ function SyncStatus({ syncing, failed, onRetry }) {
         onClick={onRetry}
         className="flex shrink-0 animate-fade-in items-center gap-2 rounded-full bg-red-500/10 px-3 py-1 text-[12px] font-semibold text-fin-danger hover:bg-red-500/20"
         title="Showing your last saved copy. Click to try again."
+        aria-label="Offline — showing your last saved copy. Retry"
       >
         <span className="h-2 w-2 rounded-full bg-fin-danger" />
-        <span className="hidden sm:inline">Offline · Retry</span>
+        <span className="hidden sm:inline">Offline<span className="xl:hidden"> · Retry</span></span>
         <span className="sm:hidden">Retry</span>
       </button>
     );

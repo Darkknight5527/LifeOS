@@ -30,7 +30,7 @@ export const GROOMING_TASKS = [
  * @param {string} baseUrl e.g. "https://lifeos-api.onrender.com/api"
  * @param {() => string | null} getToken
  */
-export function createApiClient(baseUrl, getToken) {
+export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
   async function request(path, options = {}) {
     const token = getToken();
     const res = await fetch(`${baseUrl}${path}`, {
@@ -44,6 +44,8 @@ export function createApiClient(baseUrl, getToken) {
     });
 
     if (!res.ok) {
+      // A rejected token (expired, or "sign out everywhere") logs this device out.
+      if (res.status === 401 && token && !path.startsWith("/auth/login") && !path.startsWith("/auth/register")) onUnauthorized?.();
       let message = `Request failed: ${res.status}`;
       try {
         const data = await res.json();
@@ -71,8 +73,14 @@ export function createApiClient(baseUrl, getToken) {
 
     // Finances: whole-section backup / restore / reset
     financeBackup: () => request("/finance/backup"),
-    financeRestore: (data) => request("/finance/restore", { method: "POST", body: { data } }),
-    financeReset: () => request("/finance/reset", { method: "POST" }),
+    financeRestore: (backup, password) => request("/finance/restore", { method: "POST", body: { backup, password } }),
+    financeReset: (password) => request("/finance/reset", { method: "POST", body: { password } }),
+    financeSnapshots: () => request("/finance/snapshots"),
+    financeRestoreSnapshot: (id, password) => request(`/finance/snapshots/${id}/restore`, { method: "POST", body: { password } }),
+
+    // Session
+    refreshToken: () => request("/auth/refresh", { method: "POST" }),
+    logoutAll: () => request("/auth/logout-all", { method: "POST" }),
 
     // Morning Paper
     paperCalendar: ({ from, to, days }) =>

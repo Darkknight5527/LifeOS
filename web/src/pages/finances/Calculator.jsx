@@ -3,6 +3,7 @@
 // expense in one step.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon, Sheet } from "./fin-ui.jsx";
+import { MAX_AMOUNT } from "./lib";
 
 const OPS = { "+": "+", "-": "−", "*": "×", "/": "÷" };
 
@@ -63,8 +64,15 @@ function evaluate(src) {
   }
   const v = expr();
   if (i < s.length) throw new Error("Check the expression");
-  if (!Number.isFinite(v)) throw new Error("Result too large");
+  if (!Number.isFinite(v) || Math.abs(v) >= 1e15) throw new Error("Result too large");
   return Math.round(v * 1e10) / 1e10;
+}
+
+// A number as plain digits (never "1e-7" / "1e+21"), so it can be typed on.
+function plain(v) {
+  if (v === 0) return "0";
+  const t = Math.abs(v) < 1e-6 ? "0" : v.toFixed(10).replace(/\.?0+$/, "");
+  return t === "-0" ? "0" : t;
 }
 
 const fmt = (n) => (n == null ? "" : n.toLocaleString("en-IN", { maximumFractionDigits: 8 }));
@@ -108,52 +116,56 @@ export default function Calculator({ open, onClose, onUseAmount }) {
     err = e.message;
   }
 
-  const press = useCallback(
-    (k) => {
-      setFlash(k);
-      clearTimeout(flashTimer.current);
-      flashTimer.current = setTimeout(() => setFlash(null), 120);
-      setExpr((cur) => {
-        if (k === "clear") {
-          setJustSolved(false);
-          return "";
-        }
-        if (k === "back") {
-          setJustSolved(false);
-          return cur.slice(0, -1);
-        }
-        if (k === "=") {
-          try {
-            const v = evaluate(cur.replace(/[+\-*/.]$/, ""));
-            if (v == null) return cur;
-            setHistory((h) => [{ expr: cur, v }, ...h].slice(0, 5));
-            setJustSolved(true);
-            return String(v);
-          } catch {
-            return cur;
-          }
-        }
-        const isOp = "+-*/".includes(k);
-        // Typing a digit right after "=" starts fresh; an operator continues.
-        let base = justSolved && !isOp && k !== "%" ? "" : cur;
-        setJustSolved(false);
-        if (isOp) {
-          if (!base) return k === "-" ? "-" : base;
-          if ("+-*/".includes(base.slice(-1))) return base.slice(0, -1) + k;
-          return base + k;
-        }
-        if (k === "%") return base && /[\d.]$/.test(base) ? base + "%" : base;
-        if (k === ".") {
-          const lastNum = base.split(/[+\-*/]/).pop();
-          if (lastNum.includes(".") || lastNum.includes("%")) return base;
-          return base + (lastNum === "" ? "0." : ".");
-        }
-        if (/%$/.test(base)) return base; // need an operator after a percent
-        return (base + k).slice(0, 60);
-      });
-    },
-    [justSolved]
-  );
+  // Current values in refs, so a key press works out the next state in one go
+  // (no side effects inside state updaters — they can run twice).
+  const exprRef = useRef(expr);
+  exprRef.current = expr;
+  const solvedRef = useRef(justSolved);
+  solvedRef.current = justSolved;
+
+  const press = useCallback((k) => {
+    setFlash(k);
+    clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlash(null), 120);
+    const cur = exprRef.current;
+    const solved = solvedRef.current;
+    const set = (next, isSolved = false) => {
+      exprRef.current = next;
+      solvedRef.current = isSolved;
+      setExpr(next);
+      setJustSolved(isSolved);
+    };
+    if (k === "clear") return set("");
+    if (k === "back") return set(solved ? "" : cur.slice(0, -1));
+    if (k === "=") {
+      let v = null;
+      try {
+        v = evaluate(cur.replace(/[+\-*/.]$/, ""));
+      } catch {
+        return;
+      }
+      if (v == null) return;
+      if (Math.abs(v) >= 1e15) return; // too big to show without "e+" notation
+      setHistory((h) => [{ expr: cur, v }, ...h].slice(0, 5));
+      return set(plain(v), true);
+    }
+    const isOp = "+-*/".includes(k);
+    // Typing a digit right after "=" starts fresh; an operator continues.
+    const base = solved && !isOp && k !== "%" ? "" : cur;
+    if (isOp) {
+      if (!base) return set(k === "-" ? "-" : base);
+      if ("+-*/".includes(base.slice(-1))) return set(base.slice(0, -1) + k);
+      return set(base + k);
+    }
+    if (k === "%") return set(base && /[\d.]$/.test(base) ? base + "%" : base);
+    if (k === ".") {
+      const lastNum = base.split(/[+\-*/]/).pop();
+      if (lastNum.includes(".") || lastNum.includes("%")) return set(base);
+      return set(base + (lastNum === "" ? "0." : "."));
+    }
+    if (/%$/.test(base)) return set(base); // need an operator after a percent
+    return set((base + k).slice(0, 60));
+  }, []);
 
   // Keyboard: digits, + − × ÷ (also * / x), %, ., Enter or =, Backspace, Delete or C to clear.
   useEffect(() => {
@@ -181,7 +193,7 @@ export default function Calculator({ open, onClose, onUseAmount }) {
   }, [open, press]);
 
   const value = justSolved ? Number(expr) : preview;
-  const canUse = value != null && value > 0;
+  const canUse = value != null && value > 0 && value <= MAX_AMOUNT;
 
   return (
     <Sheet

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { cleanBody } from "./security.js";
 
 /**
  * Generic CRUD router factory for a Mongoose model.
@@ -38,7 +39,8 @@ export function createCrudRouter(Model, opts = {}) {
   router.post("/", async (req, res, next) => {
     try {
       const now = Date.now();
-      const payload = { ...req.body, createdAt: req.body.createdAt ?? now };
+      const body = cleanBody(req.body);
+      const payload = { ...body, createdAt: body.createdAt ?? now };
       if ("updatedAt" in Model.schema.paths) {
         payload.updatedAt = now;
       }
@@ -58,7 +60,7 @@ export function createCrudRouter(Model, opts = {}) {
       const now = Date.now();
       const hasUpdated = "updatedAt" in Model.schema.paths;
       const docs = await Model.insertMany(
-        items.map((x, i) => ({ ...x, createdAt: x.createdAt ?? now + i, ...(hasUpdated ? { updatedAt: now } : {}) })),
+        cleanBody(items).map((x, i) => ({ ...x, createdAt: x.createdAt ?? now + i, ...(hasUpdated ? { updatedAt: now } : {}) })),
         { ordered: true }
       );
       res.status(201).json(docs);
@@ -70,7 +72,7 @@ export function createCrudRouter(Model, opts = {}) {
   // Update a document
   router.patch("/:id", async (req, res, next) => {
     try {
-      const payload = { ...req.body };
+      const payload = cleanBody(req.body);
       if ("updatedAt" in Model.schema.paths) {
         payload.updatedAt = Date.now();
       }

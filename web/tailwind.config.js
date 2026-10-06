@@ -13,7 +13,7 @@ export default {
           input: "#121215",
           line: "rgba(255,255,255,0.07)",
           muted: "#9b9ba5",
-          faint: "#6b6b75",
+          faint: "#8a8a94", // ~5:1 on cards, readable small text
           accent: "rgb(var(--fin-accent) / <alpha-value>)",
           accentDeep: "#e8590c",
           needs: "#fb8a3c",

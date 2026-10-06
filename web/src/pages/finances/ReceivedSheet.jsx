@@ -2,8 +2,8 @@
 // someone paid back, a gift. It adds to what's left this month.
 import { useEffect, useRef, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
-import { addDays, formatMoney, isoDate, todayISO } from "./lib";
-import { GhostButton, Icon, Pill, PrimaryButton, Sheet, TextField } from "./fin-ui.jsx";
+import { addDays, amountError, formatMoney, isoDate, toAmount, todayISO } from "./lib";
+import { GhostButton, Icon, Pill, PrimaryButton, Sheet, TextField, cleanMoneyInput } from "./fin-ui.jsx";
 
 export const SOURCES = ["Cashback", "Refund", "Loan repaid", "Gift", "Interest", "Reimbursement", "Other"];
 const QUICK = [50, 100, 500, 1000];
@@ -26,8 +26,9 @@ export default function ReceivedSheet({ open, onClose, editing, onSwitchToExpens
     setTimeout(() => amountRef.current?.focus(), 250);
   }, [open, editing]);
 
-  const amt = parseFloat(amount);
-  const valid = amt > 0;
+  const amt = toAmount(amount);
+  const error = amountError(amount);
+  const valid = amt > 0 && !error;
   const today = todayISO();
   const yesterday = isoDate(addDays(new Date(), -1));
   const notePlaceholder = source === "Loan repaid" ? "Who paid you back?" : source === "Cashback" ? "e.g. Amazon Pay, credit card" : "From whom / what for";
@@ -35,7 +36,7 @@ export default function ReceivedSheet({ open, onClose, editing, onSwitchToExpens
   async function save() {
     if (!valid || saving) return;
     setSaving(true);
-    const data = { type: "income", bucket: "received", category: source, amount: Math.round(amt * 100) / 100, date, note: note.trim() };
+    const data = { type: "income", bucket: "received", category: source, amount: amt, date, note: note.trim() };
     const ok = editing ? await updateExpense(editing._id, data) : await addExpense(data);
     setSaving(false);
     if (ok) onClose();
@@ -68,21 +69,23 @@ export default function ReceivedSheet({ open, onClose, editing, onSwitchToExpens
           <span className="text-[28px] font-bold text-fin-savings/70">+₹</span>
           <input
             ref={amountRef}
-            type="number"
+            type="text"
             inputMode="decimal"
-            min="0"
+            autoComplete="off"
             placeholder="0"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => setAmount(cleanMoneyInput(e.target.value))}
+            aria-invalid={Boolean(error) || undefined}
             onKeyDown={(e) => e.key === "Enter" && save()}
             style={{ width: `${Math.max(1, amount.length) + 0.6}ch` }}
             className="tabular max-w-[260px] bg-transparent text-left text-[44px] font-extrabold leading-none text-white placeholder:text-white/20 outline-none"
             aria-label="Amount received"
           />
         </div>
+        {error && <div role="alert" className="mt-2 text-[14px] text-fin-danger">{error}</div>}
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {QUICK.map((n) => (
-            <button key={n} onClick={() => setAmount(String((parseFloat(amount) || 0) + n))} className="rounded-full bg-fin-tile px-3 py-1 text-[13px] font-semibold text-fin-muted transition hover:text-white active:scale-95">
+            <button key={n} aria-label={`Add ${formatMoney(n)}`} onClick={() => setAmount(cleanMoneyInput(String(Math.round(((toAmount(amount) || 0) + n) * 100) / 100)))} className="rounded-full bg-fin-tile px-3 py-1 text-[13px] font-semibold text-fin-muted transition hover:text-white active:scale-95">
               +{formatMoney(n)}
             </button>
           ))}
@@ -99,7 +102,7 @@ export default function ReceivedSheet({ open, onClose, editing, onSwitchToExpens
       </div>
 
       <div className="mt-5 text-[13px] font-semibold uppercase tracking-[0.08em] text-fin-muted">Note</div>
-      <TextField className="mt-2" value={note} onChange={(e) => setNote(e.target.value)} placeholder={notePlaceholder} onKeyDown={(e) => e.key === "Enter" && save()} />
+      <TextField className="mt-2" aria-label="Note" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} placeholder={notePlaceholder} onKeyDown={(e) => e.key === "Enter" && save()} />
 
       <div className="mt-5 text-[13px] font-semibold uppercase tracking-[0.08em] text-fin-muted">When</div>
       <div className="mt-2 flex flex-wrap items-center gap-2">

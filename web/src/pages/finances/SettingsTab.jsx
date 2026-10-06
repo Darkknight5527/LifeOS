@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
-import { BUCKETS, PRESETS, clamp, formatMoney, monthLabel, splitByRatio, todayISO } from "./lib";
-import { BucketBadge, FinCard, GhostButton, Icon, IconButton, MoneyField, Pill, PrimaryButton, Segmented, Sheet, TextField } from "./fin-ui.jsx";
+import { BUCKETS, PRESETS, clamp, formatMoney, monthLabel, splitByRatio, toAmount, todayISO } from "./lib";
+import { BucketBadge, FinCard, GhostButton, Icon, IconButton, MoneyField, Pill, PrimaryButton, Segmented, Sheet, TextField, cleanMoneyInput } from "./fin-ui.jsx";
 import { saveFile } from "../../lib/inApp.js";
+import { useToast } from "../../components/Toast.jsx";
 
 export default function SettingsTab() {
   return (
@@ -29,6 +30,13 @@ function AdjustSplit() {
   const [mode, setMode] = useState("ratio");
   const [draft, setDraft] = useState(ratio);
   const [amounts, setAmounts] = useState({ needs: "", wants: "", savings: "" });
+  const [busy, setBusy] = useState(false);
+  const guard = async (fn) => {
+    if (busy) return;
+    setBusy(true);
+    await fn();
+    setBusy(false);
+  };
 
   useEffect(() => setDraft(ratio), [ratio]);
   useEffect(() => {
@@ -39,7 +47,9 @@ function AdjustSplit() {
   const balanced = total === 100;
   const changed = draft.needs !== ratio.needs || draft.wants !== ratio.wants || draft.savings !== ratio.savings;
 
-  const amountTotal = BUCKETS.reduce((s, b) => s + (parseFloat(amounts[b.id]) || 0), 0);
+  // Amounts are saved as whole rupees, so compare the rounded values.
+  const whole = (v) => Math.round(toAmount(v) || 0);
+  const amountTotal = BUCKETS.reduce((s, b) => s + whole(amounts[b.id]), 0);
   const diff = (rec?.salary || 0) - amountTotal;
 
   function setPct(id, raw) {
@@ -104,7 +114,7 @@ function AdjustSplit() {
           {rec && <div className="text-[13px] text-fin-faint">Applying also re-splits {monthLabel(currentMonth)}'s salary.</div>}
           <div className="mt-3 flex gap-3">
             <GhostButton className="flex-1" disabled={!changed} onClick={() => setDraft(ratio)}>Reset</GhostButton>
-            <PrimaryButton className="flex-1" disabled={!balanced || !changed} onClick={() => saveRatio(draft, currentMonth)}>Apply ratio</PrimaryButton>
+            <PrimaryButton className="flex-1" disabled={!balanced || !changed || busy} onClick={() => guard(() => saveRatio(draft, currentMonth))}>Apply ratio</PrimaryButton>
           </div>
         </div>
       ) : rec ? (
@@ -117,7 +127,7 @@ function AdjustSplit() {
               <div key={b.id} className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: b.color }} />
                 <span className="flex-1 text-[16px] font-semibold">{b.label}</span>
-                <MoneyField className="w-[160px]" value={amounts[b.id]} onChange={(v) => setAmounts((a) => ({ ...a, [b.id]: v }))} />
+                <MoneyField className="w-[160px]" label={`${b.label} amount`} value={amounts[b.id]} onChange={(v) => setAmounts((a) => ({ ...a, [b.id]: v }))} />
               </div>
             ))}
           </div>
@@ -126,9 +136,9 @@ function AdjustSplit() {
               Total <span className={`tabular font-bold ${diff === 0 ? "text-white" : "text-fin-danger"}`}>{formatMoney(amountTotal)}</span>
               {diff === 0 ? " · matches salary ✓" : diff > 0 ? ` · ${formatMoney(diff)} unassigned` : ` · ${formatMoney(-diff)} over salary`}
             </span>
-            {diff !== 0 && (parseFloat(amounts.savings) || 0) + diff >= 0 && (
+            {diff !== 0 && whole(amounts.savings) + diff >= 0 && (
               <button
-                onClick={() => setAmounts((a) => ({ ...a, savings: String((parseFloat(a.savings) || 0) + diff) }))}
+                onClick={() => setAmounts((a) => ({ ...a, savings: String(whole(a.savings) + diff) }))}
                 className="rounded-full bg-fin-tile px-3 py-1 text-[13px] font-semibold text-fin-savings hover:brightness-125"
               >
                 Balance with Savings
@@ -141,8 +151,8 @@ function AdjustSplit() {
             </GhostButton>
             <PrimaryButton
               className="flex-1"
-              disabled={diff !== 0}
-              onClick={() => saveAmounts(currentMonth, Object.fromEntries(BUCKETS.map((b) => [b.id, Math.round(parseFloat(amounts[b.id]) || 0)])))}
+              disabled={diff !== 0 || busy}
+              onClick={() => guard(() => saveAmounts(currentMonth, Object.fromEntries(BUCKETS.map((b) => [b.id, whole(amounts[b.id])]))))}
             >
               Save amounts
             </PrimaryButton>
@@ -282,6 +292,8 @@ function Subcategories() {
           <TextField
             className="!py-3"
             placeholder={`Add to ${b.label}`}
+            aria-label={`New ${b.label} subcategory`}
+            maxLength={40}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && add()}
@@ -306,13 +318,15 @@ function SubcategoryRow({ cat }) {
     setEditing(false);
     const clean = name.trim();
     if (!clean || clean === cat.name) return setName(cat.name);
-    await updateCategory(cat, { name: clean });
+    const ok = await updateCategory(cat, { name: clean });
+    if (!ok) setName(cat.name); // e.g. that name already exists
   }
   async function commitLimit() {
-    const n = parseFloat(limit);
+    const n = toAmount(limit);
     const next = n > 0 ? Math.round(n) : null;
-    if (next === (cat.limit || null)) return;
-    await updateCategory(cat, { limit: next });
+    if (next === (cat.limit || null)) return setLimit(cat.limit ? String(cat.limit) : "");
+    const ok = await updateCategory(cat, { limit: next });
+    if (!ok) setLimit(cat.limit ? String(cat.limit) : "");
   }
 
   return (
@@ -320,6 +334,8 @@ function SubcategoryRow({ cat }) {
       {editing ? (
         <input
           autoFocus
+          aria-label={`Rename ${cat.name}`}
+          maxLength={40}
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={commitName}
@@ -337,12 +353,12 @@ function SubcategoryRow({ cat }) {
       <div className="flex w-[130px] items-center rounded-xl bg-fin-input px-3 focus-within:ring-1 focus-within:ring-fin-accent/60">
         <span className="text-[13px] text-fin-faint">₹</span>
         <input
-          type="number"
+          type="text"
           inputMode="numeric"
-          min="0"
+          autoComplete="off"
           value={limit}
           placeholder="No limit"
-          onChange={(e) => setLimit(e.target.value)}
+          onChange={(e) => setLimit(cleanMoneyInput(e.target.value).split(".")[0])}
           onBlur={commitLimit}
           onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
           className="tabular w-full bg-transparent px-1.5 py-2 text-[14px] text-white placeholder:text-fin-faint outline-none"
@@ -355,14 +371,71 @@ function SubcategoryRow({ cat }) {
 }
 
 // ---------- backup ----------
+const SNAP_REASON = { "before-restore": "Before a restore", "before-reset": "Before a reset", "before-undo": "Before putting a restore point back" };
+
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
+function PasswordConfirm({ value, onChange, error, onEnter }) {
+  return (
+    <div className="mt-4">
+      <label htmlFor="fin-confirm-pw" className="text-[14px] text-fin-muted">Your LifeOS password, to confirm</label>
+      <TextField
+        id="fin-confirm-pw"
+        className="mt-2"
+        type="password"
+        autoComplete="current-password"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? "fin-confirm-err" : undefined}
+      />
+      {error && <div id="fin-confirm-err" role="alert" className="mt-2 text-[14px] text-fin-danger">{error}</div>}
+    </div>
+  );
+}
+
 function DataBackup() {
-  const { backup, restore, resetAll } = useFinance();
+  const { backup, restore, resetAll, restoreSnapshot, listSnapshots } = useFinance();
+  const showToast = useToast();
   const fileRef = useRef(null);
   const [pending, setPending] = useState(null); // parsed backup waiting for confirmation
   const [resetOpen, setResetOpen] = useState(false);
+  const [snapsOpen, setSnapsOpen] = useState(false);
+  const [snaps, setSnaps] = useState(null);
+  const [pick, setPick] = useState(null); // restore point chosen to put back
   const [confirmText, setConfirmText] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  function closeAll() {
+    if (busy) return;
+    setPending(null);
+    setResetOpen(false);
+    setPick(null);
+    setConfirmText("");
+    setPassword("");
+    setError("");
+  }
+
+  async function run(fn) {
+    if (busy) return;
+    if (!password) return setError("Enter your password to confirm.");
+    setBusy(true);
+    setError("");
+    const res = await fn();
+    setBusy(false);
+    if (res === true) {
+      setPending(null);
+      setResetOpen(false);
+      setPick(null);
+      setSnapsOpen(false);
+      setConfirmText("");
+      setPassword("");
+    } else setError(res);
+  }
 
   async function download() {
     const data = await backup();
@@ -379,22 +452,30 @@ function DataBackup() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      alert("Your browser blocked clipboard access. Use Download backup instead.");
+      showToast("Your browser blocked the clipboard. Use Download backup instead.", true);
     }
+  }
+
+  async function openSnaps() {
+    setSnapsOpen(true);
+    setSnaps(null);
+    const list = await listSnapshots();
+    setSnaps(Array.isArray(list) ? list : []);
   }
 
   function pickFile(e) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
+    if (f.size > 9 * 1024 * 1024) return showToast("That file is too large to be a finance backup.", true);
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const parsed = JSON.parse(reader.result);
-        if (!parsed?.data) throw new Error();
+        if (parsed?.app !== "LifeOS" || parsed?.section !== "finances" || !parsed?.data || typeof parsed.data !== "object") throw new Error();
         setPending(parsed);
       } catch {
-        alert("That file isn't a LifeOS finance backup.");
+        showToast("That file isn't a LifeOS finance backup.", true);
       }
     };
     reader.readAsText(f);
@@ -414,8 +495,10 @@ function DataBackup() {
     { icon: "download", label: "Download backup", onClick: download },
     { icon: copied ? "check" : "copy", label: copied ? "Copied!" : "Copy backup", onClick: copy },
     { icon: "upload", label: "Restore from file", onClick: () => fileRef.current?.click() },
+    { icon: "history", label: "Restore points", onClick: openSnaps },
     { icon: "reset", label: "Reset everything", onClick: () => setResetOpen(true), danger: true },
   ];
+  const when = (t) => new Date(t).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 
   return (
     <FinCard title="Data & backup" delay={120}>
@@ -424,36 +507,28 @@ function DataBackup() {
           <button
             key={a.label}
             onClick={a.onClick}
-            className={`flex flex-col items-start gap-3 rounded-[20px] bg-fin-tile p-4 text-left text-[15px] font-semibold transition hover:bg-[#2e2e36] active:scale-[0.98] ${a.danger ? "text-fin-danger" : ""}`}
+            className={`flex min-h-[44px] flex-col items-start gap-3 rounded-[20px] bg-fin-tile p-4 text-left text-[15px] font-semibold transition hover:bg-[#2e2e36] active:scale-[0.98] ${a.danger ? "text-fin-danger" : ""}`}
           >
             <Icon name={a.icon} size={22} />
             {a.label}
           </button>
         ))}
       </div>
-      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={pickFile} />
+      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={pickFile} aria-label="Choose a backup file" />
       <p className="mt-4 text-[14px] leading-relaxed text-fin-muted">
-        Your finance data is stored in your LifeOS database. A backup is a single file with everything in this section — keep one somewhere safe before big changes.
-        <b className="text-white/80"> Copy backup</b> puts it on the clipboard so you can paste it into Notes, email or WhatsApp.
+        A backup is a single file with everything in this section — keep one somewhere safe.
+        <b className="text-white/80"> Copy backup</b> puts it on the clipboard so you can paste it into Notes or email.
+        Before any restore or reset, LifeOS also saves a <b className="text-white/80">restore point</b> you can go back to.
       </p>
 
       <Sheet
         open={Boolean(pending)}
-        onClose={() => setPending(null)}
+        onClose={closeAll}
         title="Restore backup?"
         footer={
           <>
-            <GhostButton className="flex-1" onClick={() => setPending(null)}>Cancel</GhostButton>
-            <PrimaryButton
-              className="flex-1"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                await restore(pending.data);
-                setBusy(false);
-                setPending(null);
-              }}
-            >
+            <GhostButton className="flex-1" onClick={closeAll}>Cancel</GhostButton>
+            <PrimaryButton className="flex-1" disabled={busy || !password} onClick={() => run(() => restore(pending, password))}>
               {busy ? "Restoring…" : "Replace my data"}
             </PrimaryButton>
           </>
@@ -461,7 +536,7 @@ function DataBackup() {
       >
         <p className="text-[15px] leading-relaxed text-fin-muted">
           This replaces everything currently in Finances with the backup
-          {pending?.exportedAt ? ` from ${new Date(pending.exportedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}` : ""}.
+          {pending?.exportedAt && !isNaN(new Date(pending.exportedAt)) ? ` from ${when(pending.exportedAt)}` : ""}. Your current data is saved as a restore point first.
         </p>
         <div className="mt-4 grid grid-cols-2 gap-2">
           {counts.map(([k, n]) => (
@@ -471,24 +546,19 @@ function DataBackup() {
             </div>
           ))}
         </div>
+        <PasswordConfirm value={password} onChange={setPassword} error={error} onEnter={() => run(() => restore(pending, password))} />
       </Sheet>
 
       <Sheet
         open={resetOpen}
-        onClose={() => { setResetOpen(false); setConfirmText(""); }}
+        onClose={closeAll}
         title="Reset everything?"
         footer={
           <>
-            <GhostButton className="flex-1" onClick={() => { setResetOpen(false); setConfirmText(""); }}>Cancel</GhostButton>
+            <GhostButton className="flex-1" onClick={closeAll}>Cancel</GhostButton>
             <button
-              disabled={confirmText !== "RESET" || busy}
-              onClick={async () => {
-                setBusy(true);
-                await resetAll();
-                setBusy(false);
-                setResetOpen(false);
-                setConfirmText("");
-              }}
+              disabled={confirmText !== "RESET" || !password || busy}
+              onClick={() => run(() => resetAll(password))}
               className="flex-1 rounded-2xl bg-red-600 px-5 py-3 text-[16px] font-bold text-white transition hover:bg-red-500 disabled:opacity-40"
             >
               {busy ? "Resetting…" : "Delete all"}
@@ -497,10 +567,49 @@ function DataBackup() {
         }
       >
         <p className="text-[15px] leading-relaxed text-fin-muted">
-          This permanently deletes every expense, salary, subcategory, holding and goal in Finances. It can't be undone — download a backup first if you might want it back.
+          This deletes every expense, salary, subcategory, holding and goal in Finances. A restore point is saved first, so you can still get it back from <b className="text-white/80">Restore points</b>.
         </p>
-        <div className="mt-4 text-[14px] text-fin-muted">Type <b className="text-white">RESET</b> to confirm</div>
-        <TextField className="mt-2" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="RESET" />
+        <label htmlFor="fin-reset-word" className="mt-4 block text-[14px] text-fin-muted">Type <b className="text-white">RESET</b> to confirm</label>
+        <TextField id="fin-reset-word" className="mt-2" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="RESET" autoComplete="off" />
+        <PasswordConfirm value={password} onChange={setPassword} error={error} />
+      </Sheet>
+
+      <Sheet open={snapsOpen && !pick} onClose={() => setSnapsOpen(false)} title="Restore points">
+        <p className="text-[15px] leading-relaxed text-fin-muted">Saved automatically before every restore or reset. The newest 10 are kept.</p>
+        <div className="mt-4 space-y-2" aria-busy={snaps === null}>
+          {snaps === null && <div className="py-6 text-center text-[15px] text-fin-muted">Loading…</div>}
+          {snaps?.length === 0 && <div className="rounded-2xl bg-fin-input px-4 py-5 text-center text-[15px] text-fin-muted">No restore points yet.</div>}
+          {snaps?.map((sn) => (
+            <div key={sn._id} className="flex items-center gap-3 rounded-2xl bg-fin-input px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-semibold">{when(sn.createdAt)}</div>
+                <div className="truncate text-[13px] text-fin-muted">
+                  {SNAP_REASON[sn.reason] || "Saved"} · {plural(sn.counts?.transactions ?? 0, "expense")} · {plural(sn.counts?.months ?? 0, "month")}
+                </div>
+              </div>
+              <GhostButton onClick={() => { setPick(sn); setPassword(""); setError(""); }}>Put back</GhostButton>
+            </div>
+          ))}
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={Boolean(pick)}
+        onClose={closeAll}
+        title="Put this restore point back?"
+        footer={
+          <>
+            <GhostButton className="flex-1" onClick={closeAll}>Cancel</GhostButton>
+            <PrimaryButton className="flex-1" disabled={busy || !password} onClick={() => run(() => restoreSnapshot(pick._id, password))}>
+              {busy ? "Restoring…" : "Put it back"}
+            </PrimaryButton>
+          </>
+        }
+      >
+        <p className="text-[15px] leading-relaxed text-fin-muted">
+          Finances goes back to how it was on {pick ? when(pick.createdAt) : ""}. What's there now is saved as a new restore point first.
+        </p>
+        <PasswordConfirm value={password} onChange={setPassword} error={error} onEnter={() => run(() => restoreSnapshot(pick._id, password))} />
       </Sheet>
     </FinCard>
   );

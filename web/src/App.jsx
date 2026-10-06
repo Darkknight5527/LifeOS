@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { getToken, setToken } from "./api";
+import { api, clearLocalData, getToken, refreshTokenIfOld } from "./api";
 import { ToastProvider } from "./components/Toast.jsx";
 import { PdfReaderHost } from "./components/PdfReader.jsx";
 import { HealthSyncHost } from "./components/HealthSync.jsx";
@@ -44,6 +44,14 @@ export default function App() {
 
   useEffect(() => {
     setAuthed(Boolean(getToken()));
+    refreshTokenIfOld();
+    // The server rejected our login (expired, or "sign out everywhere"): back to the login screen.
+    const onSignedOut = () => {
+      clearLocalData();
+      setAuthed(false);
+    };
+    window.addEventListener("lifeos:signed-out", onSignedOut);
+    return () => window.removeEventListener("lifeos:signed-out", onSignedOut);
   }, []);
 
   // Opening the site fresh (typed URL, bookmark, new tab) starts on North Star (home);
@@ -125,16 +133,18 @@ export default function App() {
   }
 
   function handleLogout() {
-    setToken(null);
-    // Forget the browser copies of LifeOS data on this device.
-    try {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith("lifeos_") && k.endsWith("_cache_v1"))
-        .forEach((k) => localStorage.removeItem(k));
-    } catch {
-      /* ignore */
-    }
+    // Forget the login and the browser copies of LifeOS data on this device.
+    clearLocalData();
     setAuthed(false);
+  }
+  async function handleLogoutAll() {
+    if (!window.confirm("Sign out on every device (phone, laptop…)? You'll need your password to log in again.")) return;
+    try {
+      await api.logoutAll();
+    } catch {
+      /* the local sign-out below still happens */
+    }
+    handleLogout();
   }
 
   const navList = (isDark) => (
@@ -167,6 +177,12 @@ export default function App() {
       >
         Log out
       </button>
+      <button
+        onClick={handleLogoutAll}
+        className={`w-full rounded-lg px-3 py-2 text-left text-sm ${isDark ? "text-white/45 hover:bg-white/5" : "text-slate-500 hover:bg-slate-100"}`}
+      >
+        Sign out everywhere
+      </button>
     </>
   );
 
@@ -178,7 +194,7 @@ export default function App() {
         {authed && <HealthSyncHost />}
         <div className="flex min-h-screen">
           {/* Slide-in menu */}
-          <div className={`fixed inset-0 z-[80] ${menuOpen ? "" : "pointer-events-none"}`} aria-hidden={!menuOpen}>
+          <div className={`fixed inset-0 z-[80] ${menuOpen ? "" : "pointer-events-none"}`} aria-hidden={!menuOpen} inert={menuOpen ? undefined : ""}>
             <div
               className={`absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 ${menuOpen ? "opacity-100" : "opacity-0"}`}
               onClick={() => setMenuOpen(false)}
