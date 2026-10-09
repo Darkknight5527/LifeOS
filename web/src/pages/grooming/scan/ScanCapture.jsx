@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../../finances/fin-ui.jsx";
-import { haptic } from "../../../lib/inApp.js";
+import { IN_APP, appVersionBelow, haptic, sendToApp } from "../../../lib/inApp.js";
 import { ANGLES, processFile, processPhoto } from "./lib.js";
 
 export default function ScanCapture({ date, onClose, onSubmit }) {
@@ -54,8 +54,8 @@ export default function ScanCapture({ date, onClose, onSubmit }) {
           video.current.srcObject = stream.current;
           await video.current.play().catch(() => {});
         }
-      } catch {
-        if (alive) setCamError("Camera not available — use the button below to take or pick a photo instead.");
+      } catch (err) {
+        if (alive) setCamError(cameraProblem(err));
       }
     })();
     return () => {
@@ -170,7 +170,21 @@ export default function ScanCapture({ date, onClose, onSubmit }) {
             {camError ? (
               <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center text-white/70">
                 <Icon name="info" size={32} />
-                {camError}
+                <div className="text-[17px] font-semibold text-white">{camError.title}</div>
+                <div className="text-[14.5px] leading-relaxed">{camError.text}</div>
+                <div className="mt-2 flex flex-wrap justify-center gap-2">
+                  {camError.settings && (
+                    <button onClick={() => sendToApp("app-settings")} className="rounded-2xl bg-[#2dd4bf] px-5 py-2.5 text-[15px] font-bold text-[#04211d]">
+                      Open app settings
+                    </button>
+                  )}
+                  {camError.retry && (
+                    <button onClick={() => setCamError("")} className="rounded-2xl bg-white/10 px-5 py-2.5 text-[15px] font-semibold text-white">
+                      Try camera again
+                    </button>
+                  )}
+                </div>
+                <div className="mt-1 text-[12.5px] text-white/45">Or use the button below to take or pick a photo instead.</div>
               </div>
             ) : (
               <video ref={video} playsInline muted className="h-full w-full -scale-x-100 object-cover" />
@@ -283,4 +297,37 @@ function Summary({ shots, onRetake, onSubmit, error }) {
       </div>
     </div>
   );
+}
+
+// Turn a camera error into a plain explanation and what to do about it.
+function cameraProblem(err) {
+  const name = err?.name || "";
+  // Apps before 1.5.1 either lack camera permission (1.4) or can't open settings (1.5.0).
+  if (IN_APP && appVersionBelow("1.5.1") && name !== "NotReadableError") {
+    return {
+      title: "Update the LifeOS app",
+      text: "Your installed app can't use the camera yet. Download and install the latest LifeOS app from the usual link, open AI scan again and tap Allow when Android asks about the camera.",
+      retry: true,
+    };
+  }
+  if (name === "NotAllowedError" || name === "SecurityError") {
+    return {
+      title: "Camera permission is off",
+      text: IN_APP
+        ? "Android blocked the camera for LifeOS. Open app settings → Permissions → Camera → Allow, then come back and tap Try camera again."
+        : "Your browser blocked the camera. Allow it from the camera icon in the address bar, then tap Try camera again.",
+      settings: IN_APP,
+      retry: true,
+    };
+  }
+  if (name === "NotFoundError" || name === "OverconstrainedError") {
+    return { title: "No front camera found", text: "This device didn't report a camera LifeOS can use.", retry: true };
+  }
+  if (name === "NotReadableError" || name === "AbortError") {
+    return { title: "Camera is busy", text: "Another app may be using the camera. Close it, then tap Try camera again.", retry: true };
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return { title: "Camera not supported here", text: "This browser can't open the camera from a web page." };
+  }
+  return { title: "Camera didn't start", text: `Something stopped the camera (${name || "unknown error"}).`, retry: true };
 }

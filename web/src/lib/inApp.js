@@ -4,6 +4,16 @@
 
 export const IN_APP = typeof window !== "undefined" && Boolean(window.ReactNativeWebView);
 
+/** Version of the Android app (from its user agent, "LifeOSApp/1.5.1"); "1.0" for apps before 1.5.1. */
+export const APP_VERSION = (typeof navigator !== "undefined" && navigator.userAgent.match(/LifeOSApp\/([\d.]+)/)?.[1]) || null;
+export function appVersionBelow(v) {
+  if (!APP_VERSION) return false;
+  const a = APP_VERSION.split(".").map(Number);
+  const b = v.split(".").map(Number);
+  for (let i = 0; i < 3; i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) < (b[i] || 0);
+  return false;
+}
+
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();

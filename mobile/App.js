@@ -185,7 +185,7 @@ function Shell() {
             textZoom={100}
             overScrollMode="never"
             setSupportMultipleWindows
-            applicationNameForUserAgent="LifeOSApp/1.0"
+            applicationNameForUserAgent={`LifeOSApp/${Constants.expoConfig?.version || "1.0"}`}
             injectedJavaScript={PROBE}
             onShouldStartLoadWithRequest={shouldLoad}
             onOpenWindow={(e) => {
@@ -209,6 +209,7 @@ function Shell() {
                 const m = JSON.parse(e.nativeEvent.data);
                 if (!m || typeof m !== "object") return;
                 if (m.type === "ready") hideLoading();
+                else if (m.type === "app-settings") Linking.openSettings().catch(() => {});
                 else if (m.type === "haptic") Vibration.vibrate(m.style === "heavy" ? 18 : 8);
                 else if (m.type === "save-file") saveIncomingFile(m);
                 else if (m.type === "health-status") healthStatus().then((st) => toWeb("health-status", st));
