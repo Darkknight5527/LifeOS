@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Lenis from "lenis";
 import { motion, useReducedMotion, useScroll, useSpring } from "motion/react";
+import { DomainsFab } from "../components/BottomTabBar.jsx";
 import { MenuButton } from "../components/AppMenu.jsx";
 import Hero from "./home/Hero.jsx";
 import { Built, Compound, Next, Now, Principles } from "./home/Chapters.jsx";
@@ -94,6 +95,8 @@ export default function HomePage() {
       <System go={navigate} />
       <Principles />
       <Compound onPaper={() => navigate("/paper")} />
+
+      <DomainsFab />
 
       <footer className="border-t border-white/[0.06] px-5 py-8 text-center text-[13px] text-white/35 sm:px-10">Built by Akhil, one block at a time.</footer>
     </div>

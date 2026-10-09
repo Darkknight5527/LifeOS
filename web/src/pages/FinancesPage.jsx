@@ -12,6 +12,7 @@ import SettingsTab from "./finances/SettingsTab.jsx";
 import LogExpenseSheet from "./finances/LogExpenseSheet.jsx";
 import Calculator from "./finances/Calculator.jsx";
 import ReceivedSheet from "./finances/ReceivedSheet.jsx";
+import BottomTabBar from "../components/BottomTabBar.jsx";
 import { MenuButton } from "../components/AppMenu.jsx";
 import { reloadedHere } from "../lib/navigation.js";
 
@@ -205,26 +206,8 @@ function FinanceShell() {
         </button>
       )}
 
-      {/* Bottom tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-fin-line bg-[#0e0e11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-        <div className="mx-auto flex max-w-[880px]">
-          {TABS.map((t) => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => goTo(t.id)}
-                className={`relative flex flex-1 flex-col items-center gap-1 py-3 text-[12px] font-semibold transition sm:text-[13px] ${active ? "text-fin-accent" : "text-fin-muted hover:text-white"}`}
-                aria-current={active ? "page" : undefined}
-              >
-                <span className={`absolute top-0 h-[3px] w-8 rounded-b-full bg-fin-accent transition-opacity ${active ? "opacity-100" : "opacity-0"}`} />
-                <Icon name={t.icon} size={24} stroke={active ? 2.1 : 1.7} />
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      {/* Bottom bar: domain switcher + tabs */}
+      <BottomTabBar tabs={TABS} tab={tab} onTab={goTo} />
 
       <LogExpenseSheet
         open={sheet.open}

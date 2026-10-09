@@ -328,7 +328,7 @@ export function Next() {
                       textAnchor={left ? "end" : "start"}
                       fill={on ? "#f3e6c4" : "rgba(255,255,255,.35)"}
                       style={{ transition: "fill .5s" }}
-                      fontFamily="Outfit, sans-serif"
+                      fontFamily="Outfit Variable, Outfit, sans-serif"
                     >
                       {name}
                     </text>

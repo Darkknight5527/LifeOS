@@ -1,15 +1,19 @@
 import { createContext, useContext } from "react";
 
-export const MenuContext = createContext({ openMenu: () => {}, hoverOpen: () => {} });
+export const MenuContext = createContext({ openMenu: () => {}, hoverOpen: () => {}, openDomains: () => {} });
 export const useAppMenu = () => useContext(MenuContext);
 
+// Touch screens (phone, the Android app) use the bottom domain switcher;
+// laptops keep the slide-in side menu.
+const isTouch = () => typeof window !== "undefined" && !window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
+
 // Hamburger button: opens the slide-in navigation on hover (mouse/trackpad)
-// or on click/tap (phones, keyboards).
+// or the domain switcher on tap (phones).
 export function MenuButton({ className = "" }) {
-  const { openMenu, hoverOpen } = useAppMenu();
+  const { openMenu, hoverOpen, openDomains } = useAppMenu();
   return (
     <button
-      onClick={openMenu}
+      onClick={() => (isTouch() ? openDomains() : openMenu())}
       onMouseEnter={hoverOpen}
       aria-label="Open menu"
       title="Menu"

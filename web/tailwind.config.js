@@ -23,7 +23,7 @@ export default {
         },
       },
       fontFamily: {
-        fin: ["Outfit", "ui-sans-serif", "system-ui", "sans-serif"],
+        fin: ["Outfit Variable", "Outfit", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
         glow: "0 10px 30px -8px var(--fin-glow)",

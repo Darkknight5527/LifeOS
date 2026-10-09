@@ -4,6 +4,7 @@
 import { useEffect, useRef } from "react";
 import { useSwipeTabs } from "./useSwipeTabs.js";
 import { MenuButton } from "./AppMenu.jsx";
+import BottomTabBar, { DomainsFab } from "./BottomTabBar.jsx";
 import { Icon, LogoMark, PrimaryButton, ThemeContext } from "../pages/finances/fin-ui.jsx";
 
 export default function DomainShell({
@@ -97,28 +98,8 @@ export default function DomainShell({
         <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
       </main>
 
-      {/* Phone / tablet bottom tab bar */}
-      {tabs?.length > 1 && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-fin-line bg-[#0e0e11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-          <div className="mx-auto flex max-w-[880px]">
-            {tabs.map((t) => {
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => onTab(t.id)}
-                  className={`relative flex flex-1 flex-col items-center gap-1 py-3 text-[12px] font-semibold transition sm:text-[13px] ${active ? "text-fin-accent" : "text-fin-muted hover:text-white"}`}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <span className={`absolute top-0 h-[3px] w-8 rounded-b-full bg-fin-accent transition-opacity ${active ? "opacity-100" : "opacity-0"}`} />
-                  <Icon name={t.icon} size={24} stroke={active ? 2.1 : 1.7} />
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      )}
+      {/* Phone / tablet bottom bar: domain switcher + this domain's tabs */}
+      {tabs?.length > 1 ? <BottomTabBar tabs={tabs} tab={tab} onTab={onTab} /> : <DomainsFab />}
     </div>
   );
 }

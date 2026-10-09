@@ -50,3 +50,8 @@ export function onAppMessage(handler) {
   window.addEventListener("lifeos:native", on);
   return () => window.removeEventListener("lifeos:native", on);
 }
+
+/** A light tap of vibration for taps that change something (app only; quiet in browsers). */
+export function haptic(style = "light") {
+  if (IN_APP) window.ReactNativeWebView.postMessage(JSON.stringify({ type: "haptic", style }));
+}

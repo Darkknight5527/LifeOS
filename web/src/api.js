@@ -3,6 +3,15 @@ import { createApiClient } from "lifeos-shared";
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 const TOKEN_KEY = "lifeos_token";
 
+/** Ping the server so a sleeping free-plan server starts waking up. */
+export function wakeServer() {
+  try {
+    fetch(BASE_URL.replace(/\/api\/?$/, "") + "/health", { mode: "cors", cache: "no-store" }).catch(() => {});
+  } catch {
+    /* ignore */
+  }
+}
+
 export function getToken() {
   try {
     return localStorage.getItem(TOKEN_KEY);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { NavLink, Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { api, clearLocalData, getToken, refreshTokenIfOld } from "./api";
 import { ToastProvider } from "./components/Toast.jsx";
@@ -6,35 +6,38 @@ import { PdfReaderHost } from "./components/PdfReader.jsx";
 import { HealthSyncHost } from "./components/HealthSync.jsx";
 import { MenuContext, MenuButton } from "./components/AppMenu.jsx";
 import { IS_RELOAD } from "./lib/navigation.js";
+import { DOMAINS, READY, DARK_PAGES } from "./lib/domains.js";
+import DomainSwitcher from "./components/DomainSwitcher.jsx";
+import PullToRefresh from "./components/PullToRefresh.jsx";
+import { reloadOnChunkError } from "./lib/sw.js";
 import LoginPage from "./pages/LoginPage.jsx";
-import HomePage from "./pages/HomePage.jsx";
-import GroomingPage from "./pages/GroomingPage.jsx";
-import FitnessPage from "./pages/FitnessPage.jsx";
-import FinancesPage from "./pages/FinancesPage.jsx";
-import PaperPage from "./pages/PaperPage.jsx";
 import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 
-// ready: built pages that ↑ / ↓ cycles through (empty placeholders are skipped)
-const NAV_ITEMS = [
-  { to: "/", label: "North Star", end: true, ready: true },
-  { to: "/paper", label: "Morning Paper", ready: true },
-  { to: "/mental", label: "Mental & Psych" },
-  { to: "/grooming", label: "Grooming", ready: true },
-  { to: "/fitness", label: "Fitness & Nutrition", ready: true },
-  { to: "/finances", label: "Finances", ready: true },
-  { to: "/goals", label: "Goals" },
-  { to: "/technical", label: "Technical & Projects" },
-  { to: "/learning", label: "Learning" },
-];
-const READY = NAV_ITEMS.filter((n) => n.ready);
+// Each domain's code downloads only when it's first needed, so the app opens
+// faster; the rest are fetched quietly in the background right after.
+const PAGES = {
+  home: reloadOnChunkError(() => import("./pages/HomePage.jsx")),
+  paper: reloadOnChunkError(() => import("./pages/PaperPage.jsx")),
+  grooming: reloadOnChunkError(() => import("./pages/GroomingPage.jsx")),
+  fitness: reloadOnChunkError(() => import("./pages/FitnessPage.jsx")),
+  finances: reloadOnChunkError(() => import("./pages/FinancesPage.jsx")),
+};
+const HomePage = lazy(PAGES.home);
+const PaperPage = lazy(PAGES.paper);
+const GroomingPage = lazy(PAGES.grooming);
+const FitnessPage = lazy(PAGES.fitness);
+const FinancesPage = lazy(PAGES.finances);
+function prefetchPages() {
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1200));
+  idle(() => Object.values(PAGES).forEach((load) => load().catch(() => {})));
+}
 
-// Dark pages that draw their own full-screen layout and header
-// (they put the menu button in their own header via useAppMenu()).
-const DARK_PAGES = ["/", "/finances", "/grooming", "/paper", "/fitness"];
+const NAV_ITEMS = DOMAINS;
 
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
   const [menuOpen, setMenuOpen] = useState(false);
+  const [domainsOpen, setDomainsOpen] = useState(false);
   const closeTimer = useRef(null);
   // Only real mice/trackpads hover; on touch screens the menu opens by tap.
   const canHover = typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
@@ -45,6 +48,7 @@ export default function App() {
   useEffect(() => {
     setAuthed(Boolean(getToken()));
     refreshTokenIfOld();
+    prefetchPages();
     // The server rejected our login (expired, or "sign out everywhere"): back to the login screen.
     const onSignedOut = () => {
       clearLocalData();
@@ -92,7 +96,10 @@ export default function App() {
   }, [location.pathname, navigate]);
 
   // Close the menu on navigation and with Escape.
-  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => {
+    setMenuOpen(false);
+    setDomainsOpen(false);
+  }, [location.pathname]);
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
@@ -119,6 +126,7 @@ export default function App() {
       cancelClose();
       setMenuOpen(true);
     },
+    openDomains: () => setDomainsOpen(true),
   };
 
   if (!authed) {
@@ -190,7 +198,9 @@ export default function App() {
     <ToastProvider>
       <MenuContext.Provider value={menuApi}>
         <DomainHint index={hint} />
+        <DomainSwitcher open={domainsOpen} onClose={() => setDomainsOpen(false)} onLogout={handleLogout} onLogoutAll={handleLogoutAll} />
         <PdfReaderHost />
+        <PullToRefresh />
         {authed && <HealthSyncHost />}
         <div className="flex min-h-screen">
           {/* Slide-in menu */}
@@ -232,6 +242,7 @@ export default function App() {
             )}
 
             <main className={dark ? "" : "p-4 md:p-8"}>
+              <Suspense fallback={<PageLoading dark={dark} />}>
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/mental" element={<PlaceholderPage title="Mental & Psych" />} />
@@ -246,6 +257,7 @@ export default function App() {
                 <Route path="/learning" element={<PlaceholderPage title="Learning" />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
+              </Suspense>
             </main>
           </div>
         </div>
@@ -274,6 +286,15 @@ function DomainHint({ index }) {
         <div className="mt-1 border-t border-white/10 px-3 pt-1.5 text-[11.5px] text-white/40">↑ ↓ to switch</div>
       </div>
       <span className="sr-only">{index != null ? READY[index].label : ""}</span>
+    </div>
+  );
+}
+
+// Shown for a moment while a domain's code downloads for the first time.
+function PageLoading({ dark }) {
+  return (
+    <div className={`grid min-h-screen place-items-center ${dark ? "bg-[#0b0b0d]" : ""}`} role="status" aria-label="Loading">
+      <span className="h-7 w-7 animate-spin rounded-full border-2 border-white/15 border-t-[#fb8a3c]" />
     </div>
   );
 }

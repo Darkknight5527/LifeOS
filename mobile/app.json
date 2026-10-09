@@ -3,7 +3,7 @@
     "name": "LifeOS",
     "slug": "lifeos",
     "scheme": "lifeos",
-    "version": "1.3.1",
+    "version": "1.4.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.darkknight.lifeos",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "backgroundColor": "#f56a12",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -30,11 +30,13 @@
       "permissions": [
         "android.permission.health.READ_WEIGHT",
         "android.permission.health.READ_BODY_FAT",
-        "android.permission.health.READ_HEALTH_DATA_HISTORY"
+        "android.permission.health.READ_HEALTH_DATA_HISTORY",
+        "android.permission.VIBRATE"
       ]
     },
     "extra": {
-      "webUrl": "https://lifeos-web-qjrj.onrender.com"
+      "webUrl": "https://lifeos-web-qjrj.onrender.com",
+      "apiUrl": "https://lifeos-jvep.onrender.com"
     },
     "web": {
       "favicon": "./assets/favicon.png"

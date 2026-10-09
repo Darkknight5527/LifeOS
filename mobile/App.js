@@ -2,7 +2,7 @@
 // The site loads from Render, so every website update appears here without
 // installing a new APK. Sign-in, data and the phone layout are the website's own.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, BackHandler, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Animated, AppState, BackHandler, Linking, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,7 +14,11 @@ import { commitSync, healthStatus, openHealthSettings, readWeighIns } from "./sr
 const SITE = Constants.expoConfig?.extra?.webUrl || "https://lifeos-web-qjrj.onrender.com";
 const hostOf = (url) => (String(url).match(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i) || [])[1] || "";
 const HOST = hostOf(SITE);
+const API = Constants.expoConfig?.extra?.apiUrl || "https://lifeos-jvep.onrender.com";
 const DARK = "#0b0b0d";
+
+// The free server sleeps when idle; start waking it the moment the app opens.
+const wakeServer = () => fetch(`${API}/health`, { cache: "no-store" }).catch(() => {});
 
 // Runs inside the page: reports the colour at the top and bottom edges so the
 // phone's status bar and navigation bar can match whatever page is showing.
@@ -68,7 +72,17 @@ function Shell() {
 
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(DARK).catch(() => {});
+    wakeServer();
+    const sub = AppState.addEventListener("change", (st) => st === "active" && wakeServer());
+    return () => sub.remove();
   }, []);
+
+  // The loading screen fades out as soon as the page has drawn ("ready"),
+  // instead of waiting for every image and font to finish.
+  const fade = useRef(new Animated.Value(1)).current;
+  const hideLoading = useCallback(() => {
+    Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => setLoading(false));
+  }, [fade]);
 
   // ---- Talking to the website ----
   // Events go in as window "lifeos:native" CustomEvents.
@@ -140,6 +154,7 @@ function Shell() {
   );
 
   const retry = () => {
+    fade.setValue(1);
     setFailed(false);
     setLoading(true);
     setKey((k) => k + 1);
@@ -179,7 +194,7 @@ function Shell() {
               canGoBack.current = nav.canGoBack;
             }}
             onLoadEnd={() => {
-              setLoading(false);
+              hideLoading();
               setTimeout(autoSync, 1500);
             }}
             onError={() => setFailed(true)}
@@ -190,7 +205,9 @@ function Shell() {
               try {
                 const m = JSON.parse(e.nativeEvent.data);
                 if (!m || typeof m !== "object") return;
-                if (m.type === "save-file") saveIncomingFile(m);
+                if (m.type === "ready") hideLoading();
+                else if (m.type === "haptic") Vibration.vibrate(m.style === "heavy" ? 18 : 8);
+                else if (m.type === "save-file") saveIncomingFile(m);
                 else if (m.type === "health-status") healthStatus().then((st) => toWeb("health-status", st));
                 else if (m.type === "health-connect") syncHealth(true);
                 else if (m.type === "health-sync") syncHealth(false);
@@ -207,10 +224,10 @@ function Shell() {
           />
         )}
         {loading && !failed && (
-          <View style={[StyleSheet.absoluteFill, s.center, { backgroundColor: DARK }]}>
+          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, s.center, { backgroundColor: DARK, opacity: fade }]}>
             <Logo />
             <ActivityIndicator color="#ff7a1a" style={{ marginTop: 22 }} />
-          </View>
+          </Animated.View>
         )}
         {failed && (
           <View style={[StyleSheet.absoluteFill, s.center, { backgroundColor: DARK, padding: 28 }]}>

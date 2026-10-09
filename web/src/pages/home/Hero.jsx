@@ -133,7 +133,7 @@ function RoleTicker({ reduce }) {
 
 function ScrollCue() {
   return (
-    <div className="pointer-events-none absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2 text-[12px] text-white/40">
+    <div className="pointer-events-none absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 lg:flex flex-col items-center gap-2 text-[12px] text-white/40">
       <span>Scroll</span>
       <span className="relative h-10 w-px overflow-hidden bg-white/10">
         <span className="absolute inset-x-0 top-0 h-4 animate-[cue_1.8s_ease-in-out_infinite] bg-gradient-to-b from-transparent to-[#f2c14e]" />

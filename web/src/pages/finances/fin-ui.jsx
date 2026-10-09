@@ -50,6 +50,11 @@ const PATHS = {
   figure: "M12 6.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM5 9.5l7-1.5 7 1.5M12 8v6.5M8.5 21.5l3.5-7 3.5 7",
   play: "M8 5.5v13l11-6.5z",
   external: "M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
+  grid: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
+  brain: "M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 1V5a2 2 0 0 0-3-1zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 1",
+  code: "M8 8l-5 4 5 4M16 8l5 4-5 4M14 5l-4 14",
+  star: "M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z",
+  logout: "M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10",
 };
 
 export function Icon({ name, size = 20, stroke = 1.8, className = "" }) {
@@ -344,6 +349,39 @@ export const ThemeContext = createContext("");
 // ---------- sheet (bottom sheet on phones, centred dialog on larger screens) ----------
 let openSheets = 0; // the page behind is made inert while any sheet is open
 
+// Phone sheets: drag the top bar down to close, like a native bottom sheet.
+function dragToClose(panel, onClose) {
+  let y0 = null;
+  let dy = 0;
+  let t0 = 0;
+  const el = () => panel.current;
+  return {
+    onTouchStart: (e) => {
+      if (window.innerWidth >= 640 || e.target.closest("button")) return;
+      y0 = e.touches[0].clientY;
+      dy = 0;
+      t0 = performance.now();
+      if (el()) el().style.transition = "none";
+    },
+    onTouchMove: (e) => {
+      if (y0 == null || !el()) return;
+      dy = Math.max(0, e.touches[0].clientY - y0);
+      el().style.transform = `translateY(${dy}px)`;
+    },
+    onTouchEnd: () => {
+      if (y0 == null || !el()) return;
+      const fast = dy / Math.max(1, performance.now() - t0) > 0.6;
+      const node = el();
+      y0 = null;
+      node.style.transition = "transform 200ms ease-out";
+      if (dy > 110 || (fast && dy > 30)) {
+        node.style.transform = "translateY(100%)";
+        setTimeout(onClose, 180);
+      } else node.style.transform = "";
+    },
+  };
+}
+
 export function Sheet({ open, onClose, title, children, footer, titleExtra, wide = false }) {
   const theme = useContext(ThemeContext);
   const panel = useRef(null);
@@ -406,13 +444,15 @@ export function Sheet({ open, onClose, title, children, footer, titleExtra, wide
     <div className="fixed inset-0 z-[60] flex items-end justify-center font-fin text-white sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 animate-fade-in bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div ref={panel} data-sheet="1" tabIndex={-1} className={`relative flex max-h-[92dvh] w-full outline-none ${wide ? "max-w-4xl" : "max-w-lg"} animate-sheet-up flex-col rounded-t-[30px] bg-fin-card shadow-2xl ring-1 ring-white/5 sm:animate-pop-in sm:rounded-[30px]`}>
-        <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-white/15 sm:hidden" />
-        <div className="flex items-center justify-between px-6 pb-2 pt-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[20px] font-bold">{title}</h2>
-            {titleExtra}
+        <div {...dragToClose(panel, onClose)} className="touch-none sm:touch-auto">
+          <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-white/15 sm:hidden" />
+          <div className="flex items-center justify-between px-6 pb-2 pt-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[20px] font-bold">{title}</h2>
+              {titleExtra}
+            </div>
+            <IconButton icon="close" label="Close" onClick={onClose} />
           </div>
-          <IconButton icon="close" label="Close" onClick={onClose} />
         </div>
         <div className="flex-1 overflow-y-auto px-6 pb-4">{children}</div>
         {footer && <div className="flex gap-3 border-t border-fin-line px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{footer}</div>}
