@@ -3,7 +3,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { DOMAINS } from "../lib/domains.js";
 import { Icon, Sheet } from "../pages/finances/fin-ui.jsx";
-import { haptic } from "../lib/inApp.js";
+import { APP_VERSION, IN_APP, appVersionBelow, haptic } from "../lib/inApp.js";
 
 export default function DomainSwitcher({ open, onClose, onLogout, onLogoutAll }) {
   const { pathname } = useLocation();
@@ -49,6 +49,13 @@ export default function DomainSwitcher({ open, onClose, onLogout, onLogoutAll })
         <button onClick={onLogoutAll} className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-semibold text-white/55 hover:bg-white/5">
           Sign out everywhere
         </button>
+      </div>
+      <div className="pb-1 pt-2 text-center text-[12px] text-fin-faint">
+        {IN_APP
+          ? appVersionBelow("1.5.1")
+            ? "LifeOS app: older than 1.5.1 — install the latest from the download link"
+            : `LifeOS app version ${APP_VERSION}`
+          : "LifeOS website"}
       </div>
     </Sheet>
   );
