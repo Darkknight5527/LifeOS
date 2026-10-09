@@ -26,6 +26,7 @@ const VIEWS = [
 // Skin also has the AI skin check.
 const SKIN_VIEWS = [...VIEWS, { value: "scan", label: "AI scan" }];
 const viewsFor = (tab) => (tab === "skin" ? SKIN_VIEWS : VIEWS);
+const HOLD_VIEWS = { skin: SKIN_VIEWS, hair: VIEWS, body: VIEWS };
 const KEY = "lifeos_groom_view";
 let restored = false;
 
@@ -88,6 +89,12 @@ function GroomingShell() {
       onTab={(t) => {
         // Each tab opens on its first view (Today, Skill tree, Diary…).
         setState((s) => ({ ...s, tab: t, views: { ...s.views, [t]: FRESH.views[t] } }));
+        window.scrollTo({ top: 0 });
+      }}
+      views={HOLD_VIEWS}
+      currentViews={state.views}
+      onView={(t, v) => {
+        setState((s) => ({ ...s, tab: t, views: { ...s.views, [t]: v } }));
         window.scrollTo({ top: 0 });
       }}
       syncing={src.syncing && src.hasData}

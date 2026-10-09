@@ -20,6 +20,9 @@ export default function DomainShell({
   failed = false,
   onRetry,
   maxWidth = "lg:max-w-[1320px]",
+  views, // { [tabId]: [{ value, label }] } — shown when a tab is held on a phone
+  currentViews, // { [tabId]: value }
+  onView, // (tabId, value) => void
   children,
 }) {
   // ← → switch tabs, like Finances (ignored while typing or in a popup).
@@ -99,7 +102,7 @@ export default function DomainShell({
       </main>
 
       {/* Phone / tablet bottom bar: domain switcher + this domain's tabs */}
-      {tabs?.length > 1 ? <BottomTabBar tabs={tabs} tab={tab} onTab={onTab} /> : <DomainsFab />}
+      {tabs?.length > 1 ? <BottomTabBar tabs={tabs} tab={tab} onTab={onTab} views={views} currentViews={currentViews} onView={onView} /> : <DomainsFab />}
     </div>
   );
 }

@@ -95,6 +95,12 @@ function FitnessShell() {
         setState((s) => ({ ...s, tab: t, views: { ...s.views, [t]: FRESH.views[t] } }));
         window.scrollTo({ top: 0 });
       }}
+      views={VIEWS}
+      currentViews={state.views}
+      onView={(t, v) => {
+        setState((s) => ({ ...s, tab: t, views: { ...s.views, [t]: v } }));
+        window.scrollTo({ top: 0 });
+      }}
       syncing={fit.syncing && fit.hasData}
       failed={Boolean(fit.error) && fit.hasData}
       onRetry={fit.reload}
