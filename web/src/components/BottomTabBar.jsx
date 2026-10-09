@@ -1,5 +1,6 @@
-// Phone / tablet bottom bar shared by every domain: a "Domains" button on the
-// left (opens the domain switcher) and the domain's own tabs after it.
+// Phone / tablet bottom bar shared by every domain: the domain's own tabs,
+// then a "Domains" button on the right, under your thumb (opens the switcher).
+// Swiping sideways on the page still moves between the tabs.
 import { Icon } from "../pages/finances/fin-ui.jsx";
 import { useAppMenu } from "./AppMenu.jsx";
 import { haptic } from "../lib/inApp.js";
@@ -9,18 +10,6 @@ export default function BottomTabBar({ tabs, tab, onTab }) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-fin-line bg-[#0e0e11]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden" aria-label="Sections">
       <div className="mx-auto flex max-w-[880px]">
-        <button
-          onClick={() => {
-            haptic("light");
-            openDomains();
-          }}
-          className="relative flex w-[64px] shrink-0 flex-col items-center gap-1 py-3 text-[12px] font-semibold text-fin-muted transition hover:text-white active:scale-95 sm:text-[13px]"
-          aria-label="Switch domain"
-        >
-          <Icon name="grid" size={24} stroke={1.7} />
-          Domains
-          <span className="absolute right-0 top-1/2 h-7 w-px -translate-y-1/2 bg-white/10" />
-        </button>
         {(tabs || []).map((t) => {
           const active = tab === t.id;
           return (
@@ -39,12 +28,24 @@ export default function BottomTabBar({ tabs, tab, onTab }) {
             </button>
           );
         })}
+        <button
+          onClick={() => {
+            haptic("light");
+            openDomains();
+          }}
+          className="relative flex w-[64px] shrink-0 flex-col items-center gap-1 py-3 text-[12px] font-semibold text-fin-muted transition hover:text-white active:scale-95 sm:text-[13px]"
+          aria-label="Switch domain"
+        >
+          <Icon name="grid" size={24} stroke={1.7} />
+          Domains
+          <span className="absolute left-0 top-1/2 h-7 w-px -translate-y-1/2 bg-white/10" />
+        </button>
       </div>
     </nav>
   );
 }
 
-// Home has no tabs: a floating "Domains" pill at the bottom instead.
+// Pages without tabs (Home, Morning Paper): a floating "Domains" pill at the bottom right.
 export function DomainsFab() {
   const { openDomains } = useAppMenu();
   return (
@@ -53,7 +54,7 @@ export function DomainsFab() {
         haptic("light");
         openDomains();
       }}
-      className="fixed bottom-[max(20px,calc(env(safe-area-inset-bottom)+12px))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#141418]/90 px-5 py-3 font-fin text-[15px] font-semibold text-white shadow-2xl backdrop-blur-xl transition active:scale-95 lg:hidden"
+      className="fixed bottom-[max(20px,calc(env(safe-area-inset-bottom)+12px))] right-4 z-40 flex items-center gap-2 rounded-full border border-white/10 bg-[#141418]/90 px-5 py-3 font-fin text-[15px] font-semibold text-white shadow-2xl backdrop-blur-xl transition active:scale-95 lg:hidden"
     >
       <Icon name="grid" size={20} stroke={2} /> Domains
     </button>
