@@ -45,7 +45,7 @@ export default function TodayView() {
                 <div className="mt-1.5 text-[14px] text-white/85">{nudge}</div>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-3 lg:mt-3">
               {["am", "pm"].map((id) => {
                 const part = c[id];
                 const pct = part.total ? part.done / part.total : 0;

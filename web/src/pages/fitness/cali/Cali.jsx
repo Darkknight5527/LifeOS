@@ -152,8 +152,8 @@ export function CaliTree() {
         <Tree cat={cat} st={st} onOpen={open} />
       </FinCard>
 
-      <div className="space-y-4">
-        <FinCard title="Your tree">
+      <div className="space-y-4 lg:flex lg:h-[calc(100dvh-178px)] lg:flex-col lg:gap-4 lg:space-y-0">
+        <FinCard title="Your tree" className="lg:shrink-0">
           <div className="grid grid-cols-3 gap-2 text-center">
             {[
               ["Mastered", done],
@@ -168,7 +168,7 @@ export function CaliTree() {
           </div>
           <Legend className="mt-3" />
         </FinCard>
-        <FinCard title="Ready to learn" className="lg:max-h-[calc(100dvh-178px-262px)] lg:overflow-y-auto fin-scroll">
+        <FinCard title="Ready to learn" className="fin-scroll lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           {readyList.length ? (
             <div className="space-y-1">
               {readyList.slice(0, 12).map((s) => (

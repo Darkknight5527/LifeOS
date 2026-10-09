@@ -123,7 +123,7 @@ export function ConcernChips({ value, onChange }) {
               on ? next.delete(c) : next.add(c);
               onChange([...next]);
             }}
-            className={`rounded-full border px-3 py-1 text-[13px] font-semibold capitalize transition active:scale-95 ${
+            className={`rounded-full border px-3 py-1 text-[13px] font-semibold capitalize lg:px-2.5 lg:text-[12.5px] transition active:scale-95 ${
               on ? "border-fin-accent bg-fin-accent/10 text-fin-accent" : "border-transparent bg-fin-input text-white/80 hover:bg-fin-tile"
             }`}
           >
