@@ -2,6 +2,16 @@
 // Set GEMINI_API_KEY on the server; GEMINI_MODEL is optional.
 const API = "https://generativelanguage.googleapis.com/v1beta/models";
 export const GEMINI_MODEL = () => process.env.GEMINI_MODEL || "gemini-3.8-flash";
+// Tried in order when the main model is busy or out of free quota (each model
+// has its own free limit). GEMINI_FALLBACKS can override, comma-separated.
+const FALLBACKS = () =>
+  (process.env.GEMINI_FALLBACKS || "gemini-3.7-flash,gemini-3.5-flash-lite")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Busy / overloaded / temporarily failing: worth waiting and trying again.
+const BUSY = new Set([429, 500, 502, 503, 504]);
 
 export const METRICS = ["acne", "marks", "redness", "oiliness", "dryness", "darkCircles", "texture", "unevenTone"];
 
@@ -76,7 +86,7 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(+n) ? +n 
  * photos: [{ angle, mime, data: Buffer }]
  * Returns the parsed analysis, or throws an Error with a readable message.
  */
-export async function analyzeSkin(photos, { previous, routine, fetchImpl = fetch } = {}) {
+export async function analyzeSkin(photos, { previous, routine, fetchImpl = fetch, wait = true } = {}) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("AI isn't set up yet: add GEMINI_API_KEY on the server.");
   const parts = [{ text: prompt(previous, routine) }];
@@ -84,29 +94,59 @@ export async function analyzeSkin(photos, { previous, routine, fetchImpl = fetch
     parts.push({ text: `Photo: ${p.angle}` });
     parts.push({ inline_data: { mime_type: p.mime, data: p.data.toString("base64") } });
   }
-  const res = await fetchImpl(`${API}/${encodeURIComponent(GEMINI_MODEL())}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts }],
-      generationConfig: { temperature: 0.2, responseMimeType: "application/json", responseSchema: SCHEMA },
-    }),
-    signal: AbortSignal.timeout(60_000),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = body?.error?.message || `status ${res.status}`;
-    if (res.status === 429) throw new Error("The free AI limit was reached for now. Try again later.");
-    throw new Error(`AI request failed: ${msg}`.slice(0, 300));
+  const request = (model) =>
+    fetchImpl(`${API}/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts }],
+        generationConfig: { temperature: 0.2, responseMimeType: "application/json", responseSchema: SCHEMA },
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
+
+  // Main model first (with two short retries when it's busy), then the fallbacks.
+  const models = [...new Set([GEMINI_MODEL(), ...FALLBACKS()])];
+  let lastErr = null;
+  let out = null;
+  let used = null;
+  outer: for (const model of models) {
+    for (let attempt = 0; attempt < (model === models[0] ? 3 : 2); attempt++) {
+      if (attempt) await sleep(attempt * 2500 * (wait ? 1 : 0));
+      let res;
+      try {
+        res = await request(model);
+      } catch (e) {
+        lastErr = new Error(e?.name === "TimeoutError" ? "The AI took too long to answer." : "Couldn't reach the AI.");
+        continue;
+      }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = body?.error?.message || `status ${res.status}`;
+        if (res.status === 404) {
+          lastErr = new Error(`AI model "${model}" not found.`);
+          continue outer; // renamed / retired: try the next model
+        }
+        if (res.status === 400 || res.status === 401 || res.status === 403) throw new Error(`AI request failed: ${msg}`.slice(0, 300));
+        lastErr = new Error(
+          res.status === 429 ? "The free AI limit was reached for now. Try again later." : "Google's AI is very busy right now. Try again in a few minutes."
+        );
+        if (!BUSY.has(res.status)) throw new Error(`AI request failed: ${msg}`.slice(0, 300));
+        if (res.status === 429) continue outer; // out of quota on this model: the next has its own
+        continue;
+      }
+      const text = body?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+      try {
+        out = JSON.parse(text);
+        used = model;
+        break outer;
+      } catch {
+        const reason = body?.candidates?.[0]?.finishReason || body?.promptFeedback?.blockReason;
+        lastErr = new Error(`The AI didn't return a result${reason ? ` (${reason})` : ""}. Try again.`);
+      }
+    }
   }
-  const text = body?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
-  let out;
-  try {
-    out = JSON.parse(text);
-  } catch {
-    const reason = body?.candidates?.[0]?.finishReason || body?.promptFeedback?.blockReason;
-    throw new Error(`The AI didn't return a result${reason ? ` (${reason})` : ""}. Try again.`);
-  }
+  if (!out) throw lastErr || new Error("The AI didn't answer. Try again.");
   const scores = {};
   for (const m of METRICS) scores[m] = Math.round(clamp(out?.scores?.[m], 0, 10) * 10) / 10;
   return {
@@ -119,6 +159,6 @@ export async function analyzeSkin(photos, { previous, routine, fetchImpl = fetch
     tips: (Array.isArray(out.tips) ? out.tips : []).slice(0, 4).map((t) => String(t).slice(0, 300)),
     photoQuality: { usable: out?.photoQuality?.usable !== false, issues: String(out?.photoQuality?.issues || "").slice(0, 300) },
     seeDermatologist: Boolean(out.seeDermatologist),
-    model: GEMINI_MODEL(),
+    model: used,
   };
 }
