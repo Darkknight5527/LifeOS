@@ -2,8 +2,9 @@ import { useSkin } from "./SkinContext.jsx";
 import { PERIOD, completion, prettyDate, streak, todayISO } from "./lib";
 import { Icon, Ring } from "../../finances/fin-ui.jsx";
 import { RoutineChecklist, SkinCheckIn } from "./skin-ui.jsx";
+import ScanTodayCard from "../scan/ScanTodayCard.jsx";
 
-export default function TodayView() {
+export default function TodayView({ onScan }) {
   const { steps, byDate } = useSkin();
   const today = todayISO();
   const c = completion(steps, byDate[today], today);
@@ -73,6 +74,7 @@ export default function TodayView() {
       <div className="w-full space-y-5 lg:max-w-[560px] lg:space-y-4">
         <RoutineChecklist date={today} period="am" delay={40} />
         <RoutineChecklist date={today} period="pm" delay={80} />
+        {onScan && <ScanTodayCard onOpen={onScan} />}
       </div>
     </div>
   );

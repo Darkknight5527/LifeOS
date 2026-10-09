@@ -162,6 +162,15 @@ Google Calendar events (recurring and all-day included, shown in your local
 time), a "check your Gmail" reminder, money left / safe to spend, skincare
 progress, today's training split, and savings goals.
 
+AI skin check (Grooming → Skin → AI scan): three selfies (front, left, right)
+are stored privately in MongoDB (only served when logged in) and read by Google
+Gemini, which scores acne, marks, redness, oiliness, dryness, dark circles,
+texture and tone (0–10) plus an overall skin score, and compares with the last
+check. Setup: in Render → the `LifeOS` backend → Environment, add
+`GEMINI_API_KEY` (free key from Google AI Studio). Optional `GEMINI_MODEL`.
+Note: on Gemini's free tier Google may use what you send to improve its
+products; turning on billing for the key stops that.
+
 Calendar setup: in Render → the `LifeOS` backend service → Environment, add
 `CALENDAR_ICS_URL` = your Google Calendar's *Secret address in iCal format*.
 It's a secret — never commit it. Events are cached on the server for 5 minutes.

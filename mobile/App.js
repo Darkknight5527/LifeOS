@@ -179,6 +179,9 @@ function Shell() {
             domStorageEnabled // keeps you signed in (the site stores its login in localStorage)
             cacheEnabled
             allowsBackForwardNavigationGestures
+            mediaPlaybackRequiresUserAction={false}
+            allowsInlineMediaPlayback
+            mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
             textZoom={100}
             overScrollMode="never"
             setSupportMultipleWindows

@@ -36,6 +36,7 @@ import CustomFood from "../models/CustomFood.js";
 import BodyLog from "../models/BodyLog.js";
 import CaliLog from "../models/CaliLog.js";
 import booksRoutes from "./books.js";
+import skinScanRoutes from "./skinScans.js";
 
 const router = Router();
 
@@ -62,6 +63,7 @@ router.use("/learning-sessions", createCrudRouter(LearningSession, { sortField: 
 router.use("/finance", financeRoutes);
 router.use("/paper", paperRoutes);
 router.use("/books", booksRoutes);
+router.use("/skin-scans", skinScanRoutes);
 router.use("/fit-settings", createCrudRouter(FitSettings, { sortField: "createdAt", sortOrder: 1 }));
 router.use("/food-logs", createCrudRouter(FoodLog, { sortField: "date", sortOrder: -1 }));
 router.use("/custom-foods", createCrudRouter(CustomFood, { sortField: "name", sortOrder: 1 }));

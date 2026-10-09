@@ -8,6 +8,7 @@ import TodayView from "./grooming/skin/TodayView.jsx";
 import HistoryView from "./grooming/skin/HistoryView.jsx";
 import InsightsView, { RANGES } from "./grooming/skin/InsightsView.jsx";
 import RoutineView from "./grooming/skin/RoutineView.jsx";
+import ScanView from "./grooming/scan/ScanView.jsx";
 import { CareProvider, useCare } from "./grooming/care/CareContext.jsx";
 import { CareHistory, CareInsights, CareRoutine, CareToday } from "./grooming/care/CareViews.jsx";
 
@@ -22,6 +23,9 @@ const VIEWS = [
   { value: "insights", label: "Insights" },
   { value: "routine", label: "Routine" },
 ];
+// Skin also has the AI skin check.
+const SKIN_VIEWS = [...VIEWS, { value: "scan", label: "AI scan" }];
+const viewsFor = (tab) => (tab === "skin" ? SKIN_VIEWS : VIEWS);
 const KEY = "lifeos_groom_view";
 let restored = false;
 
@@ -59,7 +63,8 @@ function GroomingShell() {
   const { tab } = state;
   const view = state.views[tab];
   const setView = (v) => setState((s) => ({ ...s, views: { ...s.views, [s.tab]: v } }));
-  useViewKeys(VIEWS, view, setView); // 1–4 / Shift+← → switch views
+  const views = viewsFor(tab);
+  useViewKeys(views, view, setView); // 1–5 / Shift+← → switch views
   const src = tab === "skin" ? skin : care;
 
   useEffect(() => {
@@ -90,7 +95,7 @@ function GroomingShell() {
       onRetry={src.reload}
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="w-full max-w-[460px]" title="Keys: 1–4 or Shift + ← →"><Segmented className="w-full [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={VIEWS} /></div>
+        <div className={`w-full ${views.length > 4 ? "max-w-[560px]" : "max-w-[460px]"}`} title={`Keys: 1–${views.length} or Shift + ← →`}><Segmented className="w-full [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={views} /></div>
         {view === "insights" && (
           <Segmented className="w-full sm:w-[260px] sm:shrink-0 [&_button]:!py-1.5 [&_button]:!text-[13px]" value={range} onChange={setRange} options={RANGES} />
         )}
@@ -105,10 +110,11 @@ function GroomingShell() {
         </div>
       ) : tab === "skin" ? (
         <div key={`skin-${view}`} className="animate-fade-in">
-          {view === "today" && <TodayView />}
+          {view === "today" && <TodayView onScan={() => setView("scan")} />}
           {view === "history" && <HistoryView />}
           {view === "insights" && <InsightsView range={range} />}
           {view === "routine" && <RoutineView />}
+          {view === "scan" && <ScanView />}
         </div>
       ) : (
         <div key={`${tab}-${view}`} className="animate-fade-in">

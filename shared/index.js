@@ -87,6 +87,17 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
       request(`/paper/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&days=${days.join(",")}`),
     paperNews: () => request("/paper/news"),
 
+    // AI skin checks (three face photos per day)
+    skinScans: () => request("/skin-scans"),
+    createSkinScan: (date, photos) => request("/skin-scans", { method: "POST", body: { date, photos } }),
+    reanalyzeSkinScan: (id) => request(`/skin-scans/${id}/analyze`, { method: "POST" }),
+    deleteSkinScan: (id) => request(`/skin-scans/${id}`, { method: "DELETE" }),
+    // Raw photo download (returns the fetch Response; turn it into a blob URL).
+    skinPhoto: (id, angle) => {
+      const token = getToken();
+      return fetch(`${baseUrl}/skin-scans/${id}/photo/${angle}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    },
+
     // Reference books (private PDFs)
     books: () => request("/books"),
     // Raw download — returns the fetch Response so the caller can stream/cache it.
