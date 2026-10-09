@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
 import { BUCKETS, PRESETS, clamp, formatMoney, monthLabel, splitByRatio, toAmount, todayISO } from "./lib";
-import { BucketBadge, FinCard, GhostButton, Icon, IconButton, MoneyField, Pill, PrimaryButton, Segmented, Sheet, TextField, cleanMoneyInput } from "./fin-ui.jsx";
+import { FinCard, GhostButton, Icon, IconButton, MoneyField, Pill, PrimaryButton, Segmented, Sheet, TextField, cleanMoneyInput } from "./fin-ui.jsx";
 import { saveFile } from "../../lib/inApp.js";
 import { useToast } from "../../components/Toast.jsx";
 

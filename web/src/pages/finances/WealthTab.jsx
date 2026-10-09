@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFinance } from "./FinanceContext.jsx";
-import { MAX_AMOUNT, amountError, formatMoney, monthKey, parseISO, sum, toAmount, todayISO } from "./lib";
+import { MAX_AMOUNT, amountError, formatMoney, parseISO, sum, toAmount, todayISO } from "./lib";
 import { EmptyState, FinCard, GhostButton, Icon, IconButton, Money, MoneyField, Pill, PrimaryButton, Ring, Sheet, TextField, Tile } from "./fin-ui.jsx";
 
 const TYPES = [
@@ -244,7 +244,7 @@ function ContributionSheet({ goal, onClose }) {
 
 // ---------- investments ----------
 function Investments() {
-  const { investments, investmentsCrud } = useFinance();
+  const { investments } = useFinance();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(null);
 

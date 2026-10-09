@@ -2,29 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCare } from "./CareContext.jsx";
 import { DailyChecklist, DayRings, HairCheckIn, PeriodicCard, usePeriodic } from "./care-ui.jsx";
-import {
-  AREAS,
-  EVERY_PRESETS,
-  HAIR_FALL,
-  PERIOD,
-  PERIODS,
-  SCALP,
-  STATE_COLOR,
-  WEEKDAYS,
-  agoLabel,
-  completion,
-  dailyFor,
-  daysLabel,
-  dueLabel,
-  everyLabel,
-  isScheduled,
-  lastNDays,
-  nextScheduled,
-  periodicStatus,
-  prettyDate,
-  streak,
-  todayISO,
-} from "./lib";
+import { AREAS, EVERY_PRESETS, HAIR_FALL, PERIOD, PERIODS, STATE_COLOR, WEEKDAYS, agoLabel, completion, dailyFor, daysLabel, dueLabel, everyLabel, isScheduled, lastNDays, nextScheduled, periodicStatus, prettyDate, streak, todayISO } from "./lib";
 import { daysInMonth, monthKey, monthLabel, parseISO, shiftMonth } from "../../finances/lib";
 import { EmptyState, FinCard, GhostButton, Icon, IconButton, Pill, PrimaryButton, Ring, Segmented, Sheet, TextField } from "../../finances/fin-ui.jsx";
 

@@ -1,13 +1,4 @@
-export const SPLIT_SCHEDULE = [
-  { day: "Monday", split: "push" },
-  { day: "Tuesday", split: "pull" },
-  { day: "Wednesday", split: "legs" },
-  { day: "Thursday", split: "push" },
-  { day: "Friday", split: "pull" },
-  { day: "Saturday", split: "legs" },
-  { day: "Sunday", split: "rest" },
-];
-
+// Gym split names and the exercise list per muscle group.
 export const SPLIT_LABEL = { push: "Push", pull: "Pull", legs: "Legs", rest: "Rest", core: "Core" };
 
 export const MUSCLE_GROUPS = {
@@ -28,16 +19,8 @@ export const MUSCLE_GROUPS = {
   ],
 };
 
-export function allGroupsFor(splitDay) {
-  const groups = [...(MUSCLE_GROUPS[splitDay] || [])];
-  if (splitDay !== "core") groups.push(...MUSCLE_GROUPS.core);
-  return groups;
-}
-
 export function defaultSplitForToday() {
   const idx = new Date().getDay(); // Sun=0
   const map = { 0: "rest", 1: "push", 2: "pull", 3: "legs", 4: "push", 5: "pull", 6: "legs" };
   return map[idx];
 }
-
-export const CARDIO_ACTIVITIES = ["Running", "Cycling", "Swimming", "Rowing", "Walking", "Elliptical", "Other"];

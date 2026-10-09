@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSkin } from "./SkinContext.jsx";
 import { CONCERNS, CONDITIONS, PERIOD, completion, conditionOf, doneOf, isScheduled, lastNDays, prettyDate } from "./lib";
-import { EmptyState, FinCard, Ring, Segmented } from "../../finances/fin-ui.jsx";
+import { EmptyState, FinCard, Ring } from "../../finances/fin-ui.jsx";
 
 export const RANGES = [
   { value: 7, label: "7 days" },

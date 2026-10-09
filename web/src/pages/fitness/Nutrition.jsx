@@ -8,7 +8,6 @@ import { ACTIVITY, GOALS, MACROS, MEALS, addDays, dayTotals, isoDate, lastNDays,
 import { Bars, NumberBox, kicker } from "./fit-ui.jsx";
 import { EmptyState, FinCard, GhostButton, Icon, IconButton, Pill, PrimaryButton, Ring, Segmented, Sheet, TextField } from "../finances/fin-ui.jsx";
 
-const H = "lg:h-[calc(100dvh-178px)] lg:min-h-[380px]";
 const round = (n) => Math.round(n);
 const scale = (food, qty) => ({ cal: round(food.cal * qty), p: r1(food.p * qty), c: r1(food.c * qty), f: r1(food.f * qty) });
 

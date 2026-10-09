@@ -1,6 +1,6 @@
 // Fitness & Nutrition maths and defaults.
 import { addDays, isoDate, parseISO, todayISO } from "../finances/lib";
-import { MUSCLE_GROUPS } from "../physical/workouts/constants.js";
+import { MUSCLE_GROUPS } from "./workouts.js";
 
 export { addDays, isoDate, parseISO, todayISO };
 
@@ -63,12 +63,6 @@ export const GOALS = [
 /* ---------- strength maths ---------- */
 // Epley estimate of one-rep max.
 export const e1rm = (w, r) => (w > 0 && r > 0 ? (r === 1 ? w : w * (1 + r / 30)) : 0);
-export const setVolume = (s) => (s.weight || 0) * (s.reps || 0);
-export function sessionVolume(session) {
-  let v = 0;
-  for (const ex of session.exercises || []) for (const s of ex.sets || []) if (s.done !== false) v += setVolume(s);
-  return v;
-}
 export function bestSet(sets) {
   let best = null;
   for (const s of sets || []) if (s.done !== false && e1rm(s.weight, s.reps) > (best ? e1rm(best.weight, best.reps) : 0)) best = s;
@@ -121,7 +115,6 @@ export function lastNDays(n, end = todayISO()) {
 export const daysBetween = (a, b) => Math.round((parseISO(b) - parseISO(a)) / 86400000);
 export const prettyDate = (iso, opts = { weekday: "short", day: "numeric", month: "short" }) => parseISO(iso).toLocaleDateString("en-IN", opts);
 export const r1 = (n) => Math.round(n * 10) / 10;
-export const fmtKg = (n) => `${r1(n).toLocaleString("en-IN")} kg`;
 export const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 /* ---------- FitNotes-style extras ---------- */

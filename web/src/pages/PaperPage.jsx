@@ -8,7 +8,7 @@ import { BUCKETS, daysInMonth, formatMoney, isoDate, addDays, todayISO, parseISO
 import { FinCard, Icon, ProgressBar, Ring } from "./finances/fin-ui.jsx";
 import { SkinProvider, useSkin } from "./grooming/skin/SkinContext.jsx";
 import { PERIOD, completion, isScheduled, streak } from "./grooming/skin/lib";
-import { SPLIT_LABEL, defaultSplitForToday } from "./physical/workouts/constants.js";
+import { SPLIT_LABEL, defaultSplitForToday } from "./fitness/workouts.js";
 import NewsCard, { useNews } from "./paper/NewsCard.jsx";
 import FactCard from "./paper/FactCard.jsx";
 
