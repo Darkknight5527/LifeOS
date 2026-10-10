@@ -1,6 +1,7 @@
 // Skin analysis with Google's Gemini vision models (Google AI Studio key).
 // Set GEMINI_API_KEY on the server; GEMINI_MODEL is optional.
-const API = "https://generativelanguage.googleapis.com/v1beta/models";
+// GEMINI_API_URL is only for tests (a stand-in server); normally Google.
+const API = process.env.GEMINI_API_URL || "https://generativelanguage.googleapis.com/v1beta/models";
 export const GEMINI_MODEL = () => process.env.GEMINI_MODEL || "gemini-3.8-flash";
 // Tried in order when the main model is busy or out of free quota (each model
 // has its own free limit). GEMINI_FALLBACKS can override, comma-separated.

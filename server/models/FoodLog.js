@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // One per day: everything eaten (by meal) and water drunk.
 const EntrySchema = new mongoose.Schema(
@@ -23,5 +24,8 @@ const FoodLogSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+FoodLogSchema.plugin(owned);
 
 export default mongoose.model("FoodLog", FoodLogSchema, "food_logs");

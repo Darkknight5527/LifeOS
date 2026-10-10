@@ -5,6 +5,7 @@ import { connectDB } from "./config/db.js";
 import apiRoutes from "./routes/index.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { securityHeaders } from "./utils/security.js";
+import { migrateToMultiUser } from "./utils/migrate.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -36,6 +37,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 4000;
 
 connectDB()
+  .then(() => migrateToMultiUser())
   .then(() => {
     app.listen(PORT, () => console.log(`LifeOS server listening on port ${PORT}`));
   })

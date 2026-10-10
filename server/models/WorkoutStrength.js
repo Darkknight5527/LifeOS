@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 const SetSchema = new mongoose.Schema(
   {
@@ -34,5 +35,8 @@ const WorkoutStrengthSchema = new mongoose.Schema({
   notes: { type: String, default: "" },
   createdAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+WorkoutStrengthSchema.plugin(owned);
 
 export default mongoose.model("WorkoutStrength", WorkoutStrengthSchema, "workout_strength");

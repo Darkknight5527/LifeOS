@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // Take-home salary for one month and how it is split across the buckets.
 const FinanceMonthSchema = new mongoose.Schema({
@@ -10,5 +11,8 @@ const FinanceMonthSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+FinanceMonthSchema.plugin(owned);
 
 export default mongoose.model("FinanceMonth", FinanceMonthSchema, "finance_months");

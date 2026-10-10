@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // A LifeOS reminder that shows in the Morning Paper agenda.
 const ReminderSchema = new mongoose.Schema({
@@ -13,5 +14,8 @@ const ReminderSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+ReminderSchema.plugin(owned);
 
 export default mongoose.model("Reminder", ReminderSchema, "reminders");

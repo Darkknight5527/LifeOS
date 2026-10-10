@@ -49,7 +49,8 @@ export function cleanBody(value, depth = 0) {
   const out = {};
   for (const [k, v] of Object.entries(value)) {
     if (k.startsWith("$") || k.includes(".")) continue;
-    if (depth === 0 && (k === "_id" || k === "__v")) continue;
+    // _id, __v and the owner are never taken from the client.
+    if (depth === 0 && (k === "_id" || k === "__v" || k === "userId")) continue;
     out[k] = cleanBody(v, depth + 1);
   }
   return out;

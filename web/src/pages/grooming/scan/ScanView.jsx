@@ -8,6 +8,7 @@ import { todayISO } from "../skin/lib";
 import { ANGLES, METRICS, fmtDay, overallColor, sevColor, sevWord } from "./lib.js";
 import { photoUrl, useSkinScans } from "./useSkinScans.js";
 import ScanCapture from "./ScanCapture.jsx";
+import { api } from "../../../api";
 
 // Laptop: every column fits the screen and scrolls on its own.
 const H = "lg:h-[calc(100dvh-178px)] lg:min-h-[380px]";
@@ -20,6 +21,12 @@ export default function ScanView() {
   const shown = scans.find((s) => s._id === openId) || scans[0];
   const prev = shown ? scans.find((s) => s.date < shown.date && s.status === "done") : null;
   const hasToday = scans.some((s) => s.date === today);
+  // Friends get one AI check a day; the owner isn't limited.
+  const [allow, setAllow] = useState({ ok: true, unlimited: true });
+  useEffect(() => {
+    api.skinScanAllowance().then(setAllow).catch(() => {});
+  }, [scans]);
+  const canCheck = allow.unlimited || allow.ok;
 
   if (loading && !scans.length) return <div className="h-[420px] animate-pulse rounded-[24px] bg-fin-card" />;
 
@@ -42,7 +49,10 @@ export default function ScanView() {
       ) : (
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-4 [&>*]:min-w-0">
           <div className={`fin-scroll space-y-5 lg:space-y-4 lg:overflow-y-auto lg:rounded-[24px] ${H}`}>
-            {!hasToday && (
+            {!hasToday && !canCheck && (
+              <div className="rounded-[24px] bg-fin-card p-5 text-[14.5px] text-fin-muted">You've used today's AI check. The next one is available tomorrow.</div>
+            )}
+            {!hasToday && canCheck && (
               <button onClick={() => setCapturing(true)} className="flex w-full items-center gap-4 rounded-[24px] bg-gradient-to-br from-[#36d6c2] via-[#1fb5a6] to-[#0e7f77] p-5 text-left shadow-glow transition active:scale-[0.99]">
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-black/15"><Icon name="sparkle" size={24} stroke={2} /></span>
                 <span className="min-w-0 flex-1">
@@ -57,7 +67,7 @@ export default function ScanView() {
                 scan={shown}
                 prev={prev}
                 isToday={shown.date === today}
-                onRetake={() => setCapturing(true)}
+                onRetake={canCheck ? () => setCapturing(true) : null}
                 onReanalyze={() => reanalyze(shown._id)}
                 onDelete={async () => {
                   await remove(shown._id);
@@ -128,7 +138,7 @@ function Result({ scan, prev, isToday, onRetake, onReanalyze, onDelete }) {
       title={isToday ? "Today's skin" : fmtDay(scan.date, { weekday: "long", day: "numeric", month: "long" })}
       action={
         <div className="flex items-center gap-1">
-          {isToday && <GhostButton className="!px-3 !py-1.5 !text-[13px]" onClick={onRetake}>Retake</GhostButton>}
+          {isToday && onRetake && <GhostButton className="!px-3 !py-1.5 !text-[13px]" onClick={onRetake}>Retake</GhostButton>}
           <IconButton
             icon="trash"
             label="Delete this check"

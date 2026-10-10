@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // One AI skin check: three photos (stored in SkinPhoto) plus what the AI saw.
 // Severity scores are 0–10 (0 = none, 10 = severe); `overall` is a 0–100
@@ -30,5 +31,8 @@ const SkinScanSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+SkinScanSchema.plugin(owned);
 
 export default mongoose.model("SkinScan", SkinScanSchema, "skin_scans");

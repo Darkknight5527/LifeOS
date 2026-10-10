@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // A face photo for a SkinScan (front / left / right), kept private in the
 // database and only served to the logged-in owner.
@@ -9,5 +10,8 @@ const SkinPhotoSchema = new mongoose.Schema({
   data: { type: Buffer, required: true },
   createdAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+SkinPhotoSchema.plugin(owned);
 
 export default mongoose.model("SkinPhoto", SkinPhotoSchema, "skin_photos");

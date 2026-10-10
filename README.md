@@ -13,6 +13,27 @@ LifeOS/
 └── mobile/    Android app (Expo) — the full website in an app; see mobile/README.md
 ```
 
+## Accounts (owner + friends)
+
+LifeOS supports a handful of accounts on one server.
+
+- The first account is the **owner** (admin). Older single-user databases are
+  migrated on start-up: the oldest account becomes the owner and all existing
+  data is given to it.
+- Friends join with a **one-time invite code** (Account → Invite a friend; codes
+  last 7 days). There's no open sign-up.
+- Every saved item has an owner (`userId`). The server only ever reads or writes
+  the logged-in account's data, and a Mongoose plugin (`server/utils/owned.js`)
+  refuses any query that doesn't name the owner.
+- Owner-only: North Star (home page), the Google Calendar feed, and the
+  Account → People/Invites tools (reset a forgotten password, remove an account
+  with all its data).
+- Friends get one AI skin check a day (failed reads don't count).
+- `npm test` in `server/` runs `test/isolation.test.mjs`: it migrates an old
+  single-user database and checks, for every data route, that two accounts
+  can't see or change each other's data. Needs MongoDB (or FerretDB) on
+  127.0.0.1:27017.
+
 ## Local setup
 
 ```bash

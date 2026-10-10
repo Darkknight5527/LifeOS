@@ -62,7 +62,19 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
 
   return {
     login: (email, password) => request("/auth/login", { method: "POST", body: { email, password } }),
-    register: (email, password) => request("/auth/register", { method: "POST", body: { email, password } }),
+    // Sign up with an invite code from the owner.
+    register: ({ email, password, name, code }) => request("/auth/register", { method: "POST", body: { email, password, name, code } }),
+    me: () => request("/auth/me"),
+    updateMe: (data) => request("/auth/me", { method: "PATCH", body: data }),
+    changePassword: (current, password) => request("/auth/password", { method: "POST", body: { current, password } }),
+
+    // Owner only: friends and invites
+    adminUsers: () => request("/admin/users"),
+    adminInvites: () => request("/admin/invites"),
+    adminCreateInvite: (note) => request("/admin/invites", { method: "POST", body: { note } }),
+    adminDeleteInvite: (id) => request(`/admin/invites/${id}`, { method: "DELETE" }),
+    adminResetPassword: (id) => request(`/admin/users/${id}/reset-password`, { method: "POST" }),
+    adminRemoveUser: (id, confirm) => request(`/admin/users/${id}`, { method: "DELETE", body: { confirm } }),
 
     list: (collection) => request(`/${collection}`),
     get: (collection, id) => request(`/${collection}/${id}`),
@@ -89,6 +101,7 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
 
     // AI skin checks (three face photos per day)
     skinScans: () => request("/skin-scans"),
+    skinScanAllowance: () => request("/skin-scans/allowance"),
     createSkinScan: (date, photos) => request("/skin-scans", { method: "POST", body: { date, photos } }),
     reanalyzeSkinScan: (id) => request(`/skin-scans/${id}/analyze`, { method: "POST" }),
     deleteSkinScan: (id) => request(`/skin-scans/${id}`, { method: "DELETE" }),

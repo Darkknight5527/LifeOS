@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import DomainShell from "../components/DomainShell.jsx";
+import { firstName, useMe } from "../lib/user.js";
 import { DOMAIN, ReminderSheet, missedOccurrence, occursOn, repeatLabel, useReminders } from "../components/reminders.jsx";
 import { FinanceProvider, useFinance } from "./finances/FinanceContext.jsx";
 import { useMonthStats } from "./finances/stats.js";
@@ -77,6 +78,7 @@ function Paper() {
 
 // ---------- masthead ----------
 function Masthead({ today }) {
+  const name = firstName(useMe().me);
   const d = parseISO(today);
   const start = new Date(d.getFullYear(), 0, 0);
   const dayOfYear = Math.round((d - start) / 86400000);
@@ -92,7 +94,7 @@ function Masthead({ today }) {
         <span className="hidden text-right sm:block">Bengaluru Edition</span>
       </div>
       <h1 className="font-paper text-[34px] font-black leading-none tracking-tight text-[#f3e6c4] sm:text-[44px] lg:text-[38px]">The LifeOS Times</h1>
-      <div className="text-[13px] italic text-fin-muted">{hello}, Akhil — here's what today holds.</div>
+      <div className="text-[13px] italic text-fin-muted">{hello}{name ? `, ${name}` : ""} — here's what today holds.</div>
     </div>
   );
 }
@@ -121,7 +123,7 @@ function useCalendar() {
     setState((s) => ({ ...s, syncing: true, error: null }));
     try {
       const res = await api.paperCalendar({ from: w.from.toISOString(), to: w.to.toISOString(), days: w.days });
-      const next = { configured: res.configured, events: res.events || [], days: w.days };
+      const next = { configured: res.configured, ownerOnly: Boolean(res.ownerOnly), events: res.events || [], days: w.days };
       setState({ ...next, loading: false, syncing: false, error: null });
       try {
         localStorage.setItem(CAL_CACHE, JSON.stringify(next));
@@ -197,7 +199,7 @@ function AgendaCard({ cal, reminders, today, onOpen, onAdd }) {
           <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-fin-muted">Tomorrow</div>
           <DayList events={eventsFor(tomorrow)} rems={remsFor(tomorrow)} date={tomorrow} now={now} reminders={reminders} onOpen={onOpen} compact empty="Nothing yet." />
         </div>
-        {!cal.configured && <p className="text-[12px] text-fin-faint">Google Calendar isn't connected (set CALENDAR_ICS_URL on the backend to show its events here).</p>}
+        {!cal.configured && !cal.ownerOnly && <p className="text-[12px] text-fin-faint">Google Calendar isn't connected (set CALENDAR_ICS_URL on the backend to show its events here).</p>}
       </div>
       {left > 0 && <div className="mt-2 text-[12px] text-fin-muted">{left} still to do today</div>}
     </FinCard>

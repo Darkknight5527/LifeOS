@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 const FinanceInvestmentSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -10,5 +11,8 @@ const FinanceInvestmentSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+FinanceInvestmentSchema.plugin(owned);
 
 export default mongoose.model("FinanceInvestment", FinanceInvestmentSchema, "finance_investments");

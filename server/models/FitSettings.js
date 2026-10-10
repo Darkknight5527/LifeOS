@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // One document: training programme, rest timer, body profile and nutrition targets.
 const FitSettingsSchema = new mongoose.Schema({
@@ -15,5 +16,8 @@ const FitSettingsSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+FitSettingsSchema.plugin(owned);
 
 export default mongoose.model("FitSettings", FitSettingsSchema, "fit_settings");

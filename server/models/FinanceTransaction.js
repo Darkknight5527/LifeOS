@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 const FinanceTransactionSchema = new mongoose.Schema({
   date: { type: String, required: true, match: [/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"] }, // YYYY-MM-DD
@@ -10,5 +11,8 @@ const FinanceTransactionSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+FinanceTransactionSchema.plugin(owned);
 
 export default mongoose.model("FinanceTransaction", FinanceTransactionSchema, "finance_transactions");

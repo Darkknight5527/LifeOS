@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { api, clearLocalData, getToken, refreshTokenIfOld } from "./api";
 import { ToastProvider } from "./components/Toast.jsx";
@@ -6,7 +6,8 @@ import { PdfReaderHost } from "./components/PdfReader.jsx";
 import { HealthSyncHost } from "./components/HealthSync.jsx";
 import { MenuContext, MenuButton } from "./components/AppMenu.jsx";
 import { IS_RELOAD } from "./lib/navigation.js";
-import { DOMAINS, READY, DARK_PAGES } from "./lib/domains.js";
+import { DARK_PAGES, domainsFor, readyFor } from "./lib/domains.js";
+import { UserContext, readMe, saveMe } from "./lib/user.js";
 import DomainSwitcher from "./components/DomainSwitcher.jsx";
 import PullToRefresh from "./components/PullToRefresh.jsx";
 import { reloadOnChunkError } from "./lib/sw.js";
@@ -21,7 +22,9 @@ const PAGES = {
   grooming: reloadOnChunkError(() => import("./pages/GroomingPage.jsx")),
   fitness: reloadOnChunkError(() => import("./pages/FitnessPage.jsx")),
   finances: reloadOnChunkError(() => import("./pages/FinancesPage.jsx")),
+  account: reloadOnChunkError(() => import("./pages/AccountPage.jsx")),
 };
+const AccountPage = lazy(PAGES.account);
 const HomePage = lazy(PAGES.home);
 const PaperPage = lazy(PAGES.paper);
 const GroomingPage = lazy(PAGES.grooming);
@@ -32,10 +35,18 @@ function prefetchPages() {
   idle(() => Object.values(PAGES).forEach((load) => load().catch(() => {})));
 }
 
-const NAV_ITEMS = DOMAINS;
-
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
+  // Who's logged in. Until the server answers (first open after an update),
+  // treat them as a friend: nothing owner-only shows by mistake.
+  const [me, setMeState] = useState(readMe);
+  const setMe = (u) => {
+    saveMe(u);
+    setMeState(u);
+  };
+  const isOwner = me?.role === "admin";
+  const NAV_ITEMS = useMemo(() => domainsFor(isOwner), [isOwner]);
+  const READY = useMemo(() => readyFor(isOwner), [isOwner]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [domainsOpen, setDomainsOpen] = useState(false);
   const closeTimer = useRef(null);
@@ -52,7 +63,7 @@ export default function App() {
     // The server rejected our login (expired, or "sign out everywhere"): back to the login screen.
     const onSignedOut = () => {
       clearLocalData();
-      setAuthed(false);
+      window.location.replace("/"); // fresh start, nothing of the old account left in memory
     };
     window.addEventListener("lifeos:signed-out", onSignedOut);
     return () => window.removeEventListener("lifeos:signed-out", onSignedOut);
@@ -64,6 +75,13 @@ export default function App() {
     if (!IS_RELOAD && window.location.pathname !== "/") navigate("/", { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Refresh who's logged in (name, owner or friend).
+  useEffect(() => {
+    if (!authed) return;
+    api.me().then(setMe).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed]);
 
   // ↑ / ↓ move to the previous / next domain. Ignored while typing, in popups,
   // or when a control already uses the arrows (sliders etc.). On North Star the
@@ -93,7 +111,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, READY]);
 
   // Close the menu on navigation and with Escape.
   useEffect(() => {
@@ -132,7 +150,8 @@ export default function App() {
   if (!authed) {
     return (
       <LoginPage
-        onLoggedIn={() => {
+        onLoggedIn={(user) => {
+          if (user) setMe(user);
           setAuthed(true);
           navigate("/", { replace: true });
         }}
@@ -141,9 +160,10 @@ export default function App() {
   }
 
   function handleLogout() {
-    // Forget the login and the browser copies of LifeOS data on this device.
+    // Forget the login and the browser copies of LifeOS data on this device,
+    // and start fresh so nothing of this account stays in memory.
     clearLocalData();
-    setAuthed(false);
+    window.location.replace("/");
   }
   async function handleLogoutAll() {
     if (!window.confirm("Sign out on every device (phone, laptop…)? You'll need your password to log in again.")) return;
@@ -179,9 +199,17 @@ export default function App() {
           </NavLink>
         ))}
       </nav>
+      <NavLink
+        to="/account"
+        className={({ isActive }) =>
+          `mt-6 block rounded-lg px-3 py-2 text-sm ${isDark ? (isActive ? "bg-[#fb8a3c]/15 font-semibold text-[#fb8a3c]" : "text-white/60 hover:bg-white/5") : "text-slate-600 hover:bg-slate-100"}`
+        }
+      >
+        {isOwner ? "Account & friends" : "Account"}
+      </NavLink>
       <button
         onClick={handleLogout}
-        className={`mt-6 w-full rounded-lg px-3 py-2 text-left text-sm ${isDark ? "text-white/45 hover:bg-white/5" : "text-slate-500 hover:bg-slate-100"}`}
+        className={`w-full rounded-lg px-3 py-2 text-left text-sm ${isDark ? "text-white/45 hover:bg-white/5" : "text-slate-500 hover:bg-slate-100"}`}
       >
         Log out
       </button>
@@ -195,10 +223,11 @@ export default function App() {
   );
 
   return (
+    <UserContext.Provider value={{ me, isOwner, setMe }}>
     <ToastProvider>
       <MenuContext.Provider value={menuApi}>
-        <DomainHint index={hint} />
-        <DomainSwitcher open={domainsOpen} onClose={() => setDomainsOpen(false)} onLogout={handleLogout} onLogoutAll={handleLogoutAll} />
+        <DomainHint index={hint} ready={READY} />
+        <DomainSwitcher open={domainsOpen} onClose={() => setDomainsOpen(false)} onLogout={handleLogout} />
         <PdfReaderHost />
         <PullToRefresh />
         {authed && <HealthSyncHost />}
@@ -244,7 +273,8 @@ export default function App() {
             <main className={dark ? "" : "p-4 md:p-8"}>
               <Suspense fallback={<PageLoading dark={dark} />}>
               <Routes>
-                <Route path="/" element={<HomePage />} />
+                <Route path="/" element={isOwner ? <HomePage /> : <Navigate to="/paper" replace />} />
+                <Route path="/account" element={<AccountPage />} />
                 <Route path="/mental" element={<PlaceholderPage title="Mental & Psych" />} />
                 <Route path="/grooming" element={<GroomingPage />} />
                 <Route path="/fitness" element={<FitnessPage />} />
@@ -263,11 +293,12 @@ export default function App() {
         </div>
       </MenuContext.Provider>
     </ToastProvider>
+    </UserContext.Provider>
   );
 }
 
 // Brief overlay while switching domains with ↑ / ↓.
-function DomainHint({ index }) {
+function DomainHint({ index, ready: READY }) {
   return (
     <div
       aria-live="polite"

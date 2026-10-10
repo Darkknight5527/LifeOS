@@ -8,6 +8,7 @@ import SkinPhoto from "../models/SkinPhoto.js";
 import SkincareStep from "../models/SkincareStep.js";
 import { analyzeSkin } from "../utils/gemini.js";
 import { rateLimit } from "../utils/security.js";
+import User from "../models/User.js";
 
 const router = Router();
 const ANGLES = ["front", "left", "right"];
@@ -17,6 +18,30 @@ const MAX_PHOTO = 1.5 * 1024 * 1024;
 const aiLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: "Too many skin checks this hour. Try again later." });
 
 const isId = (id) => mongoose.isValidObjectId(id);
+
+// Friends get one AI check a day (the owner isn't limited). A failed read
+// doesn't count, so "Try again" always works. Days are India time.
+const FRIEND_DAILY = 1;
+const istDay = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
+async function aiAllowance(userId) {
+  const u = await User.findById(userId).select("role aiDay aiCount").lean();
+  if (!u) return { ok: false };
+  if (u.role === "admin") return { ok: true, unlimited: true };
+  const used = u.aiDay === istDay() ? u.aiCount || 0 : 0;
+  return { ok: used < FRIEND_DAILY, used, limit: FRIEND_DAILY };
+}
+async function countAiUse(userId) {
+  const day = istDay();
+  const u = await User.findById(userId).select("aiDay aiCount");
+  if (!u) return;
+  if (u.aiDay !== day) {
+    u.aiDay = day;
+    u.aiCount = 0;
+  }
+  u.aiCount += 1;
+  await u.save();
+}
+const LIMIT_MSG = "You've used today's AI skin check. You can take the next one tomorrow.";
 const bad = (res, msg) => res.status(400).json({ error: msg });
 
 function sniffImage(buf) {
@@ -26,9 +51,9 @@ function sniffImage(buf) {
   return null;
 }
 
-async function routineText() {
+async function routineText(userId) {
   try {
-    const steps = await SkincareStep.find({}).sort({ period: 1, order: 1 }).lean();
+    const steps = await SkincareStep.find({ userId }).sort({ period: 1, order: 1 }).lean();
     if (!steps.length) return "";
     return steps.map((s) => `${s.period === "am" ? "AM" : "PM"} ${s.name}${s.product ? ` (${s.product})` : ""}`).join(", ").slice(0, 600);
   } catch {
@@ -37,15 +62,17 @@ async function routineText() {
 }
 
 async function runAnalysis(scan) {
-  const photos = await SkinPhoto.find({ scanId: scan._id }).lean();
+  const userId = scan.userId;
+  const photos = await SkinPhoto.find({ userId, scanId: scan._id }).lean();
   photos.sort((a, b) => ANGLES.indexOf(a.angle) - ANGLES.indexOf(b.angle));
-  const previous = await SkinScan.findOne({ status: "done", date: { $lt: scan.date } }).sort({ date: -1 }).lean();
+  const previous = await SkinScan.findOne({ userId, status: "done", date: { $lt: scan.date } }).sort({ date: -1 }).lean();
   try {
     const result = await analyzeSkin(
       photos.map((p) => ({ angle: p.angle, mime: p.mime, data: Buffer.from(p.data.buffer || p.data) })),
-      { previous, routine: await routineText() }
+      { previous, routine: await routineText(userId) }
     );
     Object.assign(scan, result, { status: "done", error: "", updatedAt: Date.now() });
+    await countAiUse(userId);
   } catch (err) {
     Object.assign(scan, { status: "failed", error: String(err.message || err).slice(0, 300), updatedAt: Date.now() });
   }
@@ -53,10 +80,19 @@ async function runAnalysis(scan) {
   return scan;
 }
 
+// How many AI checks are left today (friends get one a day).
+router.get("/allowance", async (req, res, next) => {
+  try {
+    res.json(await aiAllowance(req.userId));
+  } catch (err) {
+    next(err);
+  }
+});
+
 // List every check (results only, no photos), newest first.
 router.get("/", async (req, res, next) => {
   try {
-    res.json(await SkinScan.find({}).sort({ date: -1 }).lean());
+    res.json(await SkinScan.find({ userId: req.userId }).sort({ date: -1 }).lean());
   } catch (err) {
     next(err);
   }
@@ -65,6 +101,8 @@ router.get("/", async (req, res, next) => {
 // New check for a day: { date, photos: [{ angle, data (base64) }] }.
 router.post("/", aiLimit, async (req, res, next) => {
   try {
+    const allowance = await aiAllowance(req.userId);
+    if (!allowance.ok) return res.status(429).json({ error: LIMIT_MSG });
     const { date, photos } = req.body || {};
     if (typeof date !== "string" || !DATE.test(date)) return bad(res, "Missing or invalid date.");
     if (!Array.isArray(photos) || !photos.length || photos.length > 3) return bad(res, "Send one to three photos.");
@@ -80,14 +118,15 @@ router.post("/", aiLimit, async (req, res, next) => {
     }
 
     // Replace any earlier check for the same day.
-    const old = await SkinScan.find({ date }, { _id: 1 }).lean();
+    const userId = req.userId;
+    const old = await SkinScan.find({ userId, date }, { _id: 1 }).lean();
     if (old.length) {
-      await SkinPhoto.deleteMany({ scanId: { $in: old.map((o) => o._id) } });
-      await SkinScan.deleteMany({ _id: { $in: old.map((o) => o._id) } });
+      await SkinPhoto.deleteMany({ userId, scanId: { $in: old.map((o) => o._id) } });
+      await SkinScan.deleteMany({ userId, _id: { $in: old.map((o) => o._id) } });
     }
 
-    const scan = await SkinScan.create({ date, angles: parsed.map((p) => p.angle), status: "pending" });
-    await SkinPhoto.insertMany(parsed.map((p) => ({ scanId: scan._id, ...p })));
+    const scan = await SkinScan.create({ userId, date, angles: parsed.map((p) => p.angle), status: "pending" });
+    await SkinPhoto.insertMany(parsed.map((p) => ({ userId, scanId: scan._id, ...p })));
     await runAnalysis(scan);
     res.status(201).json(scan.toObject());
   } catch (err) {
@@ -99,8 +138,14 @@ router.post("/", aiLimit, async (req, res, next) => {
 router.post("/:id/analyze", aiLimit, async (req, res, next) => {
   try {
     if (!isId(req.params.id)) return bad(res, "Invalid id.");
-    const scan = await SkinScan.findById(req.params.id);
+    const scan = await SkinScan.findOne({ _id: req.params.id, userId: req.userId });
     if (!scan) return res.status(404).json({ error: "Not found" });
+    const allowance = await aiAllowance(req.userId);
+    // Friends: a finished check can't be re-read, and a failed one only within today's allowance.
+    if (!allowance.unlimited) {
+      if (scan.status === "done") return res.status(400).json({ error: "This check has already been read." });
+      if (!allowance.ok) return res.status(429).json({ error: LIMIT_MSG });
+    }
     await runAnalysis(scan);
     res.json(scan.toObject());
   } catch (err) {
@@ -112,7 +157,7 @@ router.post("/:id/analyze", aiLimit, async (req, res, next) => {
 router.get("/:id/photo/:angle", async (req, res, next) => {
   try {
     if (!isId(req.params.id) || !ANGLES.includes(req.params.angle)) return bad(res, "Invalid photo.");
-    const p = await SkinPhoto.findOne({ scanId: req.params.id, angle: req.params.angle }).lean();
+    const p = await SkinPhoto.findOne({ userId: req.userId, scanId: req.params.id, angle: req.params.angle }).lean();
     if (!p) return res.status(404).json({ error: "Photo not found" });
     const buf = Buffer.from(p.data.buffer || p.data);
     // A check's photos never change (a retake makes a new check), so the browser may keep them.
@@ -127,8 +172,8 @@ router.get("/:id/photo/:angle", async (req, res, next) => {
 router.delete("/:id", async (req, res, next) => {
   try {
     if (!isId(req.params.id)) return bad(res, "Invalid id.");
-    await SkinPhoto.deleteMany({ scanId: req.params.id });
-    await SkinScan.deleteOne({ _id: req.params.id });
+    await SkinPhoto.deleteMany({ userId: req.userId, scanId: req.params.id });
+    await SkinScan.deleteOne({ userId: req.userId, _id: req.params.id });
     res.json({ success: true });
   } catch (err) {
     next(err);

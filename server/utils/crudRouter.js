@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { cleanBody } from "./security.js";
+import { mine } from "./owned.js";
 
 /**
  * Generic CRUD router factory for a Mongoose model.
- * Every collection in LifeOS is single-user, so no per-document
- * ownership filtering is applied beyond requiring auth on all routes
- * (wired in routes/index.js).
+ * Every query is limited to the logged-in account (req.userId): you only
+ * ever see, change or delete your own documents.
  *
  * @param {import("mongoose").Model} Model
  * @param {{ sortField?: string, sortOrder?: 1 | -1 }} [opts]
@@ -17,7 +17,7 @@ export function createCrudRouter(Model, opts = {}) {
   // List all documents
   router.get("/", async (req, res, next) => {
     try {
-      const docs = await Model.find({}).sort({ [sortField]: sortOrder });
+      const docs = await Model.find(mine(req)).sort({ [sortField]: sortOrder });
       res.json(docs);
     } catch (err) {
       next(err);
@@ -27,7 +27,7 @@ export function createCrudRouter(Model, opts = {}) {
   // Get one document
   router.get("/:id", async (req, res, next) => {
     try {
-      const doc = await Model.findById(req.params.id);
+      const doc = await Model.findOne(mine(req, { _id: req.params.id }));
       if (!doc) return res.status(404).json({ error: "Not found" });
       res.json(doc);
     } catch (err) {
@@ -40,7 +40,7 @@ export function createCrudRouter(Model, opts = {}) {
     try {
       const now = Date.now();
       const body = cleanBody(req.body);
-      const payload = { ...body, createdAt: body.createdAt ?? now };
+      const payload = { ...body, createdAt: body.createdAt ?? now, userId: req.userId };
       if ("updatedAt" in Model.schema.paths) {
         payload.updatedAt = now;
       }
@@ -60,7 +60,10 @@ export function createCrudRouter(Model, opts = {}) {
       const now = Date.now();
       const hasUpdated = "updatedAt" in Model.schema.paths;
       const docs = await Model.insertMany(
-        cleanBody(items).map((x, i) => ({ ...x, createdAt: x.createdAt ?? now + i, ...(hasUpdated ? { updatedAt: now } : {}) })),
+        items.map((x, i) => {
+          const item = cleanBody(x); // drops _id, __v and userId
+          return { ...item, createdAt: item.createdAt ?? now + i, ...(hasUpdated ? { updatedAt: now } : {}), userId: req.userId };
+        }),
         { ordered: true }
       );
       res.status(201).json(docs);
@@ -76,7 +79,7 @@ export function createCrudRouter(Model, opts = {}) {
       if ("updatedAt" in Model.schema.paths) {
         payload.updatedAt = Date.now();
       }
-      const doc = await Model.findByIdAndUpdate(req.params.id, payload, {
+      const doc = await Model.findOneAndUpdate(mine(req, { _id: req.params.id }), payload, {
         new: true,
         runValidators: true,
       });
@@ -90,7 +93,7 @@ export function createCrudRouter(Model, opts = {}) {
   // Delete a document
   router.delete("/:id", async (req, res, next) => {
     try {
-      const doc = await Model.findByIdAndDelete(req.params.id);
+      const doc = await Model.findOneAndDelete(mine(req, { _id: req.params.id }));
       if (!doc) return res.status(404).json({ error: "Not found" });
       res.json({ success: true });
     } catch (err) {

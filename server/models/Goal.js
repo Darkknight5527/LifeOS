@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 const MilestoneSchema = new mongoose.Schema(
   {
@@ -19,5 +20,8 @@ const GoalSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+GoalSchema.plugin(owned);
 
 export default mongoose.model("Goal", GoalSchema, "goals");

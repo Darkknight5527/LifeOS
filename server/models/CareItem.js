@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // A Hair or Body care item: either part of a daily routine (morning/evening,
 // optionally only on some weekdays) or a periodic task done every N days
@@ -16,5 +17,8 @@ const CareItemSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+CareItemSchema.plugin(owned);
 
 export default mongoose.model("CareItem", CareItemSchema, "care_items");

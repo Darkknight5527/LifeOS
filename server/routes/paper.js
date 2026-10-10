@@ -77,6 +77,8 @@ export function agendaFromIcs(text, from, to, days) {
 // GET /api/paper/calendar?from=ISO&to=ISO&days=2026-10-03,2026-10-04
 router.get("/calendar", async (req, res, next) => {
   try {
+    // The Google Calendar feed is the owner's own; friends don't see it.
+    if (req.role !== "admin") return res.json({ configured: false, ownerOnly: true, events: [] });
     const url = process.env.CALENDAR_ICS_URL;
     if (!url) return res.json({ configured: false, events: [] });
     const from = new Date(req.query.from);

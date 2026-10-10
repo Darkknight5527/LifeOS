@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // Single-document collection holding the default split ratio (percent).
 const FinanceSettingsSchema = new mongoose.Schema({
@@ -8,5 +9,8 @@ const FinanceSettingsSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+FinanceSettingsSchema.plugin(owned);
 
 export default mongoose.model("FinanceSettings", FinanceSettingsSchema, "finance_settings");

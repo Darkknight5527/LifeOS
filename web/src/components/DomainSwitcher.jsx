@@ -1,12 +1,15 @@
 // Phone domain switcher: a sheet that slides up from the bottom with every
 // domain as a big tile, so switching never needs a reach to the top corner.
 import { useLocation, useNavigate } from "react-router-dom";
-import { DOMAINS } from "../lib/domains.js";
+import { domainsFor } from "../lib/domains.js";
+import { useMe } from "../lib/user.js";
 import { Icon, Sheet } from "../pages/finances/fin-ui.jsx";
 import { APP_VERSION, IN_APP, appVersionBelow, haptic } from "../lib/inApp.js";
 
-export default function DomainSwitcher({ open, onClose, onLogout, onLogoutAll }) {
+export default function DomainSwitcher({ open, onClose, onLogout }) {
   const { pathname } = useLocation();
+  const { isOwner } = useMe();
+  const DOMAINS = domainsFor(isOwner);
   const navigate = useNavigate();
 
   const go = (to) => {
@@ -43,11 +46,11 @@ export default function DomainSwitcher({ open, onClose, onLogout, onLogoutAll })
         })}
       </div>
       <div className="mt-3 flex gap-2 border-t border-fin-line pt-3">
+        <button onClick={() => go("/account")} className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-semibold text-white/75 hover:bg-white/5">
+          <Icon name="gear" size={18} /> {isOwner ? "Account & friends" : "Account"}
+        </button>
         <button onClick={onLogout} className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-semibold text-white/55 hover:bg-white/5">
           <Icon name="logout" size={18} /> Log out
-        </button>
-        <button onClick={onLogoutAll} className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-semibold text-white/55 hover:bg-white/5">
-          Sign out everywhere
         </button>
       </div>
       <div className="pb-1 pt-2 text-center text-[12px] text-fin-faint">

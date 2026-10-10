@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // Your own foods (per one serving).
 const CustomFoodSchema = new mongoose.Schema({
@@ -11,5 +12,8 @@ const CustomFoodSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+CustomFoodSchema.plugin(owned);
 
 export default mongoose.model("CustomFood", CustomFoodSchema, "custom_foods");

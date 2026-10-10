@@ -9,14 +9,15 @@ const router = Router();
 const KEY = /^[a-z0-9-]{1,40}$/;
 const bucket = () => new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: "books" });
 
-async function findBook(key) {
-  return mongoose.connection.db.collection("books.files").find({ "metadata.key": key }).sort({ uploadDate: -1 }).toArray();
+// Each account has its own copies; the owner is kept as a string in metadata.
+async function findBook(userId, key) {
+  return mongoose.connection.db.collection("books.files").find({ "metadata.key": key, "metadata.userId": String(userId) }).sort({ uploadDate: -1 }).toArray();
 }
 
 // List which books you've uploaded.
 router.get("/", async (req, res, next) => {
   try {
-    const files = await mongoose.connection.db.collection("books.files").find({}).sort({ uploadDate: -1 }).toArray();
+    const files = await mongoose.connection.db.collection("books.files").find({ "metadata.userId": String(req.userId) }).sort({ uploadDate: -1 }).toArray();
     const seen = new Map();
     for (const f of files) if (!seen.has(f.metadata?.key)) seen.set(f.metadata?.key, { key: f.metadata?.key, name: f.filename, size: f.length, uploadedAt: f.uploadDate });
     res.json([...seen.values()]);
@@ -29,7 +30,7 @@ router.get("/", async (req, res, next) => {
 router.get("/:key", async (req, res, next) => {
   try {
     if (!KEY.test(req.params.key)) return res.status(400).json({ error: "Bad book key" });
-    const [file] = await findBook(req.params.key);
+    const [file] = await findBook(req.userId, req.params.key);
     if (!file) return res.status(404).json({ error: "Book not uploaded yet" });
     res.set({
       "Content-Type": "application/pdf",
@@ -52,10 +53,10 @@ router.put("/:key", express.raw({ type: "application/pdf", limit: "60mb" }), asy
     if (!Buffer.isBuffer(buf) || buf.length < 5 || buf.subarray(0, 5).toString() !== "%PDF-") {
       return res.status(400).json({ error: "That doesn't look like a PDF" });
     }
-    const old = await findBook(key);
+    const old = await findBook(req.userId, key);
     const name = String(req.get("X-File-Name") || `${key}.pdf`).slice(0, 200);
     await new Promise((resolve, reject) => {
-      const up = bucket().openUploadStream(name, { metadata: { key, userId: req.userId }, contentType: "application/pdf" });
+      const up = bucket().openUploadStream(name, { metadata: { key, userId: String(req.userId) }, contentType: "application/pdf" });
       up.on("finish", resolve).on("error", reject);
       up.end(buf);
     });
@@ -68,7 +69,8 @@ router.put("/:key", express.raw({ type: "application/pdf", limit: "60mb" }), asy
 
 router.delete("/:key", async (req, res, next) => {
   try {
-    for (const f of await findBook(req.params.key)) await bucket().delete(f._id);
+        if (!KEY.test(req.params.key)) return res.status(400).json({ error: "Bad book key" });
+    for (const f of await findBook(req.userId, req.params.key)) await bucket().delete(f._id);
     res.status(204).end();
   } catch (err) {
     next(err);

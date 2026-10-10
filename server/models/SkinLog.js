@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { owned } from "../utils/owned.js";
 
 // One entry per day. `doneSteps` holds the keys of routine steps completed
 // that day (see SkincareStep). The am*/pm* booleans are from the original
@@ -17,5 +18,8 @@ const SkinLogSchema = new mongoose.Schema({
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });
+
+// Belongs to one account (adds userId; queries must name the owner).
+SkinLogSchema.plugin(owned);
 
 export default mongoose.model("SkinLog", SkinLogSchema, "skin_logs");
