@@ -69,6 +69,7 @@ export default function ScanView() {
                 isToday={shown.date === today}
                 onRetake={canCheck ? () => setCapturing(true) : null}
                 onReanalyze={() => reanalyze(shown._id)}
+                canReread={allow.unlimited}
                 onDelete={async () => {
                   await remove(shown._id);
                   setOpenId(null);
@@ -116,7 +117,7 @@ function Intro({ onStart, error, onRetry }) {
 }
 
 // ---------- one check's result ----------
-function Result({ scan, prev, isToday, onRetake, onReanalyze, onDelete }) {
+function Result({ scan, prev, isToday, onRetake, onReanalyze, onDelete, canReread }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const run = async (fn, okMsg) => {
@@ -138,6 +139,11 @@ function Result({ scan, prev, isToday, onRetake, onReanalyze, onDelete }) {
       title={isToday ? "Today's skin" : fmtDay(scan.date, { weekday: "long", day: "numeric", month: "long" })}
       action={
         <div className="flex items-center gap-1">
+          {canReread && scan.status === "done" && (
+            <GhostButton className="!px-3 !py-1.5 !text-[13px]" disabled={busy} onClick={() => run(onReanalyze, "Read again")} title="Ask the AI to read these photos again">
+              {busy ? "Reading…" : "Re-read"}
+            </GhostButton>
+          )}
           {isToday && onRetake && <GhostButton className="!px-3 !py-1.5 !text-[13px]" onClick={onRetake}>Retake</GhostButton>}
           <IconButton
             icon="trash"
@@ -166,7 +172,7 @@ function Result({ scan, prev, isToday, onRetake, onReanalyze, onDelete }) {
             <div className="min-w-0">
               <div className="text-[17px] font-bold leading-snug">{scan.headline}</div>
               <div className="mt-1 text-[13px] text-fin-muted">
-                Skin score out of 100
+                Skin score out of 100 · from the 8 scores below
                 {delta != null && (
                   <span className={`ml-2 font-semibold ${delta > 0 ? "text-emerald-400" : delta < 0 ? "text-orange-400" : ""}`}>
                     {delta > 0 ? "▲" : delta < 0 ? "▼" : "•"} {Math.abs(delta)} since {fmtDay(prev.date)}
@@ -176,6 +182,14 @@ function Result({ scan, prev, isToday, onRetake, onReanalyze, onDelete }) {
             </div>
           </div>
 
+          {(scan.scoring || 1) < 2 && (
+            <div className="mt-3 rounded-2xl bg-white/5 px-4 py-2.5 text-[13.5px] text-white/70">
+              Scored with the old, gentler rules (before 11 Oct).{canReread ? " Tap Re-read to score these photos with the strict rules." : ""}
+            </div>
+          )}
+          {scan.hidden && (
+            <div className="mt-3 rounded-2xl bg-white/5 px-4 py-2.5 text-[13.5px] text-white/70">👁 Couldn't see: {scan.hidden}. Those areas aren't counted as clear.</div>
+          )}
           {scan.photoQuality && !scan.photoQuality.usable && (
             <div className="mt-3 rounded-2xl bg-amber-400/10 px-4 py-2.5 text-[13.5px] text-amber-200">⚠ Photo quality: {scan.photoQuality.issues || "hard to read"} — scores may be off.</div>
           )}

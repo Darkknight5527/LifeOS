@@ -23,7 +23,8 @@ export const sevColor = (v) => (v <= 2 ? "#34d399" : v <= 4 ? "#a3e635" : v <= 6
 export const overallColor = (v) => (v >= 80 ? "#34d399" : v >= 65 ? "#a3e635" : v >= 50 ? "#fbbf24" : "#fb923c");
 export const sevWord = (v) => (v <= 1 ? "None" : v <= 3 ? "Mild" : v <= 6 ? "Moderate" : "Strong");
 
-const MAX_SIDE = 1024;
+// Big enough for small spots and pores to stay visible to the AI.
+const MAX_SIDE = 1600;
 
 /** Draw a video frame or image into a canvas no larger than MAX_SIDE, optionally mirrored. */
 function toCanvas(src, w, h, mirror = false) {
@@ -79,7 +80,7 @@ function quality(canvas) {
 export async function processPhoto(src, w, h, { mirror = false } = {}) {
   const canvas = toCanvas(src, w, h, mirror);
   const q = quality(canvas);
-  const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+  const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.9));
   const data = await new Promise((resolve, reject) => {
     const fr = new FileReader();
     fr.onload = () => resolve(String(fr.result).split(",")[1] || "");

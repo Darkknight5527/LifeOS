@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import SkinScan from "../models/SkinScan.js";
 import SkinPhoto from "../models/SkinPhoto.js";
 import SkincareStep from "../models/SkincareStep.js";
+import SkinLog from "../models/SkinLog.js";
 import { analyzeSkin } from "../utils/gemini.js";
 import { rateLimit } from "../utils/security.js";
 import User from "../models/User.js";
@@ -61,6 +62,24 @@ async function routineText(userId) {
   }
 }
 
+// What the person said about their skin in the daily check-in (last 2 weeks).
+async function reportedText(userId) {
+  try {
+    const logs = await SkinLog.find({ userId }).sort({ date: -1 }).limit(14).lean();
+    const words = { 1: "bad", 2: "meh", 3: "okay", 4: "good", 5: "great" };
+    const concerns = [...new Set(logs.flatMap((l) => l.concerns || []))];
+    const moods = logs.map((l) => words[l.condition]).filter(Boolean).slice(0, 5);
+    const notes = logs.map((l) => l.notes).filter(Boolean).slice(0, 3);
+    const out = [];
+    if (concerns.length) out.push(`concerns ticked: ${concerns.join(", ")}`);
+    if (moods.length) out.push(`their own rating recently: ${moods.join(", ")}`);
+    if (notes.length) out.push(`notes: ${notes.join(" / ")}`);
+    return out.join("; ").slice(0, 500);
+  } catch {
+    return "";
+  }
+}
+
 async function runAnalysis(scan) {
   const userId = scan.userId;
   const photos = await SkinPhoto.find({ userId, scanId: scan._id }).lean();
@@ -69,7 +88,7 @@ async function runAnalysis(scan) {
   try {
     const result = await analyzeSkin(
       photos.map((p) => ({ angle: p.angle, mime: p.mime, data: Buffer.from(p.data.buffer || p.data) })),
-      { previous, routine: await routineText(userId) }
+      { previous, routine: await routineText(userId), reported: await reportedText(userId) }
     );
     Object.assign(scan, result, { status: "done", error: "", updatedAt: Date.now() });
     await countAiUse(userId);

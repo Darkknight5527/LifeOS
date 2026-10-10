@@ -16,7 +16,17 @@ const BUSY = new Set([429, 500, 502, 503, 504]);
 
 export const METRICS = ["acne", "marks", "redness", "oiliness", "dryness", "darkCircles", "texture", "unevenTone"];
 
-const sev = (description) => ({ type: "NUMBER", description: `${description}. 0 = none, 10 = severe.` });
+// Every score uses the same fixed meaning, so numbers are comparable over
+// time and the AI can't drift towards "nice".
+const RUBRIC = `Severity scale (use the whole range — this is a tracking tool, not a compliment):
+0 = none at all, like retouched skin in an advert
+1–2 = barely there; you have to look closely
+3–4 = mild but clearly visible on close look (a few spots / a small patch)
+5–6 = moderate: obvious at normal viewing distance, or spread over a large part of the face
+7–8 = marked: many lesions / strong and widespread
+9–10 = severe: covers most of the visible skin, inflamed, or scarring everywhere`;
+
+const sev = (description) => ({ type: "NUMBER", description: `${description}. 0–10 on the severity scale in the instructions.` });
 const SCHEMA = {
   type: "OBJECT",
   properties: {
@@ -31,54 +41,78 @@ const SCHEMA = {
     scores: {
       type: "OBJECT",
       properties: {
-        acne: sev("Active pimples, whiteheads, blackheads"),
-        marks: sev("Post-acne marks, dark spots, scars"),
-        redness: sev("Redness or irritation"),
-        oiliness: sev("Visible shine / oil"),
-        dryness: sev("Dry, flaky or tight-looking skin"),
-        darkCircles: sev("Dark circles or puffiness under the eyes"),
-        texture: sev("Bumpy texture, visible pores, roughness"),
-        unevenTone: sev("Tan lines, patchiness, uneven tone"),
+        acne: sev("Active acne: pimples, pustules, papules, whiteheads, blackheads, cysts"),
+        marks: sev("Post-acne marks: dark spots, red marks, pitted or raised scars"),
+        redness: sev("Redness, inflammation or irritation"),
+        oiliness: sev("Visible oil / shine (T-zone and cheeks)"),
+        dryness: sev("Dry, flaky, rough-looking or tight skin"),
+        darkCircles: sev("Dark circles, hollows or puffiness under the eyes"),
+        texture: sev("Uneven texture: bumps, enlarged / clogged pores, roughness"),
+        unevenTone: sev("Uneven tone: pigmentation, patches, tan lines, dullness"),
       },
       required: METRICS,
     },
-    overall: { type: "NUMBER", description: "Overall skin score 0–100, higher is healthier and clearer." },
-    headline: { type: "STRING", description: "One short sentence on today's skin, plain words, max 14 words." },
-    summary: { type: "STRING", description: "2–3 plain-language sentences describing what is visible today." },
-    changes: { type: "STRING", description: "If a previous check is given: 1–2 sentences on what improved or got worse. Otherwise empty." },
+    hidden: { type: "STRING", description: "Areas you could NOT judge (covered by beard, hair, glasses, shadow, out of frame). Empty if none." },
+    headline: { type: "STRING", description: "One blunt, specific sentence on today's skin (max 16 words). No praise words unless the skin really is clear." },
+    summary: { type: "STRING", description: "3–4 plain sentences: the main problems first, where they are, how widespread. Factual, not reassuring." },
+    changes: { type: "STRING", description: "If a previous check is given: 1–2 sentences on what improved or got worse, honestly. Otherwise empty." },
     areas: {
       type: "ARRAY",
       items: {
         type: "OBJECT",
         properties: {
           area: { type: "STRING", description: "One of: Forehead, Nose, Left cheek, Right cheek, Chin & jaw, Under eyes" },
-          note: { type: "STRING", description: "What is visible there, short." },
+          note: { type: "STRING", description: "Exactly what is visible there (counts and types where you can, e.g. '5–6 red papules, 2 dark marks'). Say 'hidden by beard' if you can't see it." },
         },
         required: ["area", "note"],
       },
     },
-    tips: { type: "ARRAY", items: { type: "STRING" }, description: "2–3 gentle, everyday skincare tips for what is visible (no prescription drugs)." },
-    seeDermatologist: { type: "BOOLEAN", description: "True only if something looks like it needs a doctor (painful cystic acne, a changing mole, infection, rash)." },
+    tips: { type: "ARRAY", items: { type: "STRING" }, description: "2–3 concrete, everyday skincare steps aimed at the worst problems (no prescription drugs)." },
+    seeDermatologist: { type: "BOOLEAN", description: "True if anything looks like it needs a doctor: moderate-or-worse inflamed or cystic acne, scarring, a changing mole, infection, rash." },
   },
-  required: ["photoQuality", "scores", "overall", "headline", "summary", "changes", "areas", "tips", "seeDermatologist"],
+  required: ["photoQuality", "scores", "hidden", "headline", "summary", "changes", "areas", "tips", "seeDermatologist"],
 };
 
-function prompt(previous, routine) {
+function prompt(previous, routine, reported) {
   const lines = [
-    "You are a careful skincare assistant (not a doctor) tracking one person's facial skin over time.",
-    "You get three photos of the same face: front, left side, right side.",
-    "Score each concern consistently from what is actually visible. Ignore makeup-free shine from the camera flash only if obvious.",
-    "Be steady: small lighting changes alone should not move a score by more than 1.",
-    "Never diagnose diseases; describe what you see in plain words.",
+    "You are a strict, objective skin assessor (not a doctor). The person uses these checks to track and fix their skin problems, so under-scoring a problem actively harms them.",
+    "You get photos of the same face: front, left side, right side. Examine every visible area closely, zooming in mentally on cheeks, jawline, forehead and nose.",
+    "Rules:",
+    "- Accuracy over kindness. Never soften, reassure or compliment. Do not call skin 'good', 'healthy' or 'clear' unless the scores are all 0–2.",
+    "- Count what you see. Every visible pimple, mark or patch counts.",
+    "- If you're unsure between two scores, pick the higher (worse) one.",
+    "- Skin hidden by a beard, hair or shadow is UNKNOWN, not clear: score only what you can see, and list hidden areas in `hidden`.",
+    "- Never diagnose a disease; describe what is visible in plain words.",
+    RUBRIC,
   ];
+  if (reported) lines.push(`What the person themselves reported about their skin recently: ${reported}. Look specifically for these.`);
   if (previous) {
     lines.push(
-      `Previous check on ${previous.date}: overall ${previous.overall}/100; scores ${JSON.stringify(previous.scores)}; summary: "${previous.summary}".`,
-      "Compare against it in `changes`, and keep the scale consistent with it."
+      `Previous check on ${previous.date}: scores ${JSON.stringify(previous.scores)}; summary: "${previous.summary}".`,
+      "Compare against it in `changes`. Keep the same scale, but don't copy old scores — score today's photos on their own."
     );
   }
   if (routine) lines.push(`Their current routine: ${routine}.`);
   return lines.join("\n");
+}
+
+// The 0–100 skin score is CALCULATED from the eight severities (not the AI's
+// impression): the biggest problems count most, and one bad concern can't be
+// hidden by several good ones.
+const WEIGHTS = { acne: 1.6, marks: 1.3, texture: 1.2, redness: 1.1, unevenTone: 1, darkCircles: 0.7, oiliness: 0.7, dryness: 0.7 };
+export const SCORING_VERSION = 2;
+export function skinScore(scores) {
+  let sum = 0;
+  let wsum = 0;
+  let worst = 0;
+  for (const [k, w] of Object.entries(WEIGHTS)) {
+    const v = Math.min(10, Math.max(0, Number(scores?.[k]) || 0));
+    sum += v * w;
+    wsum += w;
+    worst = Math.max(worst, v);
+  }
+  const penalty = 0.6 * (sum / wsum) + 0.4 * worst; // 0–10
+  return Math.round(Math.max(0, 100 - penalty * 10));
 }
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(+n) ? +n : lo));
@@ -87,10 +121,10 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(+n) ? +n 
  * photos: [{ angle, mime, data: Buffer }]
  * Returns the parsed analysis, or throws an Error with a readable message.
  */
-export async function analyzeSkin(photos, { previous, routine, fetchImpl = fetch, wait = true } = {}) {
+export async function analyzeSkin(photos, { previous, routine, reported, fetchImpl = fetch, wait = true } = {}) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("AI isn't set up yet: add GEMINI_API_KEY on the server.");
-  const parts = [{ text: prompt(previous, routine) }];
+  const parts = [{ text: prompt(previous, routine, reported) }];
   for (const p of photos) {
     parts.push({ text: `Photo: ${p.angle}` });
     parts.push({ inline_data: { mime_type: p.mime, data: p.data.toString("base64") } });
@@ -101,7 +135,7 @@ export async function analyzeSkin(photos, { previous, routine, fetchImpl = fetch
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         contents: [{ role: "user", parts }],
-        generationConfig: { temperature: 0.2, responseMimeType: "application/json", responseSchema: SCHEMA },
+        generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema: SCHEMA },
       }),
       signal: AbortSignal.timeout(60_000),
     });
@@ -152,7 +186,9 @@ export async function analyzeSkin(photos, { previous, routine, fetchImpl = fetch
   for (const m of METRICS) scores[m] = Math.round(clamp(out?.scores?.[m], 0, 10) * 10) / 10;
   return {
     scores,
-    overall: Math.round(clamp(out.overall, 0, 100)),
+    overall: skinScore(scores),
+    scoring: SCORING_VERSION,
+    hidden: String(out.hidden || "").slice(0, 300),
     headline: String(out.headline || "").slice(0, 200),
     summary: String(out.summary || "").slice(0, 1200),
     changes: String(out.changes || "").slice(0, 800),

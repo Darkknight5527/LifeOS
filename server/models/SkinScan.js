@@ -20,6 +20,8 @@ const SkinScanSchema = new mongoose.Schema({
     texture: Number,
     unevenTone: Number,
   },
+  scoring: { type: Number, default: 1 }, // 2 = strict rubric + calculated skin score
+  hidden: { type: String, default: "" }, // areas the AI couldn't see (beard, hair…)
   headline: { type: String, default: "" },
   summary: { type: String, default: "" },
   changes: { type: String, default: "" },
