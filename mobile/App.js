@@ -2,7 +2,7 @@
 // The site loads from Render, so every website update appears here without
 // installing a new APK. Sign-in, data and the phone layout are the website's own.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, AppState, BackHandler, Linking, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
+import { ActivityIndicator, Animated, AppState, BackHandler, Image, Linking, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -249,19 +249,15 @@ function Shell() {
   );
 }
 
+// Same mark as the app icon and the website's favicon.
 function Logo() {
-  return (
-    <View style={s.logo}>
-      <Text style={s.logoText}>L</Text>
-    </View>
-  );
+  return <Image source={require("./assets/splash-icon.png")} style={s.logo} />;
 }
 
 const s = StyleSheet.create({
   root: { flex: 1 },
   center: { alignItems: "center", justifyContent: "center" },
-  logo: { width: 72, height: 72, borderRadius: 22, backgroundColor: "#ff7a1a", alignItems: "center", justifyContent: "center" },
-  logoText: { color: "#fff", fontSize: 36, fontWeight: "800" },
+  logo: { width: 76, height: 76 },
   title: { color: "#f4f4f5", fontSize: 20, fontWeight: "800", marginTop: 22 },
   body: { color: "#9b9ba5", fontSize: 14, marginTop: 6, textAlign: "center" },
   btn: { marginTop: 22, backgroundColor: "#ff7a1a", borderRadius: 16, paddingVertical: 13, paddingHorizontal: 28 },

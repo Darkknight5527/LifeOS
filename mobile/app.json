@@ -3,7 +3,7 @@
     "name": "LifeOS",
     "slug": "lifeos",
     "scheme": "lifeos",
-    "version": "1.5.1",
+    "version": "1.5.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -19,9 +19,9 @@
     },
     "android": {
       "package": "com.darkknight.lifeos",
-      "versionCode": 9,
+      "versionCode": 10,
       "adaptiveIcon": {
-        "backgroundColor": "#f56a12",
+        "backgroundColor": "#f27a2c",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
