@@ -45,6 +45,26 @@ export function occursOn(r, iso) {
   }
 }
 
+/**
+ * An occurrence before `today` that was never ticked off and should still be
+ * shown as overdue, or null. One-off reminders stay until done (or deleted).
+ * Weekly / monthly ones carry their last missed occurrence until the next one
+ * comes round. Daily ones don't pile up — today's copy replaces yesterday's.
+ */
+export function missedOccurrence(r, today) {
+  if (!r?.date || r.date >= today) return null;
+  const done = new Set(r.doneDates || []);
+  if (r.repeat === "none" || !r.repeat) return done.has(r.date) ? null : r.date;
+  if (r.repeat === "daily") return null;
+  if (occursOn(r, today)) return null; // today's occurrence is already on the list
+  for (let i = 1; i <= 31; i++) {
+    const d = isoDate(addDays(parseISO(today), -i));
+    if (d < r.date) break;
+    if (occursOn(r, d)) return done.has(d) ? null : d;
+  }
+  return null;
+}
+
 const ordinal = (n) => {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;

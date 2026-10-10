@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import DomainShell from "../components/DomainShell.jsx";
-import { DOMAIN, ReminderSheet, occursOn, repeatLabel, useReminders } from "../components/reminders.jsx";
+import { DOMAIN, ReminderSheet, missedOccurrence, occursOn, repeatLabel, useReminders } from "../components/reminders.jsx";
 import { FinanceProvider, useFinance } from "./finances/FinanceContext.jsx";
 import { useMonthStats } from "./finances/stats.js";
 import { BUCKETS, daysInMonth, formatMoney, isoDate, addDays, todayISO, parseISO } from "./finances/lib";
@@ -157,7 +157,15 @@ function AgendaCard({ cal, reminders, today, onOpen, onAdd }) {
     cal.events.filter((e) => (e.allDay ? e.date === d : isoDate(new Date(e.start)) === d || (new Date(e.start) < parseISO(d) && new Date(e.end) > parseISO(d))));
   const remsFor = (d) => reminders.items.filter((r) => occursOn(r, d)).sort((a, b) => (a.time || "99").localeCompare(b.time || "99"));
   const todayRems = remsFor(today);
-  const left = todayRems.filter((r) => !(r.doneDates || []).includes(today)).length + eventsFor(today).filter((e) => !e.allDay && new Date(e.end).getTime() > now).length;
+  // Reminders from earlier days that were never ticked off carry over.
+  const overdue = reminders.items
+    .map((r) => ({ r, date: missedOccurrence(r, today) }))
+    .filter((x) => x.date)
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.r.time || "99").localeCompare(b.r.time || "99"));
+  const left =
+    overdue.length +
+    todayRems.filter((r) => !(r.doneDates || []).includes(today)).length +
+    eventsFor(today).filter((e) => !e.allDay && new Date(e.end).getTime() > now).length;
 
   return (
     <FinCard
@@ -174,6 +182,16 @@ function AgendaCard({ cal, reminders, today, onOpen, onAdd }) {
       className="lg:flex lg:h-[calc(100dvh-372px)] lg:min-h-[280px] lg:flex-col"
     >
       <div className="fin-scroll -mr-2 space-y-4 pr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+        {overdue.length > 0 && (
+          <div>
+            <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-fin-danger">Overdue · {overdue.length}</div>
+            <div className="space-y-1.5">
+              {overdue.map(({ r, date }) => (
+                <ReminderRow key={`${r._id}-${date}`} r={r} date={date} reminders={reminders} onOpen={onOpen} overdue />
+              ))}
+            </div>
+          </div>
+        )}
         <DayList events={eventsFor(today)} rems={todayRems} date={today} now={now} reminders={reminders} onOpen={onOpen} empty="Nothing planned — add a reminder with +." />
         <div>
           <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-fin-muted">Tomorrow</div>
@@ -223,29 +241,7 @@ function DayList({ events, rems, date, now, reminders, onOpen, compact = false, 
             </div>
           );
         }
-        const r = row.r;
-        const done = (r.doneDates || []).includes(date);
-        const d = DOMAIN[r.domain] || DOMAIN.general;
-        return (
-          <div key={r._id} className={`flex items-center gap-2.5 rounded-xl bg-fin-input px-2.5 ${compact ? "py-1.5" : "py-2"} ${done ? "opacity-50" : ""}`}>
-            <button
-              onClick={() => reminders.toggleDone(r, date)}
-              aria-pressed={done}
-              title={done ? "Mark as not done" : "Mark done"}
-              className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition ${done ? "border-transparent text-black" : "border-white/25 text-transparent hover:border-white/50"}`}
-              style={done ? { background: d.color } : undefined}
-            >
-              <Icon name="check" size={11} stroke={3.2} />
-            </button>
-            <button onClick={() => onOpen(r)} className="min-w-0 flex-1 text-left">
-              <div className={`truncate text-[13.5px] font-semibold ${done ? "line-through decoration-white/40" : ""}`}>{r.title}</div>
-              <div className="flex items-center gap-1.5 truncate text-[11.5px] text-fin-muted">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: d.color }} />
-                {[r.time ? fmtHM(date, r.time) : "Any time", d.label, repeatLabel(r)].filter(Boolean).join(" · ")}
-              </div>
-            </button>
-          </div>
-        );
+        return <ReminderRow key={row.r._id} r={row.r} date={date} reminders={reminders} onOpen={onOpen} compact={compact} />;
       })}
     </div>
   );
@@ -450,4 +446,37 @@ function GoalsMini() {
       )}
     </Mini>
   );
+}
+
+// One reminder with its tick box. `date` is the occurrence it belongs to (an
+// earlier day for overdue ones), so ticking marks that occurrence done.
+function ReminderRow({ r, date, reminders, onOpen, compact = false, overdue = false }) {
+  const done = (r.doneDates || []).includes(date);
+  const d = DOMAIN[r.domain] || DOMAIN.general;
+  return (
+    <div className={`flex items-center gap-2.5 rounded-xl bg-fin-input px-2.5 ${compact ? "py-1.5" : "py-2"} ${done ? "opacity-50" : ""} ${overdue ? "ring-1 ring-red-400/30" : ""}`}>
+      <button
+        onClick={() => reminders.toggleDone(r, date)}
+        aria-pressed={done}
+        title={done ? "Mark as not done" : "Mark done"}
+        className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition ${done ? "border-transparent text-black" : "border-white/25 text-transparent hover:border-white/50"}`}
+        style={done ? { background: d.color } : undefined}
+      >
+        <Icon name="check" size={11} stroke={3.2} />
+      </button>
+      <button onClick={() => onOpen(r)} className="min-w-0 flex-1 text-left">
+        <div className={`truncate text-[13.5px] font-semibold ${done ? "line-through decoration-white/40" : ""}`}>{r.title}</div>
+        <div className="flex items-center gap-1.5 truncate text-[11.5px] text-fin-muted">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: d.color }} />
+          {[overdue ? `Due ${fmtDue(date)}` : null, r.time ? fmtHM(date, r.time) : "Any time", d.label, repeatLabel(r)].filter(Boolean).join(" · ")}
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function fmtDue(iso) {
+  const days = Math.round((parseISO(todayISO()) - parseISO(iso)) / 86400000);
+  if (days === 1) return "yesterday";
+  return parseISO(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
