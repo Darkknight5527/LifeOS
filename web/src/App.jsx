@@ -10,6 +10,8 @@ import { DARK_PAGES, domainsFor, readyFor } from "./lib/domains.js";
 import { UserContext, readMe, saveMe } from "./lib/user.js";
 import DomainSwitcher from "./components/DomainSwitcher.jsx";
 import PullToRefresh from "./components/PullToRefresh.jsx";
+import { pushNotifyStatus } from "./lib/notify.js";
+import { IN_APP, onAppMessage } from "./lib/inApp.js";
 import { reloadOnChunkError } from "./lib/sw.js";
 import LoginPage from "./pages/LoginPage.jsx";
 import PlaceholderPage from "./pages/PlaceholderPage.jsx";
@@ -75,6 +77,28 @@ export default function App() {
     if (!IS_RELOAD && window.location.pathname !== "/") navigate("/", { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Phone app: keep reminders in step with what's done today, and open the
+  // page a tapped notification points to.
+  useEffect(() => {
+    if (!authed || !IN_APP) return;
+    pushNotifyStatus(300);
+    const onChange = () => pushNotifyStatus();
+    const onVisible = () => document.visibilityState === "visible" && pushNotifyStatus(300);
+    window.addEventListener("lifeos:data-changed", onChange);
+    document.addEventListener("visibilitychange", onVisible);
+    const off = onAppMessage((m) => {
+      if (m.type !== "open" || typeof m.path !== "string" || !m.path.startsWith("/")) return;
+      const [path, tab] = m.path.split("#");
+      navigate(path, { state: tab ? { tab } : null });
+      window.scrollTo({ top: 0 });
+    });
+    return () => {
+      window.removeEventListener("lifeos:data-changed", onChange);
+      document.removeEventListener("visibilitychange", onVisible);
+      off();
+    };
+  }, [authed, navigate]);
 
   // Refresh who's logged in (name, owner or friend).
   useEffect(() => {

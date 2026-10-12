@@ -3,7 +3,7 @@
     "name": "LifeOS",
     "slug": "lifeos",
     "scheme": "lifeos",
-    "version": "1.5.2",
+    "version": "1.6.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.darkknight.lifeos",
-      "versionCode": 10,
+      "versionCode": 11,
       "adaptiveIcon": {
         "backgroundColor": "#f27a2c",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -32,7 +32,10 @@
         "android.permission.health.READ_BODY_FAT",
         "android.permission.health.READ_HEALTH_DATA_HISTORY",
         "android.permission.VIBRATE",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
       ]
     },
     "extra": {
@@ -50,6 +53,13 @@
           "android": {
             "minSdkVersion": 26
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#f27a2c"
         }
       ]
     ]

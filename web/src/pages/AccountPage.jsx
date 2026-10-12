@@ -5,6 +5,8 @@ import DomainShell from "../components/DomainShell.jsx";
 import { useToast } from "../components/Toast.jsx";
 import { api, clearLocalData, setToken } from "../api";
 import { useMe } from "../lib/user.js";
+import { IN_APP, appVersionBelow, onAppMessage, sendToApp } from "../lib/inApp.js";
+import { DEFAULT_NOTIFY, readNotify, saveNotify } from "../lib/notify.js";
 import { EmptyState, FinCard, GhostButton, Icon, IconButton, PrimaryButton, Sheet, TextField } from "./finances/fin-ui.jsx";
 
 const SITE = typeof window !== "undefined" ? window.location.origin : "";
@@ -37,6 +39,7 @@ export default function AccountPage() {
       <div className={`grid grid-cols-1 items-start gap-5 lg:gap-4 [&>*]:min-w-0 ${isOwner ? "lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]" : "mx-auto max-w-[560px]"}`}>
         <div className="space-y-5 lg:space-y-4">
           <Profile />
+          <Notifications />
           <Password />
           <Sessions />
         </div>
@@ -149,6 +152,158 @@ function Sessions() {
           Sign out everywhere
         </GhostButton>
       </div>
+    </FinCard>
+  );
+}
+
+// ---------- phone notifications ----------
+const EVERY = [
+  { v: 60, l: "Every hour" },
+  { v: 90, l: "Every 1½ h" },
+  { v: 120, l: "Every 2 h" },
+  { v: 180, l: "Every 3 h" },
+];
+
+function Toggle({ on, onChange, label }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      onClick={() => onChange(!on)}
+      className={`relative h-7 w-12 shrink-0 rounded-full transition ${on ? "bg-fin-accent" : "bg-white/15"}`}
+    >
+      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-6" : "left-1"}`} />
+    </button>
+  );
+}
+
+function TimeInput({ value, onChange, label }) {
+  return (
+    <input
+      type="time"
+      value={value}
+      aria-label={label}
+      onChange={(e) => e.target.value && onChange(e.target.value)}
+      className="rounded-xl bg-fin-input px-2.5 py-1.5 text-[14px] text-white outline-none [color-scheme:dark]"
+    />
+  );
+}
+
+function Notifications() {
+  const toast = useToast();
+  const saved = readNotify();
+  const [cfg, setCfg] = useState(() => {
+    const { saved: _s, ...rest } = saved || DEFAULT_NOTIFY; // eslint-disable-line no-unused-vars
+    return { ...DEFAULT_NOTIFY, ...rest };
+  });
+  const [dirty, setDirty] = useState(!saved);
+  const [state, setState] = useState(null); // { permission, scheduled }
+  const old = IN_APP && appVersionBelow("1.6.0");
+
+  useEffect(() => {
+    if (!IN_APP) return;
+    const off = onAppMessage((m) => {
+      if (m.type !== "notify-state") return;
+      setState((s) => ({ ...s, ...m }));
+    });
+    sendToApp("notify-permission");
+    return off;
+  }, []);
+
+  if (!IN_APP) {
+    return (
+      <FinCard title="Notifications">
+        <p className="text-[14px] leading-relaxed text-fin-muted">Water, skincare and evening check-in reminders work in the LifeOS Android app — set them up there under Account.</p>
+      </FinCard>
+    );
+  }
+  if (old) {
+    return (
+      <FinCard title="Notifications">
+        <p className="text-[14px] leading-relaxed text-fin-muted">Install the latest LifeOS app (1.6 or newer) from the download link to turn on reminders.</p>
+      </FinCard>
+    );
+  }
+
+  const set = (k, patch) => {
+    setCfg((c) => ({ ...c, [k]: { ...c[k], ...patch } }));
+    setDirty(true);
+  };
+  const save = () => {
+    saveNotify(cfg, { ask: true });
+    setDirty(false);
+    toast("Reminders saved");
+  };
+  const blocked = state?.permission === "blocked" || (state?.permission === "ask" && !dirty && saved);
+  const row = "flex items-center gap-3 rounded-2xl bg-fin-input px-3.5 py-3";
+
+  return (
+    <FinCard
+      title="Notifications"
+      action={state?.scheduled > 0 && !dirty ? <span className="text-[12.5px] text-fin-muted">{state.scheduled} coming up</span> : null}
+    >
+      <p className="mb-3 text-[13.5px] leading-relaxed text-fin-muted">
+        Scheduled on this phone, so they come on time even offline. Ones you've already done today are skipped — e.g. no water reminders once you hit your target.
+      </p>
+      <div className="space-y-2">
+        <div className={`${row} flex-wrap`}>
+          <span className="text-[20px]">💧</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] font-semibold">Drink water</div>
+            <div className="text-[12.5px] text-fin-muted">Stops once today's target is reached</div>
+          </div>
+          <Toggle on={cfg.water.on} label="Water reminders" onChange={(on) => set("water", { on })} />
+          {cfg.water.on && (
+            <div className="flex w-full flex-wrap items-center gap-2 pl-9 text-[13.5px] text-fin-muted">
+              <select
+                value={cfg.water.every}
+                onChange={(e) => set("water", { every: Number(e.target.value) })}
+                className="rounded-xl bg-[#26262d] px-2.5 py-1.5 text-[14px] text-white outline-none"
+                aria-label="How often"
+              >
+                {EVERY.map((o) => (
+                  <option key={o.v} value={o.v}>
+                    {o.l}
+                  </option>
+                ))}
+              </select>
+              from <TimeInput value={cfg.water.from} label="Water from" onChange={(from) => set("water", { from })} /> to{" "}
+              <TimeInput value={cfg.water.to} label="Water until" onChange={(to) => set("water", { to })} />
+            </div>
+          )}
+        </div>
+        {[
+          ["skinAm", "☀️", "Morning skincare", "Skipped once the morning routine is ticked"],
+          ["skinPm", "🌙", "Evening skincare", "Skipped once the evening routine is ticked"],
+          ["checkin", "📝", "Evening check-in", "Lists what's not logged yet: expenses, food, skin"],
+        ].map(([k, icon, title, sub]) => (
+          <div key={k} className={`${row} flex-wrap`}>
+            <span className="text-[20px]">{icon}</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-semibold">{title}</div>
+              <div className="text-[12.5px] text-fin-muted">{sub}</div>
+            </div>
+            <Toggle on={cfg[k].on} label={title} onChange={(on) => set(k, { on })} />
+            {cfg[k].on && (
+              <div className="flex w-full items-center gap-2 pl-9 text-[13.5px] text-fin-muted">
+                at <TimeInput value={cfg[k].time} label={`${title} time`} onChange={(time) => set(k, { time })} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {blocked && (
+        <div className="mt-3 rounded-2xl bg-amber-400/10 px-4 py-3 text-[13.5px] text-amber-200">
+          Notifications are turned off for LifeOS in Android settings.
+          <button onClick={() => sendToApp("app-settings")} className="ml-1 font-semibold underline">
+            Open app settings
+          </button>
+        </div>
+      )}
+      <PrimaryButton className="mt-3 w-full !py-2.5 !text-[15px]" disabled={!dirty} onClick={save}>
+        {saved ? "Save reminders" : "Turn on reminders"}
+      </PrimaryButton>
     </FinCard>
   );
 }

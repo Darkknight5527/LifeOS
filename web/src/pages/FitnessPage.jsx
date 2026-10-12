@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import DomainShell from "../components/DomainShell.jsx";
 import { useViewKeys } from "../components/useViewKeys.js";
 import { reloadedHere } from "../lib/navigation.js";
@@ -69,6 +70,12 @@ function FitnessShell() {
   const fit = useFit();
   const [state, setState] = useState(initial);
   const [range, setRange] = useState(7);
+  // A notification can ask for a tab (e.g. the water reminder opens Nutrition).
+  const location = useLocation();
+  useEffect(() => {
+    const t = location.state?.tab;
+    if (t && VIEWS[t]) setState((s) => ({ ...s, tab: t, views: { ...s.views, [t]: FRESH.views[t] } }));
+  }, [location.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const { tab } = state;
   const view = state.views[tab];
   const setView = (v) => setState((s) => ({ ...s, views: { ...s.views, [s.tab]: v } }));

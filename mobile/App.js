@@ -10,6 +10,7 @@ import { WebView } from "react-native-webview";
 import Constants from "expo-constants";
 import { saveIncomingFile } from "./src/saveFile";
 import { commitSync, healthStatus, openHealthSettings, readWeighIns } from "./src/health";
+import { applyNotifications, onNotificationTap, permissionState, refreshNotifications } from "./src/notify";
 
 const SITE = Constants.expoConfig?.extra?.webUrl || "https://lifeos-web-qjrj.onrender.com";
 const hostOf = (url) => (String(url).match(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i) || [])[1] || "";
@@ -80,6 +81,7 @@ function Shell() {
   // The loading screen fades out as soon as the page has drawn ("ready"),
   // instead of waiting for every image and font to finish.
   const fade = useRef(new Animated.Value(1)).current;
+
   const hideLoading = useCallback(() => {
     Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => setLoading(false));
   }, [fade]);
@@ -89,6 +91,22 @@ function Shell() {
   const toWeb = useCallback((type, detail = {}) => {
     const js = `window.dispatchEvent(new CustomEvent("lifeos:native",{detail:${JSON.stringify({ type, ...detail })}}));true;`;
     web.current?.injectJavaScript(js);
+  }, []);
+
+  // Tapping a notification opens that page (once the site has loaded).
+  const pageReady = useRef(false);
+  const pendingPath = useRef(null);
+  const openPath = useCallback((path) => {
+    if (!path || typeof path !== "string" || !path.startsWith("/")) return;
+    if (!pageReady.current) return void (pendingPath.current = path);
+    toWeb("open", { path });
+  }, [toWeb]);
+  useEffect(() => onNotificationTap(openPath), [openPath]);
+  // Keep the next two weeks of reminders scheduled whenever the app comes back.
+  useEffect(() => {
+    refreshNotifications().catch(() => {});
+    const sub = AppState.addEventListener("change", (st) => st === "active" && refreshNotifications().catch(() => {}));
+    return () => sub.remove();
   }, []);
   const pendingSync = useRef(null);
   const lastAuto = useRef(0);
@@ -155,6 +173,7 @@ function Shell() {
 
   const retry = () => {
     fade.setValue(1);
+    pageReady.current = false;
     setFailed(false);
     setLoading(true);
     setKey((k) => k + 1);
@@ -208,7 +227,20 @@ function Shell() {
               try {
                 const m = JSON.parse(e.nativeEvent.data);
                 if (!m || typeof m !== "object") return;
-                if (m.type === "ready") hideLoading();
+                if (m.type === "ready") {
+                  hideLoading();
+                  pageReady.current = true;
+                  if (pendingPath.current) {
+                    toWeb("open", { path: pendingPath.current });
+                    pendingPath.current = null;
+                  }
+                }
+                else if (m.type === "notify-config" || m.type === "notify-status") {
+                  applyNotifications(m.type === "notify-config" ? { config: m.config || null, askPermission: Boolean(m.ask) } : { status: m.status || null })
+                    .then((r) => toWeb("notify-state", r))
+                    .catch((e) => toWeb("notify-state", { error: String(e?.message || e) }));
+                }
+                else if (m.type === "notify-permission") permissionState().then((permission) => toWeb("notify-state", { permission })).catch(() => {});
                 else if (m.type === "app-settings") Linking.openSettings().catch(() => {});
                 else if (m.type === "haptic") Vibration.vibrate(m.style === "heavy" ? 18 : 8);
                 else if (m.type === "save-file") saveIncomingFile(m);

@@ -39,6 +39,12 @@ export function clearLocalData() {
   } catch {
     /* ignore */
   }
+  // Phone reminders belong to this account: stop them.
+  try {
+    window.ReactNativeWebView?.postMessage(JSON.stringify({ type: "notify-config", config: null }));
+  } catch {
+    /* ignore */
+  }
   // Downloaded book PDFs kept for offline reading.
   try {
     window.caches?.delete("lifeos-books-v1");
@@ -49,9 +55,18 @@ export function clearLocalData() {
 
 // When the server rejects our token (expired, or signed out everywhere),
 // tell the app so it can show the login screen.
-export const api = createApiClient(BASE_URL, getToken, {
+const client = createApiClient(BASE_URL, getToken, {
   onUnauthorized: () => window.dispatchEvent(new Event("lifeos:signed-out")),
 });
+
+// Anything saved (a tick, a glass of water, an expense…) lets the phone
+// reminders know what's already done today.
+const changed = (fn) => async (...args) => {
+  const out = await fn(...args);
+  window.dispatchEvent(new Event("lifeos:data-changed"));
+  return out;
+};
+export const api = { ...client, create: changed(client.create), update: changed(client.update), remove: changed(client.remove), bulkCreate: changed(client.bulkCreate) };
 
 /** Swap the token for a fresh one if it's more than a day old (keeps regular users logged in). */
 export async function refreshTokenIfOld() {
