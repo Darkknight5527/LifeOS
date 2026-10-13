@@ -1,6 +1,7 @@
 // A simple full-screen PDF reader (pdf.js), opened at a given page. Used inside
 // the Android app, where the WebView has no PDF viewer of its own.
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 let pdfjsPromise = null;
 function loadPdfjs() {
@@ -25,7 +26,7 @@ export function PdfReaderHost() {
   return <PdfReader key={doc.id} {...doc} onClose={() => setDoc(null)} />;
 }
 
-function PdfReader({ blob, page: startPage, title, onClose }) {
+function PdfReader({ blob, page: startPage, title, onClose, onPage }) {
   const [pdf, setPdf] = useState(null);
   const [error, setError] = useState("");
   const [page, setPage] = useState(startPage || 1);
@@ -93,6 +94,10 @@ function PdfReader({ blob, page: startPage, title, onClose }) {
   }, [pdf, page, zoom]);
 
   useEffect(() => setInput(String(page)), [page]);
+  // Tell whoever opened it which page you're on (the Library saves your place).
+  useEffect(() => {
+    if (pdf) onPage?.(page, pdf.numPages);
+  }, [pdf, page]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     box.current?.scrollTo({ top: 0, left: 0 });
   }, [page]);
@@ -102,13 +107,16 @@ function PdfReader({ blob, page: startPage, title, onClose }) {
   // Keyboard (desktop) + Escape to close.
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation(); // don't also close a sheet underneath
+        onClose();
+      }
       else if (e.target.tagName === "INPUT") return;
       else if (e.key === "ArrowRight" || e.key === "PageDown") (e.preventDefault(), go(page + 1));
       else if (e.key === "ArrowLeft" || e.key === "PageUp") (e.preventDefault(), go(page - 1));
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [go, page, onClose]);
 
   // Swipe left / right to turn pages (when not zoomed in).
@@ -125,7 +133,8 @@ function PdfReader({ blob, page: startPage, title, onClose }) {
   };
 
   const btn = "grid h-10 min-w-10 place-items-center rounded-xl bg-white/10 px-2 text-[15px] font-bold text-white transition hover:bg-white/20 disabled:opacity-30";
-  return (
+  // Rendered into <body> so it stays usable when opened from inside a sheet.
+  return createPortal(
     <div className="fixed inset-0 z-[90] flex flex-col bg-[#101013] font-fin text-white" role="dialog" aria-modal="true" aria-label={title || "PDF"}>
       <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
         <button onClick={onClose} className={btn} aria-label="Close">✕</button>
@@ -170,6 +179,7 @@ function PdfReader({ blob, page: startPage, title, onClose }) {
         </form>
         <button onClick={() => go(page + 1)} disabled={!pdf || page >= (pdf?.numPages || 1)} className={`${btn} px-4`}>Next ›</button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -38,7 +38,7 @@ export async function requireJournalKey(req, res, next) {
 router.get("/lock", async (req, res, next) => {
   try {
     const lock = await JournalLock.findOne({ userId: req.userId }).lean();
-    res.json({ hasPin: Boolean(lock), lockedUntil: lock?.lockedUntil > Date.now() ? lock.lockedUntil : 0 });
+    res.json({ hasPin: Boolean(lock), pinLength: lock?.pinLength || 0, lockedUntil: lock?.lockedUntil > Date.now() ? lock.lockedUntil : 0 });
   } catch (err) {
     next(err);
   }
@@ -50,7 +50,7 @@ router.post("/pin", async (req, res, next) => {
     const pin = String(req.body?.pin || "");
     if (!PIN.test(pin)) return res.status(400).json({ error: "The PIN must be 4 to 8 digits." });
     if (await JournalLock.findOne({ userId: req.userId }).lean()) return res.status(409).json({ error: "A PIN is already set." });
-    await JournalLock.create({ userId: req.userId, pinHash: await bcrypt.hash(pin, 10) });
+    await JournalLock.create({ userId: req.userId, pinHash: await bcrypt.hash(pin, 10), pinLength: pin.length });
     res.status(201).json({ key: journalKey(req.userId), minutes: KEY_MINUTES });
   } catch (err) {
     next(err);
@@ -79,6 +79,7 @@ router.post("/unlock", async (req, res, next) => {
     }
     lock.failed = 0;
     lock.lockedUntil = 0;
+    lock.pinLength = String(req.body.pin).length; // learn it for PINs set before this was stored
     await lock.save();
     res.json({ key: journalKey(req.userId), minutes: KEY_MINUTES });
   } catch (err) {
@@ -101,6 +102,7 @@ router.post("/pin/change", async (req, res, next) => {
     }
     if (!ok) return res.status(403).json({ error: req.body?.password ? "Wrong account password." : "Wrong current PIN." });
     lock.pinHash = await bcrypt.hash(pin, 10);
+    lock.pinLength = pin.length;
     lock.failed = 0;
     lock.lockedUntil = 0;
     lock.updatedAt = Date.now();

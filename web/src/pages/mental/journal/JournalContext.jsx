@@ -26,6 +26,7 @@ export function JournalProvider({ children }) {
   const toast = useToast();
   const [lock, setLock] = useState("loading"); // loading | needPin | locked | open | error
   const [lockedUntil, setLockedUntil] = useState(0);
+  const [pinLength, setPinLength] = useState(0);
   const [entries, setEntries] = useState([]);
   const key = useRef(null);
   const timer = useRef(null);
@@ -61,6 +62,7 @@ export function JournalProvider({ children }) {
     try {
       const s = await api.journalLock();
       setLockedUntil(s.lockedUntil || 0);
+      setPinLength(s.pinLength || 0);
       setLock(key.current ? "open" : s.hasPin ? "locked" : "needPin");
     } catch {
       setLock("error");
@@ -132,6 +134,6 @@ export function JournalProvider({ children }) {
     [toast]
   );
 
-  const value = { lock, lockedUntil, entries, byKey, save, remove, setPin, unlock, changePin, relock, recheck: check };
+  const value = { lock, lockedUntil, pinLength, setPinLength, entries, byKey, save, remove, setPin, unlock, changePin, relock, recheck: check };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

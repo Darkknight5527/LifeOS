@@ -50,6 +50,7 @@ export default function JournalLock() {
         await j.setPin(value);
       } else if (step === "enter") await j.unlock(value);
       else if (step === "reset") await j.changePin({ pin: value, password });
+      j.setPinLength(value.length);
       haptic("light");
     } catch (e) {
       fail(e.message || "Something went wrong");
@@ -62,8 +63,12 @@ export default function JournalLock() {
     if (busy || !k) return;
     setError("");
     if (k === "⌫") return setPin((p) => p.slice(0, -1));
-    // PINs can be 4–8 digits, so nothing auto-submits: tap Unlock (or press Enter).
-    setPin((p) => (p + k).slice(0, 8));
+    const next = (pin + k).slice(0, 8);
+    setPin(next);
+    // Unlock as soon as the last digit is in (the server tells us how long your PIN is;
+    // when confirming a new PIN, it's as long as the first one).
+    const target = step === "enter" ? j.pinLength : step === "confirm" ? first.length : 0;
+    if (target >= 4 && next.length === target) submit(next);
   };
 
   // Physical keyboard on the laptop.
@@ -111,7 +116,7 @@ export default function JournalLock() {
       )}
 
       <div className={`mt-6 flex gap-3 ${shake ? "animate-[shake_0.35s]" : ""}`} aria-label={`${pin.length} digits entered`}>
-        {Array.from({ length: Math.max(4, pin.length) }).map((_, i) => (
+        {Array.from({ length: Math.max(step === "enter" && j.pinLength ? j.pinLength : step === "confirm" ? first.length : 4, pin.length) }).map((_, i) => (
           <span key={i} className={`h-3.5 w-3.5 rounded-full transition ${i < pin.length ? "bg-fin-accent" : "bg-white/15"}`} />
         ))}
       </div>

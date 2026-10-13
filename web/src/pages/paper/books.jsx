@@ -40,7 +40,7 @@ export function useBooks() {
   return { list, byKey, reload };
 }
 
-async function cachedBlob(key, version) {
+export async function cachedBlob(key, version) {
   const id = `/book/${key}?v=${encodeURIComponent(version || "")}`;
   let cache = null;
   try {

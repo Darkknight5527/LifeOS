@@ -109,7 +109,7 @@ try {
     M.schema.eachPath((p, t) => {
       if (p.includes(".") || ["_id", "__v", "userId"].includes(p) || !t.isRequired) return;
       const ev = t.enumValues?.length ? t.enumValues[0] : null;
-      doc[p] = ev ?? (t.instance === "Number" ? 1 : t.instance === "Boolean" ? true : t.instance === "Array" ? [] : p === "date" ? "2026-10-05" : p === "month" ? "2026-10" : "x");
+      doc[p] = ev ?? (t.instance === "Number" ? (p === "year" ? 2026 : 1) : t.instance === "Boolean" ? true : t.instance === "Array" ? [] : p === "date" ? "2026-10-05" : p === "month" ? "2026-10" : "x");
     });
     return doc;
   };

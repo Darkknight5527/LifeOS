@@ -129,6 +129,7 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
 
     // Reference books (private PDFs)
     books: () => request("/books"),
+    deleteBook: (key) => request(`/books/${encodeURIComponent(key)}`, { method: "DELETE" }),
     // Raw download — returns the fetch Response so the caller can stream/cache it.
     bookFile: (key) => {
       const token = getToken();

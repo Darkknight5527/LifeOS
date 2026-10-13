@@ -6,7 +6,7 @@ import { useLocation } from "react-router-dom";
 import DomainShell from "../components/DomainShell.jsx";
 import { useViewKeys } from "../components/useViewKeys.js";
 import { reloadedHere } from "../lib/navigation.js";
-import { EmptyState, FinCard, Icon, IconButton, Segmented } from "./finances/fin-ui.jsx";
+import { EmptyState, FinCard, IconButton, Segmented } from "./finances/fin-ui.jsx";
 import { addDays, isoDate, parseISO, todayISO } from "./finances/lib";
 import { JournalProvider, useJournal } from "./mental/journal/JournalContext.jsx";
 import JournalLock from "./mental/journal/Lock.jsx";
@@ -16,6 +16,8 @@ import HistoryView from "./mental/journal/HistoryView.jsx";
 import PatternsView from "./mental/journal/PatternsView.jsx";
 import { MindProvider, useMind } from "./mental/mind/MindContext.jsx";
 import SessionHost from "./mental/mind/Sessions.jsx";
+import { LibraryProvider } from "./mental/library/LibraryContext.jsx";
+import { LibraryNotes, LibraryShelf, LibraryStats } from "./mental/library/LibraryViews.jsx";
 import { SkillsProvider } from "./mental/skills/SkillsContext.jsx";
 import { HobbiesView, PeopleView, SkillsToday, WordsView } from "./mental/skills/SkillsViews.jsx";
 import { MindBreathe, MindFocus, MindMeditate, MindSleep, MindToday } from "./mental/mind/MindViews.jsx";
@@ -46,10 +48,14 @@ export const VIEWS = {
     { value: "words", label: "Words" },
     { value: "hobbies", label: "Hobbies" },
   ],
-  library: [],
+  library: [
+    { value: "shelf", label: "Shelf" },
+    { value: "notes", label: "Notes" },
+    { value: "stats", label: "Stats" },
+  ],
 };
 const KEY = "lifeos_mental_view";
-const FRESH = { tab: "journal", views: { journal: "today", mind: "today", skills: "today", library: "" } };
+const FRESH = { tab: "journal", views: { journal: "today", mind: "today", skills: "today", library: "shelf" } };
 let restored = false;
 
 function initial() {
@@ -70,7 +76,9 @@ export default function MentalPage() {
     <JournalProvider>
       <MindProvider>
         <SkillsProvider>
-          <MentalShell />
+          <LibraryProvider>
+            <MentalShell />
+          </LibraryProvider>
         </SkillsProvider>
       </MindProvider>
     </JournalProvider>
@@ -225,24 +233,18 @@ function MentalShell() {
         </>
       )}
 
-      {tab === "library" && <ComingNext tab={tab} />}
+      {tab === "library" && (
+        <>
+          <div className="mb-4 w-full max-w-[360px]" title="Keys: 1–3 or Shift + ← →">
+            <Segmented className="w-full [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={views} />
+          </div>
+          <div key={view} className="animate-fade-in">
+            {view === "shelf" && <LibraryShelf />}
+            {view === "notes" && <LibraryNotes />}
+            {view === "stats" && <LibraryStats />}
+          </div>
+        </>
+      )}
     </DomainShell>
-  );
-}
-
-function ComingNext({ tab }) {
-  const text = {
-    library: "Your bookshelf with reading progress, highlights and lessons, and reading inside the app.",
-  }[tab];
-  return (
-    <FinCard>
-      <div className="mx-auto max-w-[460px] py-8 text-center">
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-fin-accent/15 text-fin-accent">
-          <Icon name={TABS.find((t) => t.id === tab)?.icon} size={26} />
-        </span>
-        <div className="mt-4 text-[19px] font-bold">Coming next</div>
-        <p className="mt-2 text-[14.5px] leading-relaxed text-fin-muted">{text}</p>
-      </div>
-    </FinCard>
   );
 }
