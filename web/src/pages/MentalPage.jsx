@@ -16,6 +16,8 @@ import HistoryView from "./mental/journal/HistoryView.jsx";
 import PatternsView from "./mental/journal/PatternsView.jsx";
 import { MindProvider, useMind } from "./mental/mind/MindContext.jsx";
 import SessionHost from "./mental/mind/Sessions.jsx";
+import { SkillsProvider } from "./mental/skills/SkillsContext.jsx";
+import { HobbiesView, PeopleView, SkillsToday, WordsView } from "./mental/skills/SkillsViews.jsx";
 import { MindBreathe, MindFocus, MindMeditate, MindSleep, MindToday } from "./mental/mind/MindViews.jsx";
 
 const TABS = [
@@ -38,11 +40,16 @@ export const VIEWS = {
     { value: "sleep", label: "Sleep" },
     { value: "focus", label: "Focus" },
   ],
-  skills: [],
+  skills: [
+    { value: "today", label: "Today" },
+    { value: "people", label: "People" },
+    { value: "words", label: "Words" },
+    { value: "hobbies", label: "Hobbies" },
+  ],
   library: [],
 };
 const KEY = "lifeos_mental_view";
-const FRESH = { tab: "journal", views: { journal: "today", mind: "today", skills: "", library: "" } };
+const FRESH = { tab: "journal", views: { journal: "today", mind: "today", skills: "today", library: "" } };
 let restored = false;
 
 function initial() {
@@ -62,7 +69,9 @@ export default function MentalPage() {
   return (
     <JournalProvider>
       <MindProvider>
-        <MentalShell />
+        <SkillsProvider>
+          <MentalShell />
+        </SkillsProvider>
       </MindProvider>
     </JournalProvider>
   );
@@ -108,6 +117,10 @@ function MentalShell() {
     window.scrollTo({ top: 0 });
   };
   const openJournal = () => openDay(today);
+  const goSkills = (v) => {
+    setState((s) => ({ ...s, tab: "skills", views: { ...s.views, skills: v } }));
+    window.scrollTo({ top: 0 });
+  };
   const unlocked = j.lock === "open";
 
   return (
@@ -198,14 +211,27 @@ function MentalShell() {
       )}
       <SessionHost onJournal={openJournal} />
 
-      {(tab === "skills" || tab === "library") && <ComingNext tab={tab} />}
+      {tab === "skills" && (
+        <>
+          <div className="mb-4 w-full max-w-[460px]" title="Keys: 1–4 or Shift + ← →">
+            <Segmented className="w-full [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={views} />
+          </div>
+          <div key={view} className="animate-fade-in">
+            {view === "today" && <SkillsToday go={goSkills} />}
+            {view === "people" && <PeopleView />}
+            {view === "words" && <WordsView />}
+            {view === "hobbies" && <HobbiesView />}
+          </div>
+        </>
+      )}
+
+      {tab === "library" && <ComingNext tab={tab} />}
     </DomainShell>
   );
 }
 
 function ComingNext({ tab }) {
   const text = {
-    skills: "Daily people & communication lessons with challenges, English word of the day with flashcard review, and your hobbies (guitar, chess…).",
     library: "Your bookshelf with reading progress, highlights and lessons, and reading inside the app.",
   }[tab];
   return (

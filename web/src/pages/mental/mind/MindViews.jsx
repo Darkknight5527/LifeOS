@@ -25,7 +25,7 @@ const KIND = {
 const lengthOf = (g) => `${Math.round(g.end / 60)} min`;
 const patternLength = (p) => p.phases.map((x) => x.s).join(" · ");
 
-function Chips({ options, value, onChange, label }) {
+export function Chips({ options, value, onChange, label }) {
   return (
     <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={label}>
       {options.map((o) => {
@@ -46,7 +46,7 @@ function Chips({ options, value, onChange, label }) {
   );
 }
 
-function Switch({ on, onChange, label }) {
+export function Switch({ on, onChange, label }) {
   return (
     <button
       role="switch"
@@ -60,7 +60,7 @@ function Switch({ on, onChange, label }) {
   );
 }
 
-function PlayRow({ title, sub, desc, onPlay, emoji }) {
+export function PlayRow({ title, sub, desc, onPlay, emoji }) {
   return (
     <button onClick={onPlay} className="group flex w-full items-center gap-3 rounded-2xl bg-fin-input px-3.5 py-3 text-left transition hover:bg-fin-tile active:scale-[0.99]">
       {emoji && <span className="text-[24px]">{emoji}</span>}

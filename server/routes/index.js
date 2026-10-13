@@ -41,6 +41,10 @@ import adminRoutes from "./admin.js";
 import journalRoutes, { requireJournalKey } from "./journal.js";
 import JournalEntry from "../models/JournalEntry.js";
 import MindSession from "../models/MindSession.js";
+import PeopleLog from "../models/PeopleLog.js";
+import VocabCard from "../models/VocabCard.js";
+import Hobby from "../models/Hobby.js";
+import HobbySession from "../models/HobbySession.js";
 
 const router = Router();
 
@@ -72,6 +76,10 @@ router.use("/admin", adminRoutes);
 router.use("/journal", journalRoutes);
 router.use("/journal-entries", requireJournalKey, createCrudRouter(JournalEntry, { sortField: "date", sortOrder: -1 }));
 router.use("/mind-sessions", createCrudRouter(MindSession, { sortField: "date", sortOrder: -1 }));
+router.use("/people-logs", createCrudRouter(PeopleLog, { sortField: "date", sortOrder: -1 }));
+router.use("/vocab-cards", createCrudRouter(VocabCard, { sortField: "createdAt", sortOrder: -1 }));
+router.use("/hobbies", createCrudRouter(Hobby, { sortField: "order", sortOrder: 1 }));
+router.use("/hobby-sessions", createCrudRouter(HobbySession, { sortField: "date", sortOrder: -1 }));
 router.use("/fit-settings", createCrudRouter(FitSettings, { sortField: "createdAt", sortOrder: 1 }));
 router.use("/food-logs", createCrudRouter(FoodLog, { sortField: "date", sortOrder: -1 }));
 router.use("/custom-foods", createCrudRouter(CustomFood, { sortField: "name", sortOrder: 1 }));
