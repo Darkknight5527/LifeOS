@@ -47,13 +47,17 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
       // A rejected token (expired, or "sign out everywhere") logs this device out.
       if (res.status === 401 && token && !path.startsWith("/auth/login") && !path.startsWith("/auth/register")) onUnauthorized?.();
       let message = `Request failed: ${res.status}`;
+      let data = null;
       try {
-        const data = await res.json();
+        data = await res.json();
         message = data.error || message;
       } catch {
         // ignore parse errors
       }
-      throw new Error(message);
+      const err = new Error(message);
+      err.status = res.status; // e.g. 423 = journal locked
+      err.data = data;
+      throw err;
     }
 
     if (res.status === 204) return null;
@@ -98,6 +102,18 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
     paperCalendar: ({ from, to, days }) =>
       request(`/paper/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&days=${days.join(",")}`),
     paperNews: () => request("/paper/news"),
+
+    // Journal (PIN-locked): the key comes from journalUnlock / journalSetPin
+    journalLock: () => request("/journal/lock"),
+    journalSetPin: (pin) => request("/journal/pin", { method: "POST", body: { pin } }),
+    journalUnlock: (pin) => request("/journal/unlock", { method: "POST", body: { pin } }),
+    journalChangePin: (body) => request("/journal/pin/change", { method: "POST", body }),
+    journal: {
+      list: (key) => request("/journal-entries", { headers: { "X-Journal-Key": key } }),
+      create: (key, data) => request("/journal-entries", { method: "POST", body: data, headers: { "X-Journal-Key": key } }),
+      update: (key, id, data) => request(`/journal-entries/${id}`, { method: "PATCH", body: data, headers: { "X-Journal-Key": key } }),
+      remove: (key, id) => request(`/journal-entries/${id}`, { method: "DELETE", headers: { "X-Journal-Key": key } }),
+    },
 
     // AI skin checks (three face photos per day)
     skinScans: () => request("/skin-scans"),

@@ -21,6 +21,7 @@ app.use(
   cors({
     origin: allowedOrigins,
     exposedHeaders: ["X-Uploaded-At"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-File-Name", "X-Journal-Key"],
   })
 );
 // Login requests are tiny; everything else may carry imports or backups.

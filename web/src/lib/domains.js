@@ -4,7 +4,7 @@
 export const DOMAINS = [
   { to: "/", label: "North Star", short: "Home", icon: "star", color: "#f2c14e", end: true, ready: true, ownerOnly: true },
   { to: "/paper", label: "Morning Paper", short: "Paper", icon: "news", color: "#f2c14e", ready: true },
-  { to: "/mental", label: "Mental & Psych", short: "Mind", icon: "brain", color: "#a78bfa" },
+  { to: "/mental", label: "Mental & Psych", short: "Mind", icon: "brain", color: "#a78bfa", ready: true },
   { to: "/grooming", label: "Grooming", short: "Grooming", icon: "drop", color: "#2dd4bf", ready: true },
   { to: "/fitness", label: "Fitness & Nutrition", short: "Fitness", icon: "dumbbell", color: "#60a5fa", ready: true },
   { to: "/finances", label: "Finances", short: "Money", icon: "wallet", color: "#fb8a3c", ready: true },
@@ -20,6 +20,6 @@ export const domainsFor = (isOwner) => (isOwner ? DOMAINS : DOMAINS.filter((d) =
 export const readyFor = (isOwner) => domainsFor(isOwner).filter((d) => d.ready);
 
 // Dark pages that draw their own full-screen layout and header.
-export const DARK_PAGES = ["/", "/finances", "/grooming", "/paper", "/fitness", "/account"];
+export const DARK_PAGES = ["/", "/finances", "/grooming", "/paper", "/fitness", "/account", "/mental"];
 
 export const domainFor = (path) => DOMAINS.find((d) => d.to === path) || DOMAINS[0];

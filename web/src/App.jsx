@@ -25,7 +25,9 @@ const PAGES = {
   fitness: reloadOnChunkError(() => import("./pages/FitnessPage.jsx")),
   finances: reloadOnChunkError(() => import("./pages/FinancesPage.jsx")),
   account: reloadOnChunkError(() => import("./pages/AccountPage.jsx")),
+  mental: reloadOnChunkError(() => import("./pages/MentalPage.jsx")),
 };
+const MentalPage = lazy(PAGES.mental);
 const AccountPage = lazy(PAGES.account);
 const HomePage = lazy(PAGES.home);
 const PaperPage = lazy(PAGES.paper);
@@ -299,7 +301,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={isOwner ? <HomePage /> : <Navigate to="/paper" replace />} />
                 <Route path="/account" element={<AccountPage />} />
-                <Route path="/mental" element={<PlaceholderPage title="Mental & Psych" />} />
+                <Route path="/mental" element={<MentalPage />} />
                 <Route path="/grooming" element={<GroomingPage />} />
                 <Route path="/fitness" element={<FitnessPage />} />
                 {/* old address from before the split */}

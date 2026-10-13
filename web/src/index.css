@@ -35,6 +35,13 @@ body {
   --fin-glow: rgba(59, 130, 246, 0.5);
 }
 
+.theme-violet {
+  --fin-accent: 167 139 250;
+  --fin-grad-from: #b9a2ff;
+  --fin-grad-to: #6d4ed8;
+  --fin-glow: rgba(139, 92, 246, 0.45);
+}
+
 .theme-gold {
   --fin-accent: 242 193 78;
   --fin-grad-from: #f7d27a;
@@ -239,4 +246,11 @@ html {
   top: 0;
   z-index: 95;
   pointer-events: none;
+}
+
+/* Wrong PIN */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
 }
