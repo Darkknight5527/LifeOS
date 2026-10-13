@@ -1,6 +1,6 @@
 // The journal's PIN screen: create a PIN the first time, then unlock with it.
 // Forgot it? Reset with your account password (entries are kept).
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "../../finances/fin-ui.jsx";
 import { haptic } from "../../../lib/inApp.js";
 import { useJournal } from "./JournalContext.jsx";
@@ -28,7 +28,10 @@ export default function JournalLock() {
     setPin("");
     setShake(true);
     haptic("heavy");
-    setTimeout(() => setShake(false), 400);
+    setTimeout(() => {
+      setShake(false);
+      if (window.matchMedia?.("(pointer: fine)").matches) box.current?.focus(); // ready to retype
+    }, 400);
   };
 
   const submit = async (value) => {
@@ -59,22 +62,33 @@ export default function JournalLock() {
     }
   };
 
+  /** New PIN text (from the keypad or the typing box). Unlocks as soon as the last digit is in:
+   *  the server tells us how long your PIN is; when confirming, it's as long as the first one. */
+  const enter = (raw) => {
+    if (busy) return;
+    setError("");
+    const next = String(raw).replace(/\D/g, "").slice(0, 8);
+    const grew = next.length > pin.length;
+    setPin(next);
+    const target = step === "enter" ? j.pinLength : step === "confirm" ? first.length : 0;
+    if (grew && target >= 4 && next.length === target) submit(next);
+  };
   const press = (k) => {
     if (busy || !k) return;
-    setError("");
-    if (k === "⌫") return setPin((p) => p.slice(0, -1));
-    const next = (pin + k).slice(0, 8);
-    setPin(next);
-    // Unlock as soon as the last digit is in (the server tells us how long your PIN is;
-    // when confirming a new PIN, it's as long as the first one).
-    const target = step === "enter" ? j.pinLength : step === "confirm" ? first.length : 0;
-    if (target >= 4 && next.length === target) submit(next);
+    if (k === "⌫") return enter(pin.slice(0, -1));
+    enter(pin + k);
   };
 
-  // Physical keyboard on the laptop.
+  // Type straight in: the PIN box is ready on a laptop (on a phone, tap it for the number keyboard).
+  const box = useRef(null);
+  useEffect(() => {
+    if (window.matchMedia?.("(pointer: fine)").matches && step !== "reset") box.current?.focus();
+  }, [step]);
+
+  // Physical keyboard when the box isn't focused (e.g. after clicking the keypad).
   useEffect(() => {
     const onKey = (e) => {
-      if (step === "reset" && e.target.closest?.("input")) return;
+      if (e.target.closest?.("input, textarea")) return;
       if (/^\d$/.test(e.key)) press(e.key);
       else if (e.key === "Backspace") press("⌫");
       else if (e.key === "Enter" && pin.length >= 4) submit(pin);
@@ -115,11 +129,28 @@ export default function JournalLock() {
         />
       )}
 
-      <div className={`mt-6 flex gap-3 ${shake ? "animate-[shake_0.35s]" : ""}`} aria-label={`${pin.length} digits entered`}>
-        {Array.from({ length: Math.max(step === "enter" && j.pinLength ? j.pinLength : step === "confirm" ? first.length : 4, pin.length) }).map((_, i) => (
-          <span key={i} className={`h-3.5 w-3.5 rounded-full transition ${i < pin.length ? "bg-fin-accent" : "bg-white/15"}`} />
-        ))}
-      </div>
+      <form
+        className={`mt-6 w-full ${shake ? "animate-[shake_0.35s]" : ""}`}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (pin.length >= 4 && !(step === "reset" && !password)) submit(pin);
+        }}
+      >
+        <input
+          ref={box}
+          type="password"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="off"
+          maxLength={8}
+          value={pin}
+          onChange={(e) => enter(e.target.value)}
+          disabled={busy}
+          aria-label={step === "reset" ? "New PIN" : "PIN"}
+          placeholder="Type your PIN"
+          className="w-full rounded-2xl bg-fin-input px-4 py-3.5 text-center text-[26px] font-bold tracking-[0.5em] text-white caret-fin-accent outline-none transition placeholder:text-[15px] placeholder:font-medium placeholder:tracking-normal placeholder:text-fin-faint focus:ring-2 focus:ring-fin-accent/50"
+        />
+      </form>
       <div className="mt-3 h-5 text-[13.5px] text-fin-danger" role="alert">
         {error || (j.lockedUntil > Date.now() && step === "enter" ? "Too many wrong tries — wait a bit or reset with your password." : "")}
       </div>
