@@ -14,6 +14,27 @@ export const DEFAULT_NOTIFY = {
   skinAm: { on: true, time: "08:00" },
   skinPm: { on: true, time: "21:30" },
   checkin: { on: true, time: "21:00" },
+  mind: { on: false, time: "07:30" },
+  journal: { on: false, time: "22:15" },
+};
+
+// The journal is PIN-locked, so "written today" is remembered on this device.
+const JOURNAL_KEY = "lifeos_journal_done";
+export function markJournalDone() {
+  try {
+    if (localStorage.getItem(JOURNAL_KEY) === todayISO()) return;
+    localStorage.setItem(JOURNAL_KEY, todayISO());
+  } catch {
+    return;
+  }
+  pushNotifyStatus();
+}
+const journalDoneToday = () => {
+  try {
+    return localStorage.getItem(JOURNAL_KEY) === todayISO();
+  } catch {
+    return false;
+  }
 };
 
 export function readNotify() {
@@ -39,12 +60,13 @@ export function saveNotify(config, { ask = true } = {}) {
 // ---------- today's status ----------
 async function todayStatus() {
   const today = todayISO();
-  const [steps, skinLogs, food, fitSettings, tx] = await Promise.all([
+  const [steps, skinLogs, food, fitSettings, tx, mind] = await Promise.all([
     api.list("skincare-steps").catch(() => []),
     api.list("skin-logs").catch(() => []),
     api.list("food-logs").catch(() => []),
     api.list("fit-settings").catch(() => []),
     api.list("finance-transactions").catch(() => []),
+    api.list("mind-sessions").catch(() => []),
   ]);
   const latest = (list) => list.filter((x) => x.date === today).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
   const skinLog = latest(skinLogs);
@@ -91,6 +113,8 @@ async function todayStatus() {
     waterDone: waterMl >= waterTarget,
     checkinMissing: missing.length ? missing.join(", ").replace(/, ([^,]*)$/, " and $1") : "",
     checkinPath: path,
+    mindDone: mind.some((s) => s.date === today),
+    journalDone: journalDoneToday(),
   };
 }
 

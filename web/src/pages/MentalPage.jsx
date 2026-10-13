@@ -14,6 +14,9 @@ import TodayView from "./mental/journal/TodayView.jsx";
 import WeekView from "./mental/journal/WeekView.jsx";
 import HistoryView from "./mental/journal/HistoryView.jsx";
 import PatternsView from "./mental/journal/PatternsView.jsx";
+import { MindProvider, useMind } from "./mental/mind/MindContext.jsx";
+import SessionHost from "./mental/mind/Sessions.jsx";
+import { MindBreathe, MindFocus, MindMeditate, MindSleep, MindToday } from "./mental/mind/MindViews.jsx";
 
 const TABS = [
   { id: "journal", label: "Journal", icon: "edit" },
@@ -28,12 +31,18 @@ export const VIEWS = {
     { value: "history", label: "History" },
     { value: "patterns", label: "Patterns" },
   ],
-  mind: [],
+  mind: [
+    { value: "today", label: "Today" },
+    { value: "breathe", label: "Breathe" },
+    { value: "meditate", label: "Meditate" },
+    { value: "sleep", label: "Sleep" },
+    { value: "focus", label: "Focus" },
+  ],
   skills: [],
   library: [],
 };
 const KEY = "lifeos_mental_view";
-const FRESH = { tab: "journal", views: { journal: "today", mind: "", skills: "", library: "" } };
+const FRESH = { tab: "journal", views: { journal: "today", mind: "today", skills: "", library: "" } };
 let restored = false;
 
 function initial() {
@@ -52,13 +61,16 @@ function initial() {
 export default function MentalPage() {
   return (
     <JournalProvider>
-      <MentalShell />
+      <MindProvider>
+        <MentalShell />
+      </MindProvider>
     </JournalProvider>
   );
 }
 
 function MentalShell() {
   const j = useJournal();
+  const mind = useMind();
   const [state, setState] = useState(initial);
   const [date, setDate] = useState(todayISO());
   const { tab } = state;
@@ -91,6 +103,11 @@ function MentalShell() {
     if (next <= today) setDate(next);
   };
   const views = VIEWS[tab];
+  const goMind = (v) => {
+    setState((s) => ({ ...s, tab: "mind", views: { ...s.views, mind: v } }));
+    window.scrollTo({ top: 0 });
+  };
+  const openJournal = () => openDay(today);
   const unlocked = j.lock === "open";
 
   return (
@@ -157,14 +174,37 @@ function MentalShell() {
           </div>
         ))}
 
-      {tab !== "journal" && <ComingNext tab={tab} />}
+      {tab === "mind" && (
+        <>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="w-full max-w-[560px]" title="Keys: 1–5 or Shift + ← →">
+              <Segmented className="w-full [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={views} />
+            </div>
+            <button
+              onClick={() => mind.start({ type: "sos" })}
+              className="hidden items-center gap-2 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-[14px] font-bold text-rose-200 transition hover:bg-rose-500/15 lg:flex"
+            >
+              🆘 SOS
+            </button>
+          </div>
+          <div key={view} className="animate-fade-in">
+            {view === "today" && <MindToday go={goMind} />}
+            {view === "breathe" && <MindBreathe />}
+            {view === "meditate" && <MindMeditate />}
+            {view === "sleep" && <MindSleep openJournal={openJournal} />}
+            {view === "focus" && <MindFocus />}
+          </div>
+        </>
+      )}
+      <SessionHost onJournal={openJournal} />
+
+      {(tab === "skills" || tab === "library") && <ComingNext tab={tab} />}
     </DomainShell>
   );
 }
 
 function ComingNext({ tab }) {
   const text = {
-    mind: "Breathing exercises, a meditation timer with guided sessions, an SOS button, sleep wind-down and focus sounds.",
     skills: "Daily people & communication lessons with challenges, English word of the day with flashcard review, and your hobbies (guitar, chess…).",
     library: "Your bookshelf with reading progress, highlights and lessons, and reading inside the app.",
   }[tab];

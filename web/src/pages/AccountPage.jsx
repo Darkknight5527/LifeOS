@@ -277,7 +277,17 @@ function Notifications() {
           ["skinAm", "☀️", "Morning skincare", "Skipped once the morning routine is ticked"],
           ["skinPm", "🌙", "Evening skincare", "Skipped once the evening routine is ticked"],
           ["checkin", "📝", "Evening check-in", "Lists what's not logged yet: expenses, food, skin"],
-        ].map(([k, icon, title, sub]) => (
+          ["mind", "🧘", "Mind", "A nudge to breathe or meditate — skipped once you've done a session", "1.7.0"],
+          ["journal", "📔", "Journal", "Skipped once you've written in today's journal", "1.7.0"],
+        ].map(([k, icon, title, sub, needs]) => needs && appVersionBelow(needs) ? (
+          <div key={k} className={`${row} opacity-60`}>
+            <span className="text-[20px]">{icon}</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-semibold">{title}</div>
+              <div className="text-[12.5px] text-fin-muted">Needs the app update ({needs.slice(0, 3)}) from the download link</div>
+            </div>
+          </div>
+        ) : (
           <div key={k} className={`${row} flex-wrap`}>
             <span className="text-[20px]">{icon}</span>
             <div className="min-w-0 flex-1">

@@ -69,6 +69,12 @@ function plan(config, status, now = new Date()) {
       const missing = isToday && st.checkinMissing ? st.checkinMissing : "expenses, food and today's skin rating";
       add("checkin", at(day, config.checkin.time), "Evening check-in", `Still to log today: ${missing}.`, isToday && st.checkinPath ? st.checkinPath : "/paper");
     }
+    if (config.mind?.on && !(isToday && st.mindDone)) {
+      add("mind", at(day, config.mind.time), "A few minutes for you 🧘", "Breathe, meditate or just sit for 2 minutes.", "/mental#mind");
+    }
+    if (config.journal?.on && !(isToday && st.journalDone)) {
+      add("journal", at(day, config.journal.time), "Journal 📝", "How was today? A few lines before bed.", "/mental#journal");
+    }
     if (config.water?.on && !(isToday && st.waterDone)) {
       const from = minutes(config.water.from || "09:00");
       const to = minutes(config.water.to || "21:00");
@@ -96,7 +102,7 @@ export async function applyNotifications({ config, status, askPermission = false
 
   await Notifications.cancelAllScheduledNotificationsAsync();
   const cfg = next.notifyConfig;
-  const anyOn = cfg && ["skinAm", "skinPm", "checkin", "water"].some((k) => cfg[k]?.on);
+  const anyOn = cfg && ["skinAm", "skinPm", "checkin", "water", "mind", "journal"].some((k) => cfg[k]?.on);
   if (!anyOn) return { permission: await permissionState(), scheduled: 0 };
 
   let perm = await permissionState();

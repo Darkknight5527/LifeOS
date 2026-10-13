@@ -4,6 +4,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../../api";
 import { useToast } from "../../../components/Toast.jsx";
+import { markJournalDone } from "../../../lib/notify.js";
+import { todayISO } from "../../finances/lib";
 
 const Ctx = createContext(null);
 export const useJournal = () => useContext(Ctx);
@@ -90,6 +92,7 @@ export function JournalProvider({ children }) {
   const save = useCallback(
     (kind, date, patch) => {
       const k = entryKey(kind, date);
+      if (kind === "day" && date === todayISO()) markJournalDone();
       setEntries((list) => {
         const cur = index(list)[k];
         const next = { ...(cur || { _id: `tmp-${k}`, kind, date, createdAt: Date.now() }), ...patch, updatedAt: Date.now() };

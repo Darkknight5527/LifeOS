@@ -8,6 +8,8 @@ import * as SystemUI from "expo-system-ui";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import Constants from "expo-constants";
+import * as Speech from "expo-speech";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { saveIncomingFile } from "./src/saveFile";
 import { commitSync, healthStatus, openHealthSettings, readWeighIns } from "./src/health";
 import { applyNotifications, onNotificationTap, permissionState, refreshNotifications } from "./src/notify";
@@ -242,6 +244,15 @@ function Shell() {
                 }
                 else if (m.type === "notify-permission") permissionState().then((permission) => toWeb("notify-state", { permission })).catch(() => {});
                 else if (m.type === "app-settings") Linking.openSettings().catch(() => {});
+                else if (m.type === "speak" && typeof m.text === "string") {
+                  // Mind: spoken guidance (the WebView itself can't speak).
+                  Speech.speak(m.text.slice(0, 600), { language: typeof m.lang === "string" ? m.lang : "en-IN", rate: Math.min(1.2, Math.max(0.5, Number(m.rate) || 0.9)), pitch: 0.95 });
+                }
+                else if (m.type === "speak-stop") Speech.stop();
+                else if (m.type === "keep-awake") {
+                  if (m.on) activateKeepAwakeAsync("mind").catch(() => {});
+                  else deactivateKeepAwake("mind").catch?.(() => {});
+                }
                 else if (m.type === "haptic") Vibration.vibrate(m.style === "heavy" ? 18 : 8);
                 else if (m.type === "save-file") saveIncomingFile(m);
                 else if (m.type === "health-status") healthStatus().then((st) => toWeb("health-status", st));
