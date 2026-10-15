@@ -97,11 +97,16 @@ export function dayTotals(log) {
 
 /* ---------- body maths ---------- */
 // Exponentially smoothed weight trend (like Happy Scale / MacroFactor).
+// After a long break (3+ weeks without a weigh-in) it starts fresh from the new
+// weight, instead of slowly creeping there from a months-old reading.
+export const TREND_GAP_DAYS = 21;
 export function weightTrend(logs) {
   const pts = logs.filter((l) => l.weight > 0).sort((a, b) => a.date.localeCompare(b.date));
   let t = null;
+  let prev = null;
   return pts.map((l) => {
-    t = t == null ? l.weight : t + 0.1 * (l.weight - t);
+    t = t == null || (prev && daysBetween(prev, l.date) > TREND_GAP_DAYS) ? l.weight : t + 0.1 * (l.weight - t);
+    prev = l.date;
     return { date: l.date, weight: l.weight, trend: Math.round(t * 100) / 100 };
   });
 }

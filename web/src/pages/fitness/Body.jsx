@@ -118,7 +118,7 @@ export function BodyView() {
         {shown.length ? (
           <>
             <LineChart
-              points={shown.map((t) => ({ x: prettyDate(t.date, { day: "numeric", month: "short" }), y: t.trend }))}
+              points={shown.map((t) => ({ x: prettyDate(t.date, { day: "numeric", month: "short", ...(t.date.slice(0, 4) !== today.slice(0, 4) ? { year: "2-digit" } : {}) }), y: t.trend, t: parseISO(t.date) / 86400000 }))}
               second={shown.map((t) => ({ x: t.date, y: t.weight }))}
               format={(v) => `${r1(v)} kg`}
               axisFormat={(v) => `${r1(v)}`}
@@ -217,7 +217,7 @@ function SmartScaleCard() {
             {h.lastResult && !h.busy ? ` · ${h.lastResult.added} new, ${h.lastResult.updated} updated` : ""}
           </div>
           {!h.busy && h.lastSync && !h.sources?.length && (
-            <div className="mt-2 rounded-xl bg-amber-400/10 px-3 py-2 text-[12.5px] text-amber-200">No weigh-ins found yet — check that FitDays shares to Google Fit or Samsung Health, and that app shares with Health Connect.</div>
+            <div className="mt-2 rounded-xl bg-amber-400/10 px-3 py-2 text-[12.5px] text-amber-200">No weigh-ins found yet. In Health Connect, open FitDays and allow it to write Weight and Body fat, then weigh in once more so FitDays sends a new reading.</div>
           )}
           {h.missing?.length > 0 && (
             <div className="mt-3 rounded-xl bg-fin-accent/10 px-3 py-2.5 text-[13px] text-white/85">
@@ -241,8 +241,8 @@ function SmartScaleCard() {
             Weigh in on your scale and LifeOS fills in your weight, body fat and the other body readings automatically — no typing.
           </div>
           <ol className="mt-2 space-y-1 text-[13px] text-fin-muted">
-            <li>1. In <b className="text-white/85">FitDays</b>: Me → Settings → connect <b className="text-white/85">Google Fit</b> (or Samsung Health).</li>
-            <li>2. In that app, turn on sharing with <b className="text-white/85">Health Connect</b>.</li>
+            <li>1. In <b className="text-white/85">FitDays</b>, turn on syncing with <b className="text-white/85">Health Connect</b> (or with Google Fit / Samsung Health, which pass it on).</li>
+            <li>2. In Health Connect, make sure FitDays may <b className="text-white/85">write</b> weight and body fat.</li>
             <li>3. Tap Connect below and allow everything it asks for (weight, body fat, fat-free mass, bone, water, BMR, heart rate).</li>
           </ol>
           <PrimaryButton className="mt-3 w-full" onClick={connectScale} disabled={h.busy || h.status === "checking"}>

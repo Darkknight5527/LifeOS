@@ -101,15 +101,34 @@ export function LineChart({ points, height = 150, color = "rgb(var(--fin-accent)
   const n = points.length;
   const W = 600;
   const H = height;
-  const X = (i) => (n === 1 ? W / 2 : 8 + (i / (n - 1)) * (W - 16));
+  // Points with a time `t` (e.g. day number) are spaced by real time, so a long
+  // gap looks long; otherwise they're evenly spaced.
+  const timed = n > 1 && points.every((q) => Number.isFinite(q.t)) && points[n - 1].t > points[0].t;
+  const frac = (i) => (timed ? (points[i].t - points[0].t) / (points[n - 1].t - points[0].t) : i / (n - 1));
+  const X = (i) => (n === 1 ? W / 2 : 8 + frac(i) * (W - 16));
   const Y = (v) => H - ((v - min) / (max - min)) * H;
   const path = (pts) => pts.map((p, i) => (p.y == null ? null : `${i && pts[i - 1]?.y != null ? "L" : "M"}${X(i).toFixed(1)} ${Y(p.y).toFixed(1)}`)).filter(Boolean).join("");
-  const xLabels = n === 1 ? [0] : [...new Set([0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1])];
+  // Nearest point to a position along the chart (0–1).
+  const nearest = (f) => {
+    let best = 0;
+    for (let i = 1; i < n; i++) if (Math.abs(frac(i) - f) < Math.abs(frac(best) - f)) best = i;
+    return best;
+  };
+  // Up to four date labels, never crowding each other.
+  const xLabels = (() => {
+    if (n === 1) return [0];
+    const out = [];
+    for (const f of [0, 1 / 3, 2 / 3, 1]) {
+      const i = nearest(f);
+      if (!out.includes(i) && out.every((j) => Math.abs(frac(j) - frac(i)) > 0.18)) out.push(i);
+    }
+    if (!out.includes(n - 1)) out[out.length - 1] = n - 1;
+    return out.sort((a, b) => a - b);
+  })();
   const pick = (e) => {
     const r = box.current.getBoundingClientRect();
     const fx = ((e.clientX - r.left) / r.width) * W;
-    const i = n === 1 ? 0 : Math.round(((fx - 8) / (W - 16)) * (n - 1));
-    setHover(Math.max(0, Math.min(n - 1, i)));
+    setHover(n === 1 ? 0 : nearest(Math.max(0, Math.min(1, (fx - 8) / (W - 16)))));
   };
   const p = hover != null ? points[hover] : null;
   const left = hover != null ? (X(hover) / W) * 100 : 0;
