@@ -9,6 +9,12 @@ const BodyLogSchema = new mongoose.Schema({
   chest: { type: Number, default: null },
   arm: { type: Number, default: null },
   bodyFat: { type: Number, default: null }, // %
+  // From a smart scale via Health Connect (when the scale shares them):
+  leanMass: { type: Number, default: null }, // fat-free mass, kg
+  boneMass: { type: Number, default: null }, // kg
+  waterMass: { type: Number, default: null }, // body water, kg
+  bmr: { type: Number, default: null }, // kcal/day at rest
+  heartRate: { type: Number, default: null }, // bpm, measured on the scale
   notes: { type: String, default: "" },
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },

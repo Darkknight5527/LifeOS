@@ -28,6 +28,9 @@ const latestByDate = (list) => {
   return m;
 };
 
+// Body readings the scale may share alongside weight.
+const EXTRA = ["bodyFat", "leanMass", "boneMass", "waterMass", "bmr", "heartRate"];
+
 // Save readings: new days are created, changed days updated, the rest skipped.
 export async function saveReadings(readings) {
   const byDate = latestByDate(await api.list("body-logs"));
@@ -35,9 +38,10 @@ export async function saveReadings(readings) {
   let updated = 0;
   for (const r of readings) {
     const cur = byDate[r.date];
-    const patch = { weight: r.weight, ...(r.bodyFat ? { bodyFat: r.bodyFat } : {}) };
+    const patch = { weight: r.weight };
+    for (const k of EXTRA) if (r[k]) patch[k] = r[k];
     if (!cur) create.push({ date: r.date, ...patch, notes: `From ${r.source}` });
-    else if (Math.abs((cur.weight || 0) - r.weight) >= 0.05 || (r.bodyFat && cur.bodyFat !== r.bodyFat)) {
+    else if (Math.abs((cur.weight || 0) - r.weight) >= 0.05 || EXTRA.some((k) => r[k] && cur[k] !== r[k])) {
       await api.update("body-logs", cur._id, patch);
       updated++;
     }

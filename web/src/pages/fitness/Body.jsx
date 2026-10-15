@@ -3,7 +3,7 @@
 // calories you really burn (from your intake vs. weight change).
 import { useEffect, useMemo, useState } from "react";
 import { useFit } from "./FitContext.jsx";
-import { dayTotals, daysBetween, lastNDays, prettyDate, r1, todayISO, weightTrend } from "./lib";
+import { addDays, dayTotals, daysBetween, isoDate, lastNDays, parseISO, prettyDate, r1, todayISO, weightTrend } from "./lib";
 import { LineChart, NumberBox, kicker } from "./fit-ui.jsx";
 import { EmptyState, FinCard, Icon, PrimaryButton, Segmented } from "../finances/fin-ui.jsx";
 import { IN_APP } from "../../lib/inApp.js";
@@ -71,7 +71,7 @@ export function BodyView() {
 
   return (
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 lg:gap-4 xl:grid-cols-3 [&>*]:min-w-0">
-      <div className="space-y-5 lg:space-y-4">
+      <div className="fin-scroll space-y-5 lg:h-[calc(100dvh-178px)] lg:space-y-4 lg:overflow-y-auto lg:pr-1">
         <section className="relative animate-fade-up overflow-hidden rounded-[28px] bg-gradient-to-br from-[#6cb2ff] via-[#3b82f6] to-[#1d4ed8] p-6 shadow-glow lg:rounded-[24px] lg:p-5">
           <div className="pointer-events-none absolute -right-12 -top-14 h-48 w-48 rounded-full bg-white/10" />
           <div className="relative">
@@ -152,7 +152,8 @@ export function BodyView() {
         )}
       </FinCard>
 
-      <div className="space-y-5 lg:col-span-2 lg:space-y-4 xl:col-span-1">
+      <div className="fin-scroll space-y-5 lg:col-span-2 lg:space-y-4 xl:col-span-1 xl:h-[calc(100dvh-178px)] xl:overflow-y-auto xl:pr-1">
+        <CompositionCard />
         <FinCard title={<span className="flex items-center gap-2"><Icon name="flame" size={15} /> Your real calorie burn</span>}>
           {adaptive.ready ? (
             <>
@@ -218,6 +219,12 @@ function SmartScaleCard() {
           {!h.busy && h.lastSync && !h.sources?.length && (
             <div className="mt-2 rounded-xl bg-amber-400/10 px-3 py-2 text-[12.5px] text-amber-200">No weigh-ins found yet — check that FitDays shares to Google Fit or Samsung Health, and that app shares with Health Connect.</div>
           )}
+          {h.missing?.length > 0 && (
+            <div className="mt-3 rounded-xl bg-fin-accent/10 px-3 py-2.5 text-[13px] text-white/85">
+              LifeOS can now also read fat-free mass, bone mass, body water, BMR and heart rate from your scale.
+              <button onClick={connectScale} disabled={h.busy} className="mt-2 block w-full rounded-lg bg-fin-accent py-2 text-[13.5px] font-bold text-white disabled:opacity-50">Allow the new readings</button>
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={syncScale} disabled={h.busy} className={btn}>Sync now</button>
             <button onClick={openHealthSettings} className={btn}>Health Connect settings</button>
@@ -231,12 +238,12 @@ function SmartScaleCard() {
       ) : (
         <>
           <div className="text-[13.5px] leading-relaxed text-fin-muted">
-            Weigh in on your scale and LifeOS fills in your weight and body fat automatically — no typing.
+            Weigh in on your scale and LifeOS fills in your weight, body fat and the other body readings automatically — no typing.
           </div>
           <ol className="mt-2 space-y-1 text-[13px] text-fin-muted">
             <li>1. In <b className="text-white/85">FitDays</b>: Me → Settings → connect <b className="text-white/85">Google Fit</b> (or Samsung Health).</li>
             <li>2. In that app, turn on sharing with <b className="text-white/85">Health Connect</b>.</li>
-            <li>3. Tap Connect below and allow <b className="text-white/85">Weight</b> and <b className="text-white/85">Body fat</b>.</li>
+            <li>3. Tap Connect below and allow everything it asks for (weight, body fat, fat-free mass, bone, water, BMR, heart rate).</li>
           </ol>
           <PrimaryButton className="mt-3 w-full" onClick={connectScale} disabled={h.busy || h.status === "checking"}>
             {h.busy ? "Connecting…" : "Connect scale"}
@@ -244,6 +251,91 @@ function SmartScaleCard() {
           {h.status === "error" && <div className="mt-2 text-[12.5px] text-fin-danger">{h.error}</div>}
         </>
       )}
+    </FinCard>
+  );
+}
+
+// Body composition from the smart scale: what the weight is made of, and
+// whether what you've lost is fat or fat-free mass (muscle, water, organs).
+const avgOf = (list, key) => (list.length ? list.reduce((a, x) => a + x[key], 0) / list.length : null);
+function CompositionCard() {
+  const fit = useFit();
+  const pts = useMemo(
+    () =>
+      [...fit.body]
+        .filter((b) => b.weight > 0 && b.bodyFat > 0)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((b) => {
+          const fat = (b.weight * b.bodyFat) / 100;
+          return { ...b, fat, free: b.leanMass > 0 ? b.leanMass : b.weight - fat };
+        }),
+    [fit.body]
+  );
+  const last = pts[pts.length - 1];
+  // Latest = average of the last 3 readings; "before" = the 3 readings up to ~4 weeks earlier
+  // (or the first readings if there's less history). Smooths out daily water swings.
+  const change = useMemo(() => {
+    if (pts.length < 4) return null;
+    const now = pts.slice(-3);
+    const cut = isoDate(addDays(parseISO(last.date), -28));
+    let before = pts.filter((p) => p.date <= cut).slice(-3);
+    if (!before.length) before = pts.slice(0, 3);
+    const days = daysBetween(before[before.length - 1].date, now[now.length - 1].date);
+    if (days < 14) return null;
+    return { since: before[0].date, days, fat: r1(avgOf(now, "fat") - avgOf(before, "fat")), free: r1(avgOf(now, "free") - avgOf(before, "free")) };
+  }, [pts, last]);
+
+  if (!last) {
+    return (
+      <FinCard title="Body composition">
+        <div className="text-[14px] leading-relaxed text-fin-muted">
+          {IN_APP ? "Connect your smart scale below" : "Connect your smart scale in the LifeOS phone app"} to see body fat, fat mass, fat-free mass, body water and more here — or type a body fat % with a weigh-in.
+        </div>
+      </FinCard>
+    );
+  }
+  const tiles = [
+    ["Body fat", `${r1(last.bodyFat)}%`],
+    ["Fat mass", `${r1(last.fat)} kg`],
+    ["Fat-free mass", `${r1(last.free)} kg`],
+    last.waterMass > 0 && ["Body water", `${r1((last.waterMass / last.weight) * 100)}%`],
+    last.boneMass > 0 && ["Bone mass", `${r1(last.boneMass)} kg`],
+    last.bmr > 0 && ["BMR", `${last.bmr} kcal`],
+    last.heartRate > 0 && ["Heart rate", `${last.heartRate} bpm`],
+  ].filter(Boolean);
+  const lost = change && change.fat + change.free < 0 ? -(change.fat + change.free) : 0;
+  const freeShare = lost && change.free < 0 ? -change.free / lost : 0;
+  const sign = (v) => `${v > 0 ? "+" : ""}${v} kg`;
+
+  return (
+    <FinCard title="Body composition" action={<span className="text-[12.5px] text-fin-faint">{prettyDate(last.date, { day: "numeric", month: "short" })}</span>}>
+      <div className="grid grid-cols-3 gap-2">
+        {tiles.map(([k, v]) => (
+          <div key={k} className="rounded-2xl bg-fin-input px-2.5 py-2">
+            <div className="truncate text-[11.5px] text-fin-muted">{k}</div>
+            <div className="tabular text-[16px] font-extrabold">{v}</div>
+          </div>
+        ))}
+      </div>
+      {change ? (
+        <div className="mt-3 rounded-2xl bg-fin-input px-3 py-2.5">
+          <div className="text-[12px] text-fin-muted">Since {prettyDate(change.since, { day: "numeric", month: "short" })} ({Math.round(change.days / 7)} weeks)</div>
+          <div className="tabular mt-0.5 flex gap-4 text-[15px] font-bold">
+            <span className={change.fat < 0 ? "text-emerald-300" : "text-amber-300"}>Fat {sign(change.fat)}</span>
+            <span className={change.free < -0.3 ? "text-amber-300" : "text-white"}>Fat-free {sign(change.free)}</span>
+          </div>
+          <div className="mt-1 text-[12.5px] leading-snug text-fin-muted">
+            {!lost
+              ? "No overall loss yet over this period."
+              : freeShare > 0.35
+                ? "A good part of the loss is fat-free mass (muscle and water). Keep protein high and keep lifting so more of it comes from fat."
+                : "Most of what you've lost is fat — exactly what you want."}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 text-[12.5px] text-fin-faint">After a few weeks of weigh-ins, this shows how much of the change is fat and how much is fat-free mass.</div>
+      )}
+      <div className="mt-2 text-[11.5px] leading-snug text-fin-faint">Scales estimate these from a small current through your feet, so they swing with how much water you drank. Watch the change over weeks, not single days.</div>
     </FinCard>
   );
 }

@@ -3,7 +3,7 @@
     "name": "LifeOS",
     "slug": "lifeos",
     "scheme": "lifeos",
-    "version": "1.7.0",
+    "version": "1.8.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.darkknight.lifeos",
-      "versionCode": 12,
+      "versionCode": 13,
       "adaptiveIcon": {
         "backgroundColor": "#f27a2c",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -30,6 +30,12 @@
       "permissions": [
         "android.permission.health.READ_WEIGHT",
         "android.permission.health.READ_BODY_FAT",
+        "android.permission.health.READ_LEAN_BODY_MASS",
+        "android.permission.health.READ_BONE_MASS",
+        "android.permission.health.READ_BODY_WATER_MASS",
+        "android.permission.health.READ_BASAL_METABOLIC_RATE",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_RESTING_HEART_RATE",
         "android.permission.health.READ_HEALTH_DATA_HISTORY",
         "android.permission.VIBRATE",
         "android.permission.CAMERA",
