@@ -127,6 +127,19 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
       return fetch(`${baseUrl}/skin-scans/${id}/photo/${angle}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     },
 
+    // AI meal photo estimates (the photo isn't stored)
+    mealScanAllowance: () => request("/meal-scans/allowance"),
+    mealScan: (photo, hint) => request("/meal-scans", { method: "POST", body: { photo, hint } }),
+
+    // Body progress photos (private; never sent to AI)
+    progressPhotos: () => request("/progress-photos"),
+    saveProgressPhoto: (date, pose, data) => request("/progress-photos", { method: "POST", body: { date, pose, data } }),
+    deleteProgressPhoto: (id) => request(`/progress-photos/${id}`, { method: "DELETE" }),
+    progressPhotoImage: (id) => {
+      const token = getToken();
+      return fetch(`${baseUrl}/progress-photos/${id}/image`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    },
+
     // Reference books (private PDFs)
     books: () => request("/books"),
     deleteBook: (key) => request(`/books/${encodeURIComponent(key)}`, { method: "DELETE" }),

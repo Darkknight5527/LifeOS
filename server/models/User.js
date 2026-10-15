@@ -10,6 +10,9 @@ const UserSchema = new mongoose.Schema({
   // AI skin checks used today (friends get one a day).
   aiDay: { type: String, default: "" },
   aiCount: { type: Number, default: 0 },
+  // AI meal photo estimates used today (friends get a few a day).
+  mealAiDay: { type: String, default: "" },
+  mealAiCount: { type: Number, default: 0 },
   lastSeenAt: { type: Number, default: 0 },
   createdAt: { type: Number, default: () => Date.now() },
 });

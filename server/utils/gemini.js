@@ -1,4 +1,4 @@
-// Skin analysis with Google's Gemini vision models (Google AI Studio key).
+// Image analysis (skin checks, meal photos) with Google's Gemini vision models (Google AI Studio key).
 // Set GEMINI_API_KEY on the server; GEMINI_MODEL is optional.
 // GEMINI_API_URL is only for tests (a stand-in server); normally Google.
 const API = process.env.GEMINI_API_URL || "https://generativelanguage.googleapis.com/v1beta/models";
@@ -118,33 +118,26 @@ export function skinScore(scores) {
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(+n) ? +n : lo));
 
 /**
- * photos: [{ angle, mime, data: Buffer }]
- * Returns the parsed analysis, or throws an Error with a readable message.
+ * Ask Gemini for JSON matching `schema`. `parts` are Gemini content parts
+ * (text and inline images). Tries the main model (with short retries when
+ * busy), then the fallbacks. Returns { out, model } or throws a readable Error.
  */
-export async function analyzeSkin(photos, { previous, routine, reported, fetchImpl = fetch, wait = true } = {}) {
+export async function geminiJSON(parts, schema, { temperature = 0.1, fetchImpl = fetch, wait = true } = {}) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("AI isn't set up yet: add GEMINI_API_KEY on the server.");
-  const parts = [{ text: prompt(previous, routine, reported) }];
-  for (const p of photos) {
-    parts.push({ text: `Photo: ${p.angle}` });
-    parts.push({ inline_data: { mime_type: p.mime, data: p.data.toString("base64") } });
-  }
   const request = (model) =>
     fetchImpl(`${API}/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         contents: [{ role: "user", parts }],
-        generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema: SCHEMA },
+        generationConfig: { temperature, responseMimeType: "application/json", responseSchema: schema },
       }),
       signal: AbortSignal.timeout(60_000),
     });
 
-  // Main model first (with two short retries when it's busy), then the fallbacks.
   const models = [...new Set([GEMINI_MODEL(), ...FALLBACKS()])];
   let lastErr = null;
-  let out = null;
-  let used = null;
   outer: for (const model of models) {
     for (let attempt = 0; attempt < (model === models[0] ? 3 : 2); attempt++) {
       if (attempt) await sleep(attempt * 2500 * (wait ? 1 : 0));
@@ -172,16 +165,27 @@ export async function analyzeSkin(photos, { previous, routine, reported, fetchIm
       }
       const text = body?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
       try {
-        out = JSON.parse(text);
-        used = model;
-        break outer;
+        return { out: JSON.parse(text), model };
       } catch {
         const reason = body?.candidates?.[0]?.finishReason || body?.promptFeedback?.blockReason;
         lastErr = new Error(`The AI didn't return a result${reason ? ` (${reason})` : ""}. Try again.`);
       }
     }
   }
-  if (!out) throw lastErr || new Error("The AI didn't answer. Try again.");
+  throw lastErr || new Error("The AI didn't answer. Try again.");
+}
+
+/**
+ * photos: [{ angle, mime, data: Buffer }]
+ * Returns the parsed analysis, or throws an Error with a readable message.
+ */
+export async function analyzeSkin(photos, { previous, routine, reported, fetchImpl = fetch, wait = true } = {}) {
+  const parts = [{ text: prompt(previous, routine, reported) }];
+  for (const p of photos) {
+    parts.push({ text: `Photo: ${p.angle}` });
+    parts.push({ inline_data: { mime_type: p.mime, data: p.data.toString("base64") } });
+  }
+  const { out, model: used } = await geminiJSON(parts, SCHEMA, { fetchImpl, wait });
   const scores = {};
   for (const m of METRICS) scores[m] = Math.round(clamp(out?.scores?.[m], 0, 10) * 10) / 10;
   return {

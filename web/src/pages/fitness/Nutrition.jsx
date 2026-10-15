@@ -6,6 +6,7 @@ import { useFit } from "./FitContext.jsx";
 import { FOODS, searchFoods } from "./foods.js";
 import { ACTIVITY, GOALS, MACROS, MEALS, addDays, dayTotals, isoDate, lastNDays, newId, parseISO, prettyDate, r1, todayISO } from "./lib";
 import { Bars, NumberBox, kicker } from "./fit-ui.jsx";
+import { MealPhoto } from "./MealPhoto.jsx";
 import { EmptyState, FinCard, GhostButton, Icon, IconButton, Pill, PrimaryButton, Ring, Segmented, Sheet, TextField } from "../finances/fin-ui.jsx";
 
 const round = (n) => Math.round(n);
@@ -201,8 +202,9 @@ function AddFoodSheet({ meal, date, onClose }) {
   if (!meal) return null;
   const mealLabel = MEALS.find((m) => m.id === meal)?.label;
   const log = fit.foodByDate[date];
-  const addEntry = (e) => {
-    fit.saveFood(date, { entries: [...(log?.entries || []), { id: newId(), meal, ...e }] });
+  const addEntry = (e) => addEntries([e]);
+  const addEntries = (list) => {
+    fit.saveFood(date, { entries: [...(log?.entries || []), ...list.map((e) => ({ id: newId(), meal, ...e }))] });
     onClose();
   };
   const list = mode === "recent" ? recent : results;
@@ -254,8 +256,10 @@ function AddFoodSheet({ meal, date, onClose }) {
         </div>
       ) : (
         <>
-          <Segmented className="[&_button]:!py-2 [&_button]:!text-[14px]" value={mode} onChange={setMode} options={[{ value: "search", label: "Search" }, { value: "recent", label: "Recent" }, { value: "quick", label: "Quick add" }]} />
-          {mode === "quick" ? (
+          <Segmented className="[&_button]:!py-2 [&_button]:!text-[14px]" value={mode} onChange={setMode} options={[{ value: "search", label: "Search" }, { value: "recent", label: "Recent" }, { value: "photo", label: "Photo" }, { value: "quick", label: "Quick" }]} />
+          {mode === "photo" ? (
+            <MealPhoto mealLabel={mealLabel?.toLowerCase()} onAdd={addEntries} />
+          ) : mode === "quick" ? (
             <div className="mt-4 space-y-3">
               <TextField value={quick.name} onChange={(e) => setQuick((x) => ({ ...x, name: e.target.value }))} placeholder="What was it? (optional)" />
               <div className="grid grid-cols-4 gap-2">

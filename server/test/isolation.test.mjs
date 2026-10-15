@@ -42,11 +42,14 @@ await mongoose.disconnect();
 
 // ---------- fake Gemini ----------
 const good = { photoQuality: { usable: true, issues: "" }, scores: { acne: 2, marks: 2, redness: 2, oiliness: 2, dryness: 2, darkCircles: 2, texture: 2, unevenTone: 2 }, overall: 77, headline: "ok", summary: "ok", changes: "", areas: [], tips: [], seeDermatologist: false };
+const meal = { isFood: true, photoQuality: "", items: [{ name: "Chapati", portion: "2 medium", grams: 80, cal: 240, p: 6, c: 40, f: 6 }, { name: "Dal", portion: "1 katori", grams: 150, cal: 180, p: 9, c: 22, f: 6 }], confidence: "medium", notes: "" };
 const gem = http.createServer((req, res) => {
-  req.resume();
+  let body = "";
+  req.on("data", (d) => (body += d));
   req.on("end", () => {
+    const answer = body.includes("calories and macros of a meal") ? meal : good;
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(good) }] } }] }));
+    res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(answer) }] } }] }));
   });
 }).listen(4288);
 
@@ -180,6 +183,35 @@ try {
   ok(!(await call("GET", "/skin-scans", FRIEND)).data.some((s) => s._id === o2.data._id), "friend can't see owner's checks");
   ok((await fetch(`${API}/skin-scans/${o2.data._id}/photo/front`, { headers: { Authorization: `Bearer ${FRIEND}` } })).status === 404, "friend can't load owner's face photo");
   ok((await fetch(`${API}/skin-scans/${o2.data._id}/photo/front`, { headers: { Authorization: `Bearer ${OWNER}` } })).status === 200, "owner loads own photo");
+
+  // ---------- 9b. AI meal photos: a few a day for friends, nothing stored ----------
+  const m1 = await call("POST", "/meal-scans", FRIEND, { photo: jpeg, hint: "2 chapatis" });
+  ok(m1.status === 200 && m1.data.items.length === 2 && m1.data.total.cal === 420, `meal estimate works (${m1.status} ${JSON.stringify(m1.data).slice(0, 80)})`);
+  ok((await call("POST", "/meal-scans", FRIEND, { photo: Buffer.from("not an image").toString("base64") })).status === 400, "meal estimate refuses a non-image");
+  await call("POST", "/meal-scans", FRIEND, { photo: jpeg });
+  await call("POST", "/meal-scans", FRIEND, { photo: jpeg });
+  ok((await call("POST", "/meal-scans", FRIEND, { photo: jpeg })).status === 429, "friend's 4th meal estimate of the day is refused");
+  ok((await call("GET", "/meal-scans/allowance", FRIEND)).data.ok === false, "meal allowance says none left");
+  ok((await call("GET", "/skin-scans/allowance", FRIEND)).data.used === 1, "meal estimates don't use up the skin check");
+  for (let i = 0; i < 4; i++) ok((await call("POST", "/meal-scans", OWNER, { photo: jpeg })).status === 200, `owner's meal estimate ${i + 1} isn't limited`);
+
+  // ---------- 9c. progress photos are private ----------
+  const pp = await call("POST", "/progress-photos", OWNER, { date: "2026-10-12", pose: "front", data: jpeg });
+  ok(pp.status === 201 && !pp.data.data, "owner saves a progress photo (no image bytes echoed back)");
+  ok((await call("POST", "/progress-photos", OWNER, { date: "2026-10-12", pose: "upside-down", data: jpeg })).status === 400, "unknown pose refused");
+  ok((await call("POST", "/progress-photos", OWNER, { date: "2026-10-12", pose: "front", data: Buffer.from("nope").toString("base64") })).status === 400, "non-image refused");
+  const pp2 = await call("POST", "/progress-photos", OWNER, { date: "2026-10-12", pose: "front", data: jpeg });
+  const opl = await call("GET", "/progress-photos", OWNER);
+  ok(opl.data.length === 1 && opl.data[0]._id === pp2.data._id && !("data" in opl.data[0]), "a retake replaces that day's pose; list has no image bytes");
+  const fpp = await call("POST", "/progress-photos", FRIEND, { date: "2026-10-12", pose: "front", data: jpeg, userId: login.data.user.id });
+  ok(fpp.status === 201 && String(fpp.data.userId) === friendId, "friend's photo lands in friend's account");
+  ok((await call("GET", "/progress-photos", OWNER)).data.length === 1, "owner's retake didn't touch friend's photo, and owner can't see it");
+  ok(!(await call("GET", "/progress-photos", FRIEND)).data.some((p) => p._id === pp2.data._id), "friend can't list owner's photos");
+  ok((await fetch(`${API}/progress-photos/${pp2.data._id}/image`, { headers: { Authorization: `Bearer ${FRIEND}` } })).status === 404, "friend can't load owner's progress photo");
+  const img = await fetch(`${API}/progress-photos/${pp2.data._id}/image`, { headers: { Authorization: `Bearer ${OWNER}` } });
+  ok(img.status === 200 && img.headers.get("content-type") === "image/jpeg", "owner loads own progress photo");
+  ok((await call("DELETE", `/progress-photos/${pp2.data._id}`, FRIEND)).status === 404, "friend can't delete owner's progress photo");
+  ok((await call("GET", "/progress-photos", OWNER)).data.length === 1, "owner's photo still there");
 
   // ---------- 10. passwords ----------
   const rp = await call("POST", `/admin/users/${friendId}/reset-password`, OWNER);

@@ -3,11 +3,14 @@ import { useLocation } from "react-router-dom";
 import DomainShell from "../components/DomainShell.jsx";
 import { useViewKeys } from "../components/useViewKeys.js";
 import { reloadedHere } from "../lib/navigation.js";
-import { Segmented } from "./finances/fin-ui.jsx";
+import { Icon, Segmented } from "./finances/fin-ui.jsx";
 import { FitProvider, useFit } from "./fitness/FitContext.jsx";
 import { TrainHistory, TrainProgram, TrainProgress, TrainToday } from "./fitness/Train.jsx";
 import { NutritionInsights, NutritionTargets, NutritionToday } from "./fitness/Nutrition.jsx";
 import { BodyView } from "./fitness/Body.jsx";
+import { PhotosView } from "./fitness/Photos.jsx";
+import { CheckinView } from "./fitness/Checkin.jsx";
+import { checkinDue, weekLabel } from "./fitness/checkin.js";
 import { CaliGuides, CaliProvider, CaliTraining, CaliTree, CaliTutorials } from "./fitness/cali/Cali.jsx";
 
 const TABS = [
@@ -34,14 +37,18 @@ const VIEWS = {
     { value: "insights", label: "Insights" },
     { value: "targets", label: "Targets & foods" },
   ],
-  body: [],
+  body: [
+    { value: "weight", label: "Weight" },
+    { value: "photos", label: "Photos" },
+    { value: "checkin", label: "Check-in" },
+  ],
 };
 const RANGES = [
   { value: 7, label: "7 days" },
   { value: 30, label: "30 days" },
 ];
 const KEY = "lifeos_fit_view";
-const FRESH = { tab: "train", views: { train: "today", cali: "tree", nutrition: "today", body: "" } };
+const FRESH = { tab: "train", views: { train: "today", cali: "tree", nutrition: "today", body: "weight" } };
 let restored = false;
 
 // Train › Today when you come in; after a refresh, wherever you were.
@@ -77,9 +84,11 @@ function FitnessShell() {
     if (t && VIEWS[t]) setState((s) => ({ ...s, tab: t, views: { ...s.views, [t]: FRESH.views[t] } }));
   }, [location.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const { tab } = state;
-  const view = state.views[tab];
+  // A view saved by an older version may no longer exist: fall back to the tab's first.
+  const view = VIEWS[tab].some((v) => v.value === state.views[tab]) ? state.views[tab] : FRESH.views[tab];
   const setView = (v) => setState((s) => ({ ...s, views: { ...s.views, [s.tab]: v } }));
   useViewKeys(VIEWS[tab], view, setView); // 1–4 / Shift+← → switch views
+  const due = fit.hasData ? checkinDue(fit.checkins) : null;
 
   useEffect(() => {
     try {
@@ -112,6 +121,22 @@ function FitnessShell() {
       failed={Boolean(fit.error) && fit.hasData}
       onRetry={fit.reload}
     >
+      {due && !(tab === "body" && view === "checkin") && (
+        <button
+          onClick={() => {
+            setState((s) => ({ ...s, tab: "body", views: { ...s.views, body: "checkin" } }));
+            window.scrollTo({ top: 0 });
+          }}
+          className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-fin-accent/15 px-4 py-3 text-left ring-1 ring-fin-accent/30 transition hover:bg-fin-accent/20"
+        >
+          <Icon name="clipboard" size={20} className="shrink-0 text-fin-accent" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14.5px] font-semibold">Your Sunday check-in is ready</span>
+            <span className="block truncate text-[12.5px] text-fin-muted">Week of {weekLabel(due)} · takes 2 minutes</span>
+          </span>
+          <Icon name="right" size={16} className="shrink-0 text-fin-accent" />
+        </button>
+      )}
       {VIEWS[tab].length > 0 && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="w-full max-w-[480px]" title={`Keys: 1–${VIEWS[tab].length} or Shift + ← →`}><Segmented className="w-full [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={VIEWS[tab]} /></div>
@@ -142,7 +167,9 @@ function FitnessShell() {
           {tab === "cali" && view === "training" && <CaliTraining />}
           {tab === "cali" && view === "tutorials" && <CaliTutorials />}
           {tab === "cali" && view === "guides" && <CaliGuides />}
-          {tab === "body" && <BodyView />}
+          {tab === "body" && view === "weight" && <BodyView />}
+          {tab === "body" && view === "photos" && <PhotosView />}
+          {tab === "body" && view === "checkin" && <CheckinView />}
         </div>
         </CaliProvider>
       )}

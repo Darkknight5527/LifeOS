@@ -7,7 +7,7 @@ import { useToast } from "../../components/Toast.jsx";
 import { DEFAULT_SCHEDULE, computeTargets, defaultProgram } from "./lib";
 
 export const FIT_CACHE_KEY = "lifeos_fit_cache_v1";
-const C = { settings: "fit-settings", sessions: "workout-strength", cardio: "workout-cardio", food: "food-logs", custom: "custom-foods", body: "body-logs", cali: "cali-logs" };
+const C = { settings: "fit-settings", sessions: "workout-strength", cardio: "workout-cardio", food: "food-logs", custom: "custom-foods", body: "body-logs", cali: "cali-logs", checkins: "weekly-checkins" };
 const byDateDesc = (a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0);
 const FitContext = createContext(null);
 
@@ -28,7 +28,7 @@ const latestByDate = (list) => {
 export function FitProvider({ children }) {
   const showToast = useToast();
   const cached = useMemo(readCache, []);
-  const [d, setD] = useState(() => (cached ? { cali: [], ...cached } : { settings: null, sessions: [], cardio: [], food: [], custom: [], body: [], cali: [] }));
+  const [d, setD] = useState(() => (cached ? { cali: [], checkins: [], ...cached } : { settings: null, sessions: [], cardio: [], food: [], custom: [], body: [], cali: [], checkins: [] }));
   const [status, setStatus] = useState({ loading: !cached, syncing: true, error: null });
   const ref = useRef(d);
   ref.current = d;
@@ -39,7 +39,7 @@ export function FitProvider({ children }) {
   const load = useCallback(async () => {
     setStatus((s) => ({ ...s, syncing: true, error: null }));
     try {
-      const [settingsList, sessions, cardio, food, custom, body, cali] = await Promise.all([
+      const [settingsList, sessions, cardio, food, custom, body, cali, checkins] = await Promise.all([
         api.list(C.settings),
         api.list(C.sessions),
         api.list(C.cardio),
@@ -47,6 +47,7 @@ export function FitProvider({ children }) {
         api.list(C.custom),
         api.list(C.body),
         api.list(C.cali).catch(() => []),
+        api.list(C.checkins).catch(() => []),
       ]);
       let settings = settingsList[0];
       if (!settings) settings = await api.create(C.settings, { program: defaultProgram(), schedule: DEFAULT_SCHEDULE, restSec: 90, profile: {}, targets: {}, autoTargets: true });
@@ -56,7 +57,7 @@ export function FitProvider({ children }) {
         if (!Array.isArray(settings.schedule) || settings.schedule.length !== 7) fix.schedule = DEFAULT_SCHEDULE;
         if (Object.keys(fix).length) settings = await api.update(C.settings, settings._id, fix);
       }
-      setD({ settings, sessions: sessions.sort(byDateDesc), cardio: cardio.sort(byDateDesc), food, custom, body, cali: cali.sort(byDateDesc) });
+      setD({ settings, sessions: sessions.sort(byDateDesc), cardio: cardio.sort(byDateDesc), food, custom, body, cali: cali.sort(byDateDesc), checkins });
       setStatus({ loading: false, syncing: false, error: null });
     } catch (err) {
       setStatus({ loading: false, syncing: false, error: err.message || "Failed to load" });
@@ -186,6 +187,7 @@ export function FitProvider({ children }) {
   const custom = useMemo(() => listOps("custom", "Food"), [listOps]);
   const bodyOps = useMemo(() => listOps("body", "Weigh-in"), [listOps]);
   const caliOps = useMemo(() => listOps("cali", "Practice"), [listOps]);
+  const checkinOps = useMemo(() => listOps("checkins", "Check-in"), [listOps]);
 
   // ---------- one document per date (food logs, body logs) ----------
   const saveDay = useCallback(
@@ -243,6 +245,8 @@ export function FitProvider({ children }) {
     importData,
     cali: d.cali || [],
     caliOps,
+    checkins: d.checkins || [],
+    checkinOps,
   };
   return <FitContext.Provider value={value}>{children}</FitContext.Provider>;
 }

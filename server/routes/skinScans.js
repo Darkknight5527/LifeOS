@@ -9,7 +9,8 @@ import SkincareStep from "../models/SkincareStep.js";
 import SkinLog from "../models/SkinLog.js";
 import { analyzeSkin } from "../utils/gemini.js";
 import { rateLimit } from "../utils/security.js";
-import User from "../models/User.js";
+import { sniffImage } from "../utils/images.js";
+import { aiAllowance as allowanceFor, countAiUse as countUse } from "../utils/aiAllowance.js";
 
 const router = Router();
 const ANGLES = ["front", "left", "right"];
@@ -20,37 +21,11 @@ const aiLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: "Too man
 
 const isId = (id) => mongoose.isValidObjectId(id);
 
-// Friends get one AI check a day (the owner isn't limited). A failed read
-// doesn't count, so "Try again" always works. Days are India time.
-const FRIEND_DAILY = 1;
-const istDay = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
-async function aiAllowance(userId) {
-  const u = await User.findById(userId).select("role aiDay aiCount").lean();
-  if (!u) return { ok: false };
-  if (u.role === "admin") return { ok: true, unlimited: true };
-  const used = u.aiDay === istDay() ? u.aiCount || 0 : 0;
-  return { ok: used < FRIEND_DAILY, used, limit: FRIEND_DAILY };
-}
-async function countAiUse(userId) {
-  const day = istDay();
-  const u = await User.findById(userId).select("aiDay aiCount");
-  if (!u) return;
-  if (u.aiDay !== day) {
-    u.aiDay = day;
-    u.aiCount = 0;
-  }
-  u.aiCount += 1;
-  await u.save();
-}
+// Friends get one AI check a day (the owner isn't limited).
+const aiAllowance = (userId) => allowanceFor(userId, "skin");
+const countAiUse = (userId) => countUse(userId, "skin");
 const LIMIT_MSG = "You've used today's AI skin check. You can take the next one tomorrow.";
 const bad = (res, msg) => res.status(400).json({ error: msg });
-
-function sniffImage(buf) {
-  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
-  if (buf.length > 8 && buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
-  if (buf.length > 12 && buf.subarray(0, 4).toString() === "RIFF" && buf.subarray(8, 12).toString() === "WEBP") return "image/webp";
-  return null;
-}
 
 async function routineText(userId) {
   try {

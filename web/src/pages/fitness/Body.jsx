@@ -112,7 +112,7 @@ export function BodyView() {
 
       <FinCard
         title="Weight trend"
-        className="lg:min-h-[calc(100dvh-178px)]"
+        className="flex flex-col lg:h-[calc(100dvh-178px)]"
         action={<Segmented className="w-[200px] [&_button]:!py-1 [&_button]:!text-[12.5px]" value={range} onChange={setRange} options={[{ value: 30, label: "30d" }, { value: 90, label: "90d" }, { value: "all", label: "All" }]} />}
       >
         {shown.length ? (
@@ -130,7 +130,7 @@ export function BodyView() {
               <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 border-t-2 border-dashed border-white/40" /> Scale</span>
             </div>
             <div className={`${kicker} mt-4`}>Recent weigh-ins</div>
-            <div className="fin-scroll space-y-1 lg:max-h-[calc(100dvh-520px)] lg:overflow-y-auto">
+            <div className="fin-scroll space-y-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
               {[...fit.body].filter((b) => b.weight || b.waist).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).map((b) => (
                 <div key={b._id} className="tabular group flex items-center justify-between gap-3 rounded-lg py-0.5 pl-1 text-[13.5px] hover:bg-white/[0.03]">
                   <span className="text-fin-muted">{prettyDate(b.date)}</span>
