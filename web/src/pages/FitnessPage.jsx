@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useBackSteps } from "../lib/backSteps.js";
 import { useLocation } from "react-router-dom";
 import DomainShell from "../components/DomainShell.jsx";
 import { useViewKeys } from "../components/useViewKeys.js";
@@ -76,6 +77,7 @@ export default function FitnessPage() {
 function FitnessShell() {
   const fit = useFit();
   const [state, setState] = useState(initial);
+  useBackSteps("fitnessView", state, setState); // back goes to the previous tab / view
   const [range, setRange] = useState(7);
   // A notification can ask for a tab (e.g. the water reminder opens Nutrition).
   const location = useLocation();
@@ -121,27 +123,28 @@ function FitnessShell() {
       failed={Boolean(fit.error) && fit.hasData}
       onRetry={fit.reload}
     >
-      {due && !(tab === "body" && view === "checkin") && (
-        <button
-          onClick={() => {
-            setState((s) => ({ ...s, tab: "body", views: { ...s.views, body: "checkin" } }));
-            window.scrollTo({ top: 0 });
-          }}
-          className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-fin-accent/15 px-4 py-3 text-left ring-1 ring-fin-accent/30 transition hover:bg-fin-accent/20"
-        >
-          <Icon name="clipboard" size={20} className="shrink-0 text-fin-accent" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-[14.5px] font-semibold">Your Sunday check-in is ready</span>
-            <span className="block truncate text-[12.5px] text-fin-muted">Week of {weekLabel(due)} · takes 2 minutes</span>
-          </span>
-          <Icon name="right" size={16} className="shrink-0 text-fin-accent" />
-        </button>
-      )}
       {VIEWS[tab].length > 0 && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="w-full max-w-[480px]" title={`Keys: 1–${VIEWS[tab].length} or Shift + ← →`}><Segmented className="w-full [&_button]:!py-2 [&_button]:!text-[14px]" value={view} onChange={setView} options={VIEWS[tab]} /></div>
           {tab === "nutrition" && view === "insights" && (
             <Segmented className="w-full sm:w-[200px] sm:shrink-0 [&_button]:!py-1.5 [&_button]:!text-[13px]" value={range} onChange={setRange} options={RANGES} />
+          )}
+          {/* Sunday check-in nudge: above the views on a phone, beside them on a laptop (keeps pages one screen tall). */}
+          {due && !(tab === "body" && view === "checkin") && (
+            <button
+              onClick={() => {
+                setState((s) => ({ ...s, tab: "body", views: { ...s.views, body: "checkin" } }));
+                window.scrollTo({ top: 0 });
+              }}
+              className="order-first flex w-full items-center gap-3 rounded-2xl bg-fin-accent/15 px-4 py-3 text-left ring-1 ring-fin-accent/30 transition hover:bg-fin-accent/20 lg:order-none lg:ml-auto lg:w-auto lg:py-1.5"
+            >
+              <Icon name="clipboard" size={20} className="shrink-0 text-fin-accent" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14.5px] font-semibold lg:text-[13.5px]">Your Sunday check-in is ready</span>
+                <span className="block truncate text-[12.5px] text-fin-muted lg:text-[12px]">Week of {weekLabel(due)} · takes 2 minutes</span>
+              </span>
+              <Icon name="right" size={16} className="shrink-0 text-fin-accent" />
+            </button>
           )}
         </div>
       )}

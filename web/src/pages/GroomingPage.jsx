@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useBackSteps } from "../lib/backSteps.js";
 import DomainShell from "../components/DomainShell.jsx";
 import { useViewKeys } from "../components/useViewKeys.js";
 import { reloadedHere } from "../lib/navigation.js";
@@ -60,6 +61,7 @@ function GroomingShell() {
   const skin = useSkin();
   const care = useCare();
   const [state, setState] = useState(initial);
+  useBackSteps("groomingView", state, setState); // back goes to the previous tab / view
   const [range, setRange] = useState(30);
   const { tab } = state;
   const view = state.views[tab];

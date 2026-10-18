@@ -1,6 +1,7 @@
 // Mental & Psych: Journal (PIN-locked), Mind (breathing, meditation, sleep,
 // focus — Headspace-style), Skills (people, communication, English,
 // hobbies) and Library (books).
+import { useBackSteps } from "../lib/backSteps.js";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import DomainShell from "../components/DomainShell.jsx";
@@ -89,6 +90,7 @@ function MentalShell() {
   const j = useJournal();
   const mind = useMind();
   const [state, setState] = useState(initial);
+  useBackSteps("mentalView", state, setState); // back goes to the previous tab / view
   const [date, setDate] = useState(todayISO());
   const { tab } = state;
   const view = state.views[tab];

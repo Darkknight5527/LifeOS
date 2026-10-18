@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useBackSteps } from "../lib/backSteps.js";
 import { useSwipeTabs } from "../components/useSwipeTabs.js";
 import { useViewKeys } from "../components/useViewKeys.js";
 import { FinanceProvider, useFinance } from "./finances/FinanceContext.jsx";
@@ -53,6 +54,7 @@ function FinanceShell() {
   const { loading, syncing, error, reload, currentMonth, settings } = useFinance();
   const hasData = Boolean(settings);
   const [tab, setTab] = useState(initialTab);
+  useBackSteps("financesTab", tab, setTab); // back goes to the previous tab, not out of Finances
 
   // Remember the sub-tab for this browser tab, so a refresh can restore it.
   useEffect(() => {

@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { formatMoney } from "./lib";
+import { sheetOpened } from "../../lib/backSteps.js";
 
 // ---------- icons (inline, stroke-based, inherit currentColor) ----------
 const PATHS = {
@@ -408,6 +409,9 @@ export function Sheet({ open, onClose, title, children, footer, titleExtra, wide
       if (panel.current && !panel.current.contains(document.activeElement)) panel.current.focus();
     }, 30);
 
+    // The phone's back gesture closes the sheet instead of leaving the page.
+    const closed = sheetOpened(() => closeRef.current());
+
     const onKey = (e) => {
       // Only the top-most sheet reacts.
       const dialogs = document.querySelectorAll('[data-sheet="1"]');
@@ -434,6 +438,7 @@ export function Sheet({ open, onClose, title, children, footer, titleExtra, wide
     window.addEventListener("keydown", onKey);
     return () => {
       clearTimeout(t);
+      closed();
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
       openSheets--;
