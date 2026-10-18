@@ -32,8 +32,8 @@ const BLOCKS = [
   { id: "fit", to: "/fitness", name: "Fitness", color: DOMAIN.fitness.color, icon: "dumbbell", kind: "cells", big: "Strong body", why: "A body strong enough to carry the ambition." },
   { id: "goa", to: "/goals", name: "Goals", color: DOMAIN.goals.color, icon: "target", kind: "sram", off: true, why: "Dreams, broken into steps I can actually take. Being built." },
   { id: "men", to: "/mental", name: "Mental & Psych", color: DOMAIN.mental.color, icon: "sparkle", kind: "cells", big: "Calm mind", why: "Calm under pressure." },
-  { id: "tec", to: "/technical", name: "Technical", color: DOMAIN.technical.color, icon: "gear", off: true, small: true },
-  { id: "lea", to: "/learning", name: "Learning", color: DOMAIN.learning.color, icon: "list", off: true, small: true },
+  { id: "tec", to: "/tech", name: "Technical", color: "#4ade80", icon: "code", small: true, why: "Building things that prove what I know." },
+  { id: "lea", to: "/tech#learn", name: "Learning", color: "#4ade80", icon: "book", small: true, why: "Learning the skills my projects need next." },
 ];
 
 export default function System({ go }) {

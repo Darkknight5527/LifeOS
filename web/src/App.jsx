@@ -25,7 +25,9 @@ const PAGES = {
   finances: reloadOnChunkError(() => import("./pages/FinancesPage.jsx")),
   account: reloadOnChunkError(() => import("./pages/AccountPage.jsx")),
   mental: reloadOnChunkError(() => import("./pages/MentalPage.jsx")),
+  tech: reloadOnChunkError(() => import("./pages/TechPage.jsx")),
 };
+const TechPage = lazy(PAGES.tech);
 const MentalPage = lazy(PAGES.mental);
 const AccountPage = lazy(PAGES.account);
 const HomePage = lazy(PAGES.home);
@@ -303,6 +305,9 @@ export default function App() {
                 <Route path="/mental" element={<MentalPage />} />
                 <Route path="/grooming" element={<GroomingPage />} />
                 <Route path="/fitness" element={<FitnessPage />} />
+                <Route path="/tech" element={<TechPage />} />
+                <Route path="/technical" element={<Navigate to="/tech" replace />} />
+                <Route path="/learning" element={<Navigate to="/tech#learn" replace />} />
                 {/* old address from before the split */}
                 <Route path="/physical" element={<Navigate to="/grooming" replace />} />
                 <Route path="/finances" element={<FinancesPage />} />

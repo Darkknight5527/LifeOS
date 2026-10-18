@@ -47,6 +47,18 @@ const gem = http.createServer((req, res) => {
   let body = "";
   req.on("data", (d) => (body += d));
   req.on("end", () => {
+    if (req.url.startsWith("/users/")) {
+      // fake GitHub public events
+      const page = Number(new URL(req.url, "http://x").searchParams.get("page")) || 1;
+      const ev = page > 1 ? [] : [
+        { type: "PushEvent", created_at: "2026-10-10T06:00:00Z", repo: { name: "owner/lifeos" }, payload: { size: 3, distinct_size: 3 } },
+        { type: "PushEvent", created_at: "2026-10-10T08:00:00Z", repo: { name: "owner/lifeos" }, payload: {} },
+        { type: "PushEvent", created_at: "2026-10-09T20:00:00Z", repo: { name: "owner/parser" }, payload: { size: 2 } },
+        { type: "WatchEvent", created_at: "2026-10-08T10:00:00Z", repo: { name: "someone/else" }, payload: {} },
+      ];
+      res.writeHead(req.url.includes("nobody-here") ? 404 : 200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(ev));
+    }
     const answer = body.includes("calories and macros of a meal") ? meal : good;
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(answer) }] } }] }));
@@ -57,7 +69,7 @@ const gem = http.createServer((req, res) => {
 const logs = [];
 const srv = spawn("node", ["index.js"], {
   cwd: SERVER,
-  env: { ...process.env, MONGO_URI: DB, JWT_SECRET: "test-secret-0123456789", PORT: String(PORT), CLIENT_ORIGIN: "http://localhost", GEMINI_API_KEY: "fake", GEMINI_API_URL: "http://127.0.0.1:4288/models", CALENDAR_ICS_URL: "" },
+  env: { ...process.env, MONGO_URI: DB, JWT_SECRET: "test-secret-0123456789", PORT: String(PORT), CLIENT_ORIGIN: "http://localhost", GEMINI_API_KEY: "fake", GEMINI_API_URL: "http://127.0.0.1:4288/models", GITHUB_API_URL: "http://127.0.0.1:4288", CALENDAR_ICS_URL: "" },
 });
 srv.stdout.on("data", (d) => logs.push(String(d)));
 srv.stderr.on("data", (d) => logs.push(String(d)));
@@ -212,6 +224,17 @@ try {
   ok(img.status === 200 && img.headers.get("content-type") === "image/jpeg", "owner loads own progress photo");
   ok((await call("DELETE", `/progress-photos/${pp2.data._id}`, FRIEND)).status === 404, "friend can't delete owner's progress photo");
   ok((await call("GET", "/progress-photos", OWNER)).data.length === 1, "owner's photo still there");
+
+  // ---------- 9d. GitHub activity uses your own username ----------
+  ok((await call("GET", "/tech/github", FRIEND)).data.commits === 0, "no GitHub username → empty activity");
+  const os = await call("POST", "/tech-settings", OWNER, { githubUser: "owner" });
+  const gh = await call("GET", "/tech/github", OWNER);
+  ok(gh.status === 200 && gh.data.commits === 6 && gh.data.days["2026-10-10"] === 6 && gh.data.repos[0].name === "owner/lifeos", `GitHub activity counted (${JSON.stringify(gh.data).slice(0, 120)})`);
+  ok((await call("GET", "/tech/github", FRIEND)).data.commits === 0, "friend doesn't get owner's GitHub activity");
+  await call("POST", "/tech-settings", FRIEND, { githubUser: "nobody-here" });
+  ok((await call("GET", "/tech/github", FRIEND)).status === 404, "unknown GitHub user → clear error");
+  await call("PATCH", `/tech-settings/${os.data._id}`, OWNER, { githubUser: "bad user!" });
+  ok((await call("GET", "/tech/github", OWNER)).status === 400, "invalid username refused");
 
   // ---------- 10. passwords ----------
   const rp = await call("POST", `/admin/users/${friendId}/reset-password`, OWNER);

@@ -42,6 +42,13 @@ body {
   --fin-glow: rgba(139, 92, 246, 0.45);
 }
 
+.theme-green {
+  --fin-accent: 74 222 128;
+  --fin-grad-from: #6ee7a0;
+  --fin-grad-to: #15803d;
+  --fin-glow: rgba(74, 222, 128, 0.38);
+}
+
 .theme-gold {
   --fin-accent: 242 193 78;
   --fin-grad-from: #f7d27a;
