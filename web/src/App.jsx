@@ -14,7 +14,6 @@ import { pushNotifyStatus } from "./lib/notify.js";
 import { IN_APP, onAppMessage } from "./lib/inApp.js";
 import { reloadOnChunkError } from "./lib/sw.js";
 import LoginPage from "./pages/LoginPage.jsx";
-import PlaceholderPage from "./pages/PlaceholderPage.jsx";
 
 // Each domain's code downloads only when it's first needed, so the app opens
 // faster; the rest are fetched quietly in the background right after.
@@ -308,9 +307,6 @@ export default function App() {
                 <Route path="/physical" element={<Navigate to="/grooming" replace />} />
                 <Route path="/finances" element={<FinancesPage />} />
                 <Route path="/paper" element={<PaperPage />} />
-                <Route path="/goals" element={<PlaceholderPage title="Goals" />} />
-                <Route path="/technical" element={<PlaceholderPage title="Technical & Projects" />} />
-                <Route path="/learning" element={<PlaceholderPage title="Learning" />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               </Suspense>

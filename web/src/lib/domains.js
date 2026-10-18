@@ -1,6 +1,7 @@
 // Every LifeOS domain, in menu order. One list drives the laptop side menu,
 // the phone domain switcher and ↑ / ↓ switching.
-// ready: built pages (↑ / ↓ cycles through these; the rest show "Soon").
+// ready: built pages. Domains not built yet are hidden everywhere (menus,
+// switcher, ↑ / ↓) and their addresses go back to the start page.
 export const DOMAINS = [
   { to: "/", label: "North Star", short: "Home", icon: "star", color: "#f2c14e", end: true, ready: true, ownerOnly: true },
   { to: "/paper", label: "Morning Paper", short: "Paper", icon: "news", color: "#f2c14e", ready: true },
@@ -16,7 +17,7 @@ export const DOMAINS = [
 export const READY = DOMAINS.filter((d) => d.ready);
 
 // North Star (/) is the owner's own page; friends don't see it.
-export const domainsFor = (isOwner) => (isOwner ? DOMAINS : DOMAINS.filter((d) => !d.ownerOnly));
+export const domainsFor = (isOwner) => DOMAINS.filter((d) => d.ready && (isOwner || !d.ownerOnly));
 export const readyFor = (isOwner) => domainsFor(isOwner).filter((d) => d.ready);
 
 // Dark pages that draw their own full-screen layout and header.

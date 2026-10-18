@@ -30,8 +30,8 @@ const BLOCKS = [
   { id: "pap", to: "/paper", name: "Morning Paper", color: "#f2c14e", icon: "news", kind: "cells", big: "Learn daily", why: "Start every day a little wiser than the last." },
   { id: "gro", to: "/grooming", name: "Grooming", color: DOMAIN.grooming.color, icon: "drop", kind: "cells", big: "Look the part", why: "Taking care of myself is the first promise I keep." },
   { id: "fit", to: "/fitness", name: "Fitness", color: DOMAIN.fitness.color, icon: "dumbbell", kind: "cells", big: "Strong body", why: "A body strong enough to carry the ambition." },
-  { id: "goa", to: "/finances", name: "Goals", color: DOMAIN.goals.color, icon: "target", kind: "sram", big: "Aim and hit", why: "Dreams, broken into steps I can actually take." },
-  { id: "men", to: "/mental", name: "Mental & Psych", color: DOMAIN.mental.color, icon: "sparkle", off: true, why: "Calm under pressure. Being built next." },
+  { id: "goa", to: "/goals", name: "Goals", color: DOMAIN.goals.color, icon: "target", kind: "sram", off: true, why: "Dreams, broken into steps I can actually take. Being built." },
+  { id: "men", to: "/mental", name: "Mental & Psych", color: DOMAIN.mental.color, icon: "sparkle", kind: "cells", big: "Calm mind", why: "Calm under pressure." },
   { id: "tec", to: "/technical", name: "Technical", color: DOMAIN.technical.color, icon: "gear", off: true, small: true },
   { id: "lea", to: "/learning", name: "Learning", color: DOMAIN.learning.color, icon: "list", off: true, small: true },
 ];
@@ -187,14 +187,15 @@ function Block({ b, reduce, go, onHover }) {
   const delay = 0.35 + SWEEP * (edge(top) / 100) + 0.05;
   return (
     <motion.button
-      onClick={() => go(b.to)}
+      onClick={() => !b.off && go(b.to)}
+      aria-disabled={b.off || undefined}
       onPointerEnter={() => onHover(b.id)}
       onFocus={() => onHover(b.id)}
       style={{ gridArea: b.id, "--c": b.color }}
       initial={reduce ? false : { opacity: 0.08, filter: "brightness(0.3) saturate(0)" }}
       animate={{ opacity: 1, filter: "brightness(1) saturate(1)" }}
       transition={{ delay, duration: 0.55, ease: "easeOut" }}
-      className={`die-block group relative overflow-hidden rounded-[6px] text-left outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--c)] ${b.off ? "is-off" : ""} ${b.kind === "sram" ? "is-sram" : "is-cells"}`}
+      className={`die-block group relative overflow-hidden rounded-[6px] text-left outline-none ${b.off ? "cursor-default" : ""} focus-visible:ring-2 focus-visible:ring-[color:var(--c)] ${b.off ? "is-off" : ""} ${b.kind === "sram" ? "is-sram" : "is-cells"}`}
       aria-label={`${b.name}${b.off ? " (not built yet)" : ""}`}
     >
       <span className="die-block-fill absolute inset-0" />
