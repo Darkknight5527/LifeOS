@@ -5,6 +5,7 @@ import { owned } from "../utils/owned.js";
 const TechSettingsSchema = new mongoose.Schema({
   githubUser: { type: String, default: "", maxlength: 39 },
   weeklyGoal: { type: Number, default: 7, min: 0, max: 80 }, // study + build hours a week
+  starterAdded: { type: Boolean, default: false }, // owner's starter projects/skills were added once
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });

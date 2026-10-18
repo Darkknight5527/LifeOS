@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import { useToast } from "../../components/Toast.jsx";
 import { useTech } from "./TechContext.jsx";
-import { DEFAULT_STAGES, SHOWCASE, STATUS, STATUSES, addDays, hours, isoDate, mondayOf, newId, parseISO, prettyDate, safeUrl, showcaseScore } from "./lib";
-import { COL, CheckList, EditText, HeatGrid, SkillChip, SkillPicker, input, kicker, select, useNav } from "./ui.jsx";
+import { DEFAULT_STAGES, STATUS, addDays, hours, isoDate, mondayOf, newId, parseISO, prettyDate, showcaseScore } from "./lib";
+import { COL, HeatGrid, SkillChip, SkillPicker, input, kicker, select, useNav } from "./ui.jsx";
 import { Bars } from "../fitness/fit-ui.jsx";
 import { EmptyState, FinCard, GhostButton, Icon, PrimaryButton, Sheet, TextField } from "../finances/fin-ui.jsx";
 import { Chips } from "../mental/mind/MindViews.jsx";
@@ -168,130 +168,6 @@ export function NewProjectSheet({ open, onClose, status = "planned" }) {
         <div>
           <div className={kicker}>Skills it needs</div>
           <SkillPicker value={f.skills} onChange={(skills) => setF({ ...f, skills })} />
-        </div>
-      </div>
-    </Sheet>
-  );
-}
-
-// ============================== One project ==============================
-export function ProjectSheet({ id }) {
-  const t = useTech();
-  const nav = useNav();
-  const toast = useToast();
-  const p = id ? t.project[id] : null;
-  const [log, setLog] = useState("");
-  const [confirmDel, setConfirmDel] = useState(false);
-  useEffect(() => setConfirmDel(false), [id]);
-  if (!p) return <Sheet open={false} onClose={nav.close} />;
-  const save = (data) => t.patch("projects", p, data);
-  const logs = t.logs.filter((l) => l.projectId === p._id).sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
-  const running = t.timer?.kind === "project" && t.timer.projectId === p._id;
-  const repo = safeUrl(p.repo);
-  const live = safeUrl(p.live);
-  const addLog = async (shipped) => {
-    if (!log.trim()) return;
-    await t.create("logs", { date: t.today, projectId: p._id, text: log.trim(), shipped }, shipped ? "Shipped — logged" : "Logged");
-    setLog("");
-  };
-
-  return (
-    <Sheet open onClose={nav.close} title={p.name} wide>
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="space-y-4">
-          <EditText value={p.name} onSave={(name) => name && save({ name })} label="Project name" max={120} />
-          <EditText value={p.summary} onSave={(summary) => save({ summary })} multiline rows={2} placeholder="What it is, in one or two lines" label="Summary" />
-          <div>
-            <div className={kicker}>Status</div>
-            <Chips value={p.status} onChange={(status) => save({ status })} options={STATUSES.map((s) => ({ value: s.id, label: s.label }))} label="Status" />
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {[["repo", "GitHub repo link", repo], ["live", "Live link / demo", live]].map(([k, ph, url]) => (
-              <div key={k} className="flex gap-1.5">
-                <EditText value={p[k]} onSave={(v) => save({ [k]: v })} placeholder={ph} className="!py-2.5 !text-[14px]" max={300} />
-                {url && (
-                  <a href={url} target="_blank" rel="noreferrer noopener" className="grid w-11 shrink-0 place-items-center rounded-2xl bg-fin-tile text-white/80 hover:text-white" aria-label={`Open ${ph}`}>
-                    <Icon name="external" size={16} />
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-          <div>
-            <div className={kicker}>Stages · {Math.round(progressOf(p) * 100)}%</div>
-            <CheckList items={p.stages || []} onChange={(stages) => save({ stages })} placeholder="Add a stage or milestone" label="Stages" />
-          </div>
-          <div>
-            <div className={kicker}>Skills it needs — tap one to learn it</div>
-            {p.skills?.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5">{p.skills.map((sid) => <SkillChip key={sid} id={sid} />)}</div>}
-            <details className="rounded-2xl bg-fin-input px-3.5 py-2.5">
-              <summary className="cursor-pointer text-[13.5px] font-semibold text-white/80">Change skills</summary>
-              <div className="mt-2.5"><SkillPicker value={p.skills || []} onChange={(skills) => save({ skills })} /></div>
-            </details>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 rounded-2xl bg-fin-input px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <div className="text-[12px] text-fin-muted">Time on this project</div>
-              <div className="tabular text-[22px] font-extrabold">{hours(t.projectMin[p._id] || 0)}</div>
-            </div>
-            <button
-              onClick={() => (running ? t.stopTimer() : t.startTimer({ kind: "project", projectId: p._id }) || toast("Stop the running timer first"))}
-              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-[14px] font-bold ${running ? "bg-fin-accent text-[#052e16]" : "bg-fin-tile hover:bg-[#30303a]"}`}
-            >
-              <Icon name={running ? "pause" : "play"} size={14} stroke={2.4} /> {running ? "Stop & save" : "Start working"}
-            </button>
-          </div>
-
-          <div>
-            <div className={kicker}>Showcase check · {showcaseScore(p)}/4</div>
-            <div className="space-y-1.5">
-              {SHOWCASE.map((s) => {
-                const on = Boolean(p.showcase?.[s.id]);
-                return (
-                  <button key={s.id} role="checkbox" aria-checked={on} onClick={() => save({ showcase: { ...(p.showcase || {}), [s.id]: !on } })} className="flex w-full items-center gap-2.5 rounded-xl bg-fin-input px-3 py-2 text-left">
-                    <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 ${on ? "border-fin-accent bg-fin-accent text-[#052e16]" : "border-white/25"}`}>{on && <Icon name="check" size={12} stroke={3} />}</span>
-                    <span className="min-w-0">
-                      <span className="block text-[14px] font-semibold">{s.label}</span>
-                      <span className="block text-[12px] text-fin-muted">{s.hint}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-2">
-              <EditText value={p.bullet} onSave={(bullet) => save({ bullet, showcase: { ...(p.showcase || {}), bullet: Boolean(bullet) || Boolean(p.showcase?.bullet) } })} multiline rows={2} placeholder="Resume bullet, e.g. Built a Python parser that cut datalog review from 2 h to 10 min" label="Resume bullet" max={500} />
-            </div>
-          </div>
-
-          <div>
-            <div className={kicker}>Build log</div>
-            <div className="flex gap-2">
-              <input value={log} onChange={(e) => setLog(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addLog(false)} placeholder="What did you do?" className={`${input} !py-2.5 !text-[14px]`} maxLength={1000} aria-label="Build log entry" />
-              <button onClick={() => addLog(false)} className="shrink-0 rounded-2xl bg-fin-tile px-3 text-[13.5px] font-semibold">Log</button>
-              <button onClick={() => addLog(true)} className="shrink-0 rounded-2xl bg-fin-accent/20 px-3 text-[13.5px] font-semibold text-fin-accent" title="Log it as something you shipped">Shipped</button>
-            </div>
-            <div className="mt-2 max-h-[220px] space-y-1 overflow-y-auto">
-              {logs.slice(0, 30).map((l) => (
-                <div key={l._id} className="flex gap-2 rounded-xl px-1 py-1 text-[13.5px]">
-                  <span className="tabular w-14 shrink-0 text-fin-faint">{prettyDate(l.date, { day: "numeric", month: "short" })}</span>
-                  <span className="min-w-0 flex-1">{l.shipped && <span className="mr-1 rounded bg-[#f2c14e]/15 px-1.5 text-[11px] font-semibold text-[#f2c14e]">shipped</span>}{l.text}</span>
-                </div>
-              ))}
-              {!logs.length && <div className="text-[13px] text-fin-faint">Nothing logged yet.</div>}
-            </div>
-          </div>
-
-          {confirmDel ? (
-            <div className="flex gap-2">
-              <GhostButton className="flex-1 !py-2.5" onClick={() => setConfirmDel(false)}>Keep</GhostButton>
-              <button onClick={() => (nav.close(), t.remove("projects", p, "Project deleted"))} className="flex-1 rounded-2xl bg-red-500/15 py-2.5 font-semibold text-fin-danger">Delete project</button>
-            </div>
-          ) : (
-            <button onClick={() => setConfirmDel(true)} className="text-[13px] text-fin-faint hover:text-fin-danger">Delete this project…</button>
-          )}
         </div>
       </div>
     </Sheet>

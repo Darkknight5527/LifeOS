@@ -10,7 +10,8 @@ import { reloadedHere } from "../lib/navigation.js";
 import { Segmented } from "./finances/fin-ui.jsx";
 import { TechProvider, useTech } from "./tech/TechContext.jsx";
 import { NavContext, TimerBar } from "./tech/ui.jsx";
-import { ActivityView, BuildLogView, IdeasView, ProjectSheet, ProjectsBoard } from "./tech/Projects.jsx";
+import { ActivityView, BuildLogView, IdeasView, ProjectsBoard } from "./tech/Projects.jsx";
+import { ProjectPage } from "./tech/ProjectPage.jsx";
 import { PathView, SkillMapView, SkillSheet } from "./tech/Skills.jsx";
 import { CourseSheet, CoursesView, LearnToday, ResourcesView } from "./tech/Learn.jsx";
 import { CardsView, NotesView } from "./tech/Notes.jsx";
@@ -74,7 +75,8 @@ function TechShell() {
   const t = useTech();
   const [state, setState] = useState(initial);
   useBackSteps("techView", state, setState);
-  const [open, setOpen] = useState(null); // { type: skill | project | course, id }
+  // What's open on top of the page, as a stack: a project, then a skill opened from it…
+  const [stack, setStack] = useState([]); // [{ type: skill | project | course, id }]
   const [focus, setFocus] = useState({}); // e.g. { noteId, cardSkill, logProject }
   const { tab } = state;
   const view = VIEWS[tab].some((v) => v.value === state.views[tab]) ? state.views[tab] : FRESH.views[tab];
@@ -93,16 +95,26 @@ function TechShell() {
     }
   }, [state]);
 
+  const top = stack[stack.length - 1];
   const nav = useMemo(
     () => ({
       go: (tabId, viewId, extra = {}) => {
-        setOpen(null);
+        setStack([]);
         setFocus(extra);
         setState((s) => ({ ...s, tab: tabId, views: { ...s.views, [tabId]: viewId || s.views[tabId] } }));
         window.scrollTo({ top: 0 });
       },
-      open: (type, id) => setOpen(id ? { type, id } : null),
-      close: () => setOpen(null),
+      open: (type, id) =>
+        setStack((st) => {
+          if (!id) return st;
+          const at = st.findIndex((x) => x.type === type && x.id === id);
+          if (at >= 0) return st.slice(0, at + 1); // already open underneath: go back to it
+          const top = st[st.length - 1];
+          // A skill/course replaces another skill/course on top; a project starts over.
+          if (type === "project") return [{ type, id }];
+          return top && top.type !== "project" ? [...st.slice(0, -1), { type, id }] : [...st, { type, id }];
+        }),
+      close: () => setStack((st) => st.slice(0, -1)),
       focus,
     }),
     [focus]
@@ -160,9 +172,9 @@ function TechShell() {
             {tab === "notes" && view === "cards" && <CardsView />}
           </div>
         )}
-        <SkillSheet id={open?.type === "skill" ? open.id : null} />
-        <ProjectSheet id={open?.type === "project" ? open.id : null} />
-        <CourseSheet id={open?.type === "course" ? open.id : null} />
+        <ProjectPage id={stack.find((x) => x.type === "project")?.id} onClose={() => setStack([])} />
+        <SkillSheet id={top?.type === "skill" ? top.id : null} />
+        <CourseSheet id={top?.type === "course" ? top.id : null} />
       </DomainShell>
     </NavContext.Provider>
   );

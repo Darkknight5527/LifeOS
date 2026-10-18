@@ -99,6 +99,13 @@ try {
   const ownerTx = await call("GET", "/finance-transactions", OWNER);
   ok(ownerTx.data.length === 2, `owner sees legacy transactions (${ownerTx.data.length})`);
 
+  // ---------- 3b. owner's one-time Tech & Learning starter ----------
+  const op = await call("GET", "/tech-projects", OWNER);
+  ok(["ATE log parser", "VX-01", "LifeOS"].every((n) => op.data.some((p) => p.name === n)), `owner gets starter projects (${op.data.map((p) => p.name).join(", ")})`);
+  const osk = await call("GET", "/tech-skills", OWNER);
+  ok(osk.data.length === 10 && op.data.find((p) => p.name === "VX-01").skills.length === 4, "starter skills added and linked");
+  ok(logs.join("").includes("[starter]"), "starter ran once at start-up");
+
   // ---------- 4. sign-up needs an invite ----------
   let r = await call("POST", "/auth/register", null, { email: "rahul@x.com", password: "friend-password-1", name: "Rahul" });
   ok(r.status === 403, "sign-up without a code is refused");
@@ -112,6 +119,8 @@ try {
   const friendId = r.data.user.id;
   r = await call("POST", "/auth/register", null, { email: "other@x.com", password: "friend-password-1", code: inv.data.code });
   ok(r.status === 403, "a used code can't be used again");
+
+  ok((await call("GET", "/tech-projects", FRIEND)).data.length === 0, "friend gets no starter projects");
 
   // ---------- 5. every collection is private ----------
   const idx = fs.readFileSync(path.join(SERVER, "routes/index.js"), "utf8");

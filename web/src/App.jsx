@@ -166,8 +166,10 @@ export default function App() {
       cancelClose();
       setMenuOpen(true);
     },
-    hoverOpen: () => {
+    hoverOpen: (e) => {
       if (!canHover) return;
+      // Only a real mouse move opens it — not a pop-up closing under a still cursor.
+      if (e && !e.movementX && !e.movementY) return;
       cancelClose();
       setMenuOpen(true);
     },

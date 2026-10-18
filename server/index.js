@@ -6,6 +6,7 @@ import apiRoutes from "./routes/index.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { securityHeaders } from "./utils/security.js";
 import { migrateToMultiUser } from "./utils/migrate.js";
+import { addOwnerStarter } from "./utils/ownerStarter.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -39,6 +40,7 @@ const PORT = process.env.PORT || 4000;
 
 connectDB()
   .then(() => migrateToMultiUser())
+  .then(() => addOwnerStarter().catch((err) => console.error("[starter] skipped:", err.message)))
   .then(() => {
     app.listen(PORT, () => console.log(`LifeOS server listening on port ${PORT}`));
   })
