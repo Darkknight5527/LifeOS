@@ -101,9 +101,9 @@ try {
 
   // ---------- 3b. owner's one-time Tech & Learning starter ----------
   const op = await call("GET", "/tech-projects", OWNER);
-  ok(["ATE log parser", "VX-01", "LifeOS"].every((n) => op.data.some((p) => p.name === n)), `owner gets starter projects (${op.data.map((p) => p.name).join(", ")})`);
+  ok(["ATE log parser", "VX-01", "LifeOS", "DDC drone design 2025", "Embedded project"].every((n) => op.data.some((p) => p.name === n)), `owner gets starter projects (${op.data.map((p) => p.name).join(", ")})`);
   const osk = await call("GET", "/tech-skills", OWNER);
-  ok(osk.data.length === 10 && op.data.find((p) => p.name === "VX-01").skills.length === 4, "starter skills added and linked");
+  ok(osk.data.length === 11 && op.data.find((p) => p.name === "VX-01").skills.length === 4, "starter skills added and linked");
   ok(logs.join("").includes("[starter]"), "starter ran once at start-up");
 
   // ---------- 4. sign-up needs an invite ----------

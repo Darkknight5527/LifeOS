@@ -40,7 +40,7 @@ export const LEVELS = ["Not started", "Beginner", "Basics", "Can use it", "Stron
 // Starter skills to pick from (you can type your own too).
 export const SKILL_PRESETS = [
   { area: "Test & ATE", names: ["ATE test programs", "Digital test (scan, ATPG)", "JTAG / boundary scan", "Test data analysis (STDF, yield)", "Device characterisation"] },
-  { area: "Hardware", names: ["Digital design", "Electronics fundamentals", "Verilog / SystemVerilog", "Embedded C", "PCB design", "Microcontrollers (STM32)"] },
+  { area: "Hardware", names: ["Digital design", "Electronics fundamentals", "Verilog / SystemVerilog", "Embedded C", "PCB design", "Microcontrollers (STM32)", "Drones / UAV (ArduPilot, Betaflight)"] },
   { area: "Verification", names: ["Silicon validation", "Design verification", "UVM", "Lab equipment (scope, analyser)"] },
   { area: "Software", names: ["Python", "C / C++", "JavaScript / React", "Node.js / Express", "Git & GitHub", "Linux & shell"] },
 ];

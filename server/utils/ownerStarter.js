@@ -1,6 +1,6 @@
 // One-time setup for the owner's Tech & Learning: adds his current projects
 // and the skills they use. Runs on server start, only for the owner account,
-// only once (a flag in his settings), and never replaces anything he has
+// each batch only once (a version number in his settings), and never replaces anything he has
 // already entered — it adds what's missing by name and links skills to a
 // project only if that project has none yet. Friends' accounts are untouched.
 import User from "../models/User.js";
@@ -53,13 +53,21 @@ const PROJECTS = [
   },
 ];
 
-export async function addOwnerStarter({ log = console.log } = {}) {
-  const owner = await User.findOne({ role: "admin" }).sort({ createdAt: 1 });
-  if (!owner) return;
-  const userId = owner._id;
-  let settings = await TechSettings.findOne({ userId }).sort({ updatedAt: -1 });
-  if (settings?.starterAdded) return;
+// Batch 2 (Oct 2026): the DDC drone and a placeholder for the embedded project.
+const SKILLS_2 = [["Drones / UAV (ArduPilot, Betaflight)", "Hardware", 3, 4]];
+const PROJECTS_2 = [
+  {
+    name: "DDC drone design 2025",
+    summary: "Drone designed and built for the DDC 2025 drone design challenge. Completed.",
+    status: "shipped",
+    stages: [],
+    skills: ["Drones / UAV (ArduPilot, Betaflight)", "Electronics fundamentals", "PCB design"],
+  },
+  { name: "Embedded project", summary: "To plan — details to come.", status: "idea", stages: [], skills: [] },
+];
+const LATEST = 2;
 
+async function addMissing(userId, SKILLS, PROJECTS) {
   const now = Date.now();
   const skills = await TechSkill.find({ userId });
   const skillId = Object.fromEntries(skills.map((s) => [s.name.toLowerCase(), String(s._id)]));
@@ -96,7 +104,23 @@ export async function addOwnerStarter({ log = console.log } = {}) {
     addedProjects++;
   }
 
-  if (settings) await TechSettings.updateOne({ userId, _id: settings._id }, { $set: { starterAdded: true, githubUser: settings.githubUser || "Darkknight5527", updatedAt: now } });
-  else await TechSettings.create({ userId, starterAdded: true, githubUser: "Darkknight5527", createdAt: now, updatedAt: now });
-  log(`[starter] Tech & Learning for ${owner.email}: ${addedSkills} skills, ${addedProjects} projects added, ${linked} filled in`);
+  return { addedSkills, addedProjects, linked };
+}
+
+export async function addOwnerStarter({ log = console.log } = {}) {
+  const owner = await User.findOne({ role: "admin" }).sort({ createdAt: 1 });
+  if (!owner) return;
+  const userId = owner._id;
+  const settings = await TechSettings.findOne({ userId }).sort({ updatedAt: -1 });
+  const done = settings?.starterVersion || (settings?.starterAdded ? 1 : 0);
+  if (done >= LATEST) return;
+  const r = { addedSkills: 0, addedProjects: 0, linked: 0 };
+  const add = (x) => Object.keys(r).forEach((k) => (r[k] += x[k]));
+  if (done < 1) add(await addMissing(userId, SKILLS, PROJECTS));
+  if (done < 2) add(await addMissing(userId, SKILLS_2, PROJECTS_2));
+  const now = Date.now();
+
+  if (settings) await TechSettings.updateOne({ userId, _id: settings._id }, { $set: { starterAdded: true, starterVersion: LATEST, githubUser: settings.githubUser || "Darkknight5527", updatedAt: now } });
+  else await TechSettings.create({ userId, starterAdded: true, starterVersion: LATEST, githubUser: "Darkknight5527", createdAt: now, updatedAt: now });
+  log(`[starter] Tech & Learning for ${owner.email} (batches ${done + 1}–${LATEST}): ${r.addedSkills} skills, ${r.addedProjects} projects added, ${r.linked} filled in`);
 }
