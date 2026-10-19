@@ -81,7 +81,6 @@ export default function CreditCard({ onGoTo, delay = 0 }) {
                 </div>
               </div>
             )}
-            <div className="mt-2 text-[12px] text-fin-faint">Not taken from your balance until you pay the bill.</div>
           </button>
           {last && <BillRow bill={last} today={today} onPay={() => setPaying(last)} />}
           {olderUnpaid.map((b) => <BillRow key={b.end} bill={b} today={today} onPay={() => setPaying(b)} compact />)}
