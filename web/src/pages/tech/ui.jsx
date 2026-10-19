@@ -210,7 +210,7 @@ export function HeatGrid({ values = {}, weeks = 12, end, label = (d, v) => `${d}
   }
   const max = Math.max(1, ...days.map((x) => x.v));
   return (
-    <div className="grid grid-flow-col grid-rows-7 gap-[3px]" role="img" aria-label={`Activity over the last ${weeks} weeks`}>
+    <div className="grid grid-flow-col grid-rows-7 gap-[3px]" style={{ gridAutoColumns: "minmax(0, 15px)" }} role="img" aria-label={`Activity over the last ${weeks} weeks`}>
       {days.map((x) => (
         <span
           key={x.iso}

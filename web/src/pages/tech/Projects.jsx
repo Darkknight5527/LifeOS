@@ -1,11 +1,11 @@
 // Projects: the board, each project's page, the build log, the idea inbox and
 // activity (GitHub commits + the hours you've logged here).
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../../api";
 import { useToast } from "../../components/Toast.jsx";
 import { useTech } from "./TechContext.jsx";
 import { DEFAULT_STAGES, STATUS, addDays, hours, isoDate, mondayOf, newId, parseISO, prettyDate, showcaseScore } from "./lib";
-import { COL, HeatGrid, SkillChip, SkillPicker, input, kicker, select, useNav } from "./ui.jsx";
+import { COL, HeatGrid, SkillPicker, input, kicker, select, useNav } from "./ui.jsx";
+import { githubActivity } from "./github.js";
 import { Bars } from "../fitness/fit-ui.jsx";
 import { EmptyState, FinCard, GhostButton, Icon, PrimaryButton, Sheet, TextField } from "../finances/fin-ui.jsx";
 import { Chips } from "../mental/mind/MindViews.jsx";
@@ -14,12 +14,33 @@ const progressOf = (p) => (p.stages?.length ? p.stages.filter((s) => s.done).len
 const nextStage = (p) => p.stages?.find((s) => !s.done)?.title;
 
 // ============================== Board ==============================
-function ProjectCard({ p }) {
+// Every project is the same-size tile: name, a mini stage trace, what's next
+// and four showcase pads. Details live on the project's own page.
+function MiniTrace({ stages }) {
+  if (!stages?.length) return <div className="h-3 text-[12.5px] leading-3 text-fin-faint">No stages yet</div>;
+  const cur = stages.findIndex((s) => !s.done);
+  return (
+    <div className="flex items-center" aria-hidden="true">
+      {stages.map((s, i) => (
+        <div key={s.id} className="flex min-w-0 flex-1 items-center last:flex-none">
+          <span
+            className={`h-3 w-3 shrink-0 rounded-full border-2 ${s.done ? "border-fin-accent bg-fin-accent" : i === cur ? "border-fin-accent bg-transparent" : "border-white/15 bg-transparent"}`}
+            style={s.done ? { boxShadow: "0 0 8px rgb(var(--fin-accent) / .6)" } : undefined}
+          />
+          {i < stages.length - 1 && <span className="h-[2px] flex-1" style={{ background: s.done ? "rgb(var(--fin-accent))" : "rgba(255,255,255,.08)" }} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProjectTile({ p }) {
   const t = useTech();
   const nav = useNav();
-  const pct = Math.round(progressOf(p) * 100);
-  const sc = showcaseScore(p);
   const toast = useToast();
+  const st = STATUS[p.status];
+  const pct = Math.round(progressOf(p) * 100);
+  const next = nextStage(p);
   const running = t.timer?.kind === "project" && t.timer.projectId === p._id;
   return (
     <div
@@ -27,58 +48,57 @@ function ProjectCard({ p }) {
       tabIndex={0}
       onClick={() => nav.open("project", p._id)}
       onKeyDown={(e) => e.key === "Enter" && nav.open("project", p._id)}
-      className="cursor-pointer rounded-2xl bg-fin-input p-3.5 text-left transition hover:bg-fin-tile focus-visible:outline focus-visible:outline-2 focus-visible:outline-fin-accent"
+      aria-label={`${p.name}, ${st?.label}`}
+      className="group relative flex h-[188px] cursor-pointer flex-col overflow-hidden rounded-[24px] bg-fin-card p-5 transition hover:bg-[#1f1f25] focus-visible:outline focus-visible:outline-2 focus-visible:outline-fin-accent"
     >
-      <div className="flex items-start gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[15.5px] font-bold">{p.name}</div>
-          {p.summary && <div className="line-clamp-2 text-[12.5px] text-fin-muted">{p.summary}</div>}
-        </div>
-        {(t.projectMin[p._id] || 0) > 0 && <span className="tabular shrink-0 text-[12px] text-fin-faint">{hours(t.projectMin[p._id])}</span>}
-      </div>
-      {p.stages?.length > 0 && (
-        <div className="mt-2.5">
-          <div className="flex justify-between text-[11.5px] text-fin-muted">
-            <span className="truncate">{nextStage(p) ? `Next: ${nextStage(p)}` : "All stages done"}</span>
-            <span className="tabular shrink-0">{pct}%</span>
-          </div>
-          <div className="mt-1 h-1.5 rounded-full bg-black/30">
-            <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: STATUS[p.status]?.color }} />
-          </div>
-        </div>
-      )}
-      {p.skills?.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1">
-          {p.skills.slice(0, 4).map((id) => <SkillChip key={id} id={id} small />)}
-          {p.skills.length > 4 && <span className="px-1 text-[11.5px] text-fin-faint">+{p.skills.length - 4}</span>}
-        </div>
-      )}
-      <div className="mt-2.5 flex items-center gap-2">
-        <span className="text-[11.5px] text-fin-faint" title="Showcase check: README, demo, resume bullet, pinned">Showcase {sc}/4</span>
+      <span className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-[0.12] blur-2xl" style={{ background: st?.color }} />
+      <div className="flex h-9 items-center gap-2">
+        <span className="h-2 w-2 rounded-full" style={{ background: st?.color, boxShadow: `0 0 10px ${st?.color}` }} />
+        <span className="text-[12.5px] font-semibold" style={{ color: st?.color }}>{st?.label}</span>
         {p.status === "building" && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               if (running) t.stopTimer();
-              else if (!t.startTimer({ kind: "project", projectId: p._id, skillId: "" })) toast("Stop the running timer first");
+              else if (!t.startTimer({ kind: "project", projectId: p._id })) toast("Stop the running timer first");
             }}
-            className={`ml-auto flex items-center gap-1 rounded-lg px-2.5 py-1 text-[12px] font-semibold ${running ? "bg-fin-accent text-[#052e16]" : "bg-fin-tile text-white/80 hover:text-white"}`}
+            aria-label={running ? `Stop working on ${p.name}` : `Start working on ${p.name}`}
+            className={`relative ml-auto grid h-9 w-9 place-items-center rounded-full transition ${running ? "bg-fin-accent text-[#052e16]" : "bg-white/[0.06] text-white/70 hover:bg-fin-accent hover:text-[#052e16]"}`}
           >
-            <Icon name={running ? "pause" : "play"} size={12} stroke={2.4} /> {running ? "Stop" : "Work"}
+            <Icon name={running ? "pause" : "play"} size={14} stroke={2.6} />
           </button>
         )}
+      </div>
+      <div className="mt-1 truncate text-[24px] font-extrabold tracking-tight">{p.name}</div>
+      <div className="mt-auto">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1"><MiniTrace stages={p.stages} /></div>
+          {p.stages?.length > 0 && <span className="tabular w-10 shrink-0 text-right text-[15px] font-extrabold">{pct}%</span>}
+        </div>
+        <div className="mt-2.5 flex items-center gap-3">
+          <span className="min-w-0 flex-1 truncate text-[13px] text-fin-muted">{p.stages?.length ? (next ? next : "Every stage done") : ""}</span>
+          <span className="flex shrink-0 gap-1" title={`Ready to show: ${showcaseScore(p)}/4`}>
+            {["readme", "demo", "bullet", "pinned"].map((k) => (
+              <span key={k} className={`h-2.5 w-2.5 rounded-[3px] ${p.showcase?.[k] ? "bg-[#f2c14e]" : "bg-white/10"}`} />
+            ))}
+          </span>
+        </div>
       </div>
     </div>
   );
 }
+
+const FILTERS = ["building", "planned", "shipped", "paused"];
+
 export function ProjectsBoard() {
   const t = useTech();
   const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState("all");
   const real = t.projects.filter((p) => p.status !== "idea");
-  const week = mondayOf(t.today);
-  const weekMin = t.sessions.filter((s) => s.kind === "project" && s.date >= week).reduce((a, s) => a + (s.minutes || 0), 0);
-  const cols = ["building", "planned", "shipped", "paused"];
-  const sorted = (st) => real.filter((p) => p.status === st).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  const rank = { building: 0, planned: 1, paused: 2, shipped: 3 };
+  const shown = real
+    .filter((p) => filter === "all" || p.status === filter)
+    .sort((a, b) => rank[a.status] - rank[b.status] || (b.updatedAt || 0) - (a.updatedAt || 0));
 
   if (!real.length) {
     return (
@@ -95,36 +115,27 @@ export function ProjectsBoard() {
     );
   }
 
+  const counts = Object.fromEntries(FILTERS.map((f) => [f, real.filter((p) => p.status === f).length]));
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        {[
-          ["Building", sorted("building").length],
-          ["Shipped", sorted("shipped").length],
-          ["This week", hours(weekMin)],
-        ].map(([k, v]) => (
-          <span key={k} className="rounded-full bg-fin-card px-3.5 py-1.5 text-[13px] text-fin-muted">
-            {k} <b className="tabular text-white">{v}</b>
-          </span>
-        ))}
-        <PrimaryButton className="ml-auto !px-4 !py-2 !text-[14px]" onClick={() => setAdding(true)}>+ New project</PrimaryButton>
-      </div>
-      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
-        {cols.map((st) => {
-          const list = sorted(st);
-          if (!list.length && (st === "paused" || st === "shipped")) return null;
+      <div className="mb-4 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Show">
+        {[["all", "All", real.length], ...FILTERS.filter((f) => counts[f]).map((f) => [f, STATUS[f].label, counts[f]])].map(([id, label, n]) => {
+          const on = filter === id;
           return (
-            <section key={st} className="flex flex-col rounded-[24px] bg-fin-card p-4 lg:max-h-[calc(100dvh-240px)]">
-              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-fin-muted">
-                <span className="h-2 w-2 rounded-full" style={{ background: STATUS[st].color }} /> {STATUS[st].label}
-                <span className="tabular normal-case tracking-normal text-fin-faint">{list.length}</span>
-              </h2>
-              <div className="fin-scroll space-y-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
-                {list.length ? list.map((p) => <ProjectCard key={p._id} p={p} />) : <div className="py-4 text-center text-[13px] text-fin-faint">Nothing here yet.</div>}
-              </div>
-            </section>
+            <button key={id} role="radio" aria-checked={on} onClick={() => setFilter(id)} className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13.5px] font-semibold transition ${on ? "bg-white text-[#0b0b0d]" : "bg-fin-card text-fin-muted hover:text-white"}`}>
+              {id !== "all" && <span className="h-1.5 w-1.5 rounded-full" style={{ background: STATUS[id].color }} />}
+              {label}
+              <span className={`tabular ${on ? "text-black/50" : "text-fin-faint"}`}>{n}</span>
+            </button>
           );
         })}
+      </div>
+      <div className="fin-scroll grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-h-[calc(100dvh-236px)] lg:overflow-y-auto lg:pr-1 xl:grid-cols-3">
+        {shown.map((p) => <ProjectTile key={p._id} p={p} />)}
+        <button onClick={() => setAdding(true)} className="flex h-[188px] flex-col items-center justify-center gap-2 rounded-[24px] border-2 border-dashed border-white/10 text-fin-muted transition hover:border-fin-accent/50 hover:text-white">
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-white/[0.06]"><Icon name="plus" size={20} stroke={2.4} /></span>
+          <span className="text-[14px] font-semibold">New project</span>
+        </button>
       </div>
       <NewProjectSheet open={adding} onClose={() => setAdding(false)} />
     </div>
@@ -335,7 +346,7 @@ function useGithub(user, saved) {
     if (!saved) return setSt((s) => ({ ...s, loading: true }));
     setSt((s) => ({ ...s, loading: true, error: "" }));
     try {
-      const data = await api.techGithub(fresh);
+      const data = await githubActivity(user, { fresh });
       setSt({ loading: false, data, error: data.error || "" });
     } catch (err) {
       setSt({ loading: false, data: null, error: err.message || "Couldn't reach GitHub" });

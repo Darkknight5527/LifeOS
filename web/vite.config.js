@@ -18,7 +18,7 @@ function csp(apiUrl) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${apiOrigin}`.trim(),
+    `connect-src 'self' ${apiOrigin} https://api.github.com`.trim(),
     "media-src 'self' blob:",
     "frame-src 'self' blob:",
     "object-src 'none'",
