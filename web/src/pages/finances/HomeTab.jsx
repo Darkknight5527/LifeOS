@@ -5,6 +5,7 @@ import { BUCKETS, amountError, daysInMonth, dayHeading, formatMoney, greeting, m
 import { BucketBadge, FinCard, GhostButton, Icon, Money, MoneyField, PrimaryButton, ProgressBar, Tile } from "./fin-ui.jsx";
 import ExpenseRow from "./ExpenseRow.jsx";
 import SalarySheet from "./SalarySheet.jsx";
+import CreditCard from "./CreditCard.jsx";
 
 export default function HomeTab({ onEdit, onGoTo, onReceived }) {
   const { currentMonth, previousRecord, setSalary, ratio, expenses, prevMonthKey } = useFinance();
@@ -218,6 +219,8 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
           </div>
         </FinCard>
       )}
+
+      <CreditCard onGoTo={onGoTo} delay={180} />
 
       {/* Recent */}
       <FinCard

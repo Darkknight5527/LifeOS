@@ -19,6 +19,7 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(todayISO());
   const [note, setNote] = useState("");
+  const [card, setCard] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newCat, setNewCat] = useState(null); // string while typing a new subcategory
   const amountRef = useRef(null);
@@ -32,12 +33,14 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
       setCategory(editing.category);
       setDate(editing.date);
       setNote(editing.note || "");
+      setCard(Boolean(editing.card));
     } else {
       setAmount(initialAmount ? String(initialAmount) : "");
       setBucket("needs");
       setCategory("");
       setDate(todayISO());
       setNote("");
+      setCard(false);
     }
     setNewCat(null);
     setTimeout(() => amountRef.current?.focus(), 250);
@@ -65,7 +68,7 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
   async function save() {
     if (!valid || saving) return;
     setSaving(true);
-    const data = { amount: amt, bucket, category: activeCategory, date, note: note.trim() };
+    const data = { amount: amt, bucket, category: activeCategory, date, note: note.trim(), card };
     const ok = editing ? await updateExpense(editing._id, data) : await addExpense(data);
     setSaving(false);
     if (ok) onClose();
@@ -218,6 +221,20 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
           />
         </label>
       </div>
+
+      {/* Paid how */}
+      <button
+        role="switch"
+        aria-checked={card}
+        onClick={() => setCard((c) => !c)}
+        className={`mt-5 flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${card ? "border-fin-accent bg-fin-accent/10" : "border-transparent bg-fin-input hover:bg-fin-tile"}`}
+      >
+        <Icon name="card" size={20} className={card ? "text-fin-accent" : "text-fin-muted"} />
+        <span className="flex-1 text-[15px] font-semibold">Paid with credit card</span>
+        <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${card ? "bg-fin-accent" : "bg-white/15"}`}>
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${card ? "left-[22px]" : "left-0.5"}`} />
+        </span>
+      </button>
 
       {/* Note */}
       <div className="mt-5 text-[13px] font-semibold uppercase tracking-[0.08em] text-fin-muted">Note (optional)</div>

@@ -32,7 +32,9 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
       if (activeRange === "month" && (t.date || "").slice(0, 7) !== month) return false;
       if (activeRange === "today" && t.date !== today) return false;
       if (activeRange === "week" && (t.date < ws || t.date > we)) return false;
-      if (bucket !== "all" && (t.type === "income" || t.bucket !== bucket)) return false;
+      if (bucket === "card") {
+        if (!t.card) return false;
+      } else if (bucket !== "all" && (t.type === "income" || t.bucket !== bucket)) return false;
       if (q && !`${t.category} ${t.note || ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -81,6 +83,9 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
               {b.label}
             </Pill>
           ))}
+          <Pill active={bucket === "card"} onClick={() => setBucket("card")} className="!gap-1.5 !px-3.5">
+            <Icon name="card" size={14} /> Card
+          </Pill>
         </div>
         <div className="mt-3 flex items-center gap-2 rounded-2xl bg-fin-input px-4 focus-within:ring-1 focus-within:ring-fin-accent/60">
           <Icon name="search" size={18} className="text-fin-faint" />

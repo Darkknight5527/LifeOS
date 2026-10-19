@@ -297,6 +297,21 @@ export function FinanceProvider({ children }) {
     [attempt, state.settings, state.months, upsertMonth, showToast]
   );
 
+  // ---------- credit card settings (and which bills are paid) ----------
+  const saveCard = useCallback(
+    async (patch, success) => {
+      const card = { ...(state.settings?.card || {}), ...patch };
+      setState((s) => ({ ...s, settings: { ...s.settings, card } }));
+      const doc = await attempt(() => api.update(COLLECTIONS.settings, state.settings._id, { card }), success);
+      if (doc) {
+        changes.current++;
+        setState((s) => ({ ...s, settings: doc }));
+      }
+      return doc;
+    },
+    [attempt, state.settings]
+  );
+
   // ---------- actions: subcategories ----------
   const addCategory = useCallback(
     async (name, bucket) => {
@@ -442,6 +457,7 @@ export function FinanceProvider({ children }) {
     setSalary,
     saveAmounts,
     saveRatio,
+    saveCard,
     addCategory,
     updateCategory,
     removeCategory,

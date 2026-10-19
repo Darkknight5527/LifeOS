@@ -148,3 +148,32 @@ export const paise = (n) => Math.round((Number(n) || 0) * 100);
 export function clamp(n, lo, hi) {
   return Math.min(hi, Math.max(lo, n));
 }
+
+// ---------- credit card billing cycle ----------
+export const CARD_DEFAULTS = { name: "Credit card", billDay: 15, payDays: 20, limit: 0 };
+export const cardSettings = (s) => ({ ...CARD_DEFAULTS, ...(s?.card || {}) });
+
+/** The bill date (statement day) in a given year/month, clamped to the month's length. */
+function billOn(y, m, day) {
+  const last = new Date(y, m + 1, 0).getDate();
+  return new Date(y, m, Math.min(day, last));
+}
+
+/**
+ * The billing cycle that contains `iso`: purchases from the day after the
+ * previous bill up to and including the bill date. e.g. bill day 15 →
+ * 16 Oct – 15 Nov, billed on 15 Nov.
+ */
+export function cardCycle(iso, billDay = 15) {
+  const d = parseISO(iso);
+  let bill = billOn(d.getFullYear(), d.getMonth(), billDay);
+  if (d > bill) bill = billOn(d.getFullYear(), d.getMonth() + 1, billDay);
+  const prev = billOn(bill.getFullYear(), bill.getMonth() - 1, billDay);
+  return { start: isoDate(addDays(prev, 1)), end: isoDate(bill) };
+}
+
+/** The cycle before the one containing `iso` (the last bill you received). */
+export function previousCycle(iso, billDay = 15) {
+  const cur = cardCycle(iso, billDay);
+  return cardCycle(isoDate(addDays(parseISO(cur.start), -1)), billDay);
+}

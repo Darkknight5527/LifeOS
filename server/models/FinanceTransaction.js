@@ -8,6 +8,7 @@ const FinanceTransactionSchema = new mongoose.Schema({
   bucket: { type: String, default: "" }, // needs | wants | savings, captured at log time
   amount: { type: Number, required: true, min: [0, "amount can't be negative"], max: [1e10, "amount is too large"] },
   note: { type: String, default: "" },
+  card: { type: Boolean, default: false }, // paid with the credit card
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });

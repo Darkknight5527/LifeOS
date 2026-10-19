@@ -19,6 +19,7 @@ export default function ExpenseRow({ tx, onClick, showDate = false, dateLabel })
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px] font-semibold">{tx.category}</div>
         <div className="truncate text-[13px] text-fin-muted">
+          {tx.card && <Icon name="card" size={12} className="mr-1 inline -translate-y-px text-fin-accent" />}
           {[showDate && dateLabel, got ? "Received" : income ? "Income" : b.label, tx.note].filter(Boolean).join(" · ")}
         </div>
       </div>
