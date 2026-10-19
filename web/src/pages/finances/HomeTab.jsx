@@ -174,34 +174,28 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
 
       </div>
       <div className="space-y-5 lg:col-span-2 xl:col-span-1 xl:flex xl:max-h-[calc(100dvh-98px)] xl:flex-col xl:space-y-0 xl:gap-4">
-      {/* Money received */}
-      <FinCard
-        title="Money received"
-        delay={140}
-        action={
-          <button onClick={onReceived} className="flex items-center gap-1.5 rounded-xl bg-fin-savings/15 px-3 py-1.5 text-[13.5px] font-semibold text-fin-savings transition hover:bg-fin-savings/25" title="Add money received (R)">
-            <Icon name="plus" size={14} stroke={2.6} /> Add
-          </button>
-        }
-      >
-        {stats.receivedList.length ? (
-          <>
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="text-[26px] font-extrabold text-fin-savings">
-                +<Money value={stats.received} />
+      {/* Money received — kept small: it has far fewer entries than expenses */}
+      <section className="animate-fade-up rounded-[24px] bg-fin-card px-5 py-3.5 shadow-card" style={{ animationDelay: "140ms" }}>
+        <div className="flex items-center gap-3">
+          <button onClick={() => stats.receivedList.length && onGoTo("expenses")} className="min-w-0 flex-1 text-left" disabled={!stats.receivedList.length}>
+            <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-fin-muted">Money received</div>
+            {stats.receivedList.length ? (
+              <div className="flex items-baseline gap-2">
+                <span className="tabular text-[20px] font-extrabold text-fin-savings">+<Money value={stats.received} /></span>
+                <span className="truncate text-[12.5px] text-fin-muted">
+                  {stats.receivedList.length} this month · latest {stats.receivedList[0].category}
+                  {stats.receivedList[0].note ? ` (${stats.receivedList[0].note})` : ""}
+                </span>
               </div>
-              <div className="text-[13px] text-fin-muted">this month · {stats.receivedList.length} entr{stats.receivedList.length === 1 ? "y" : "ies"}</div>
-            </div>
-            <div className="-mx-2 mt-1">
-              {stats.receivedList.slice(0, 2).map((t) => (
-                <ExpenseRow key={t._id} tx={t} onClick={() => onEdit(t)} showDate dateLabel={dayHeading(t.date)} />
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="text-[14px] text-fin-muted">Cashback, refunds or a loan someone paid back? Add it here and it counts towards what's left.</div>
-        )}
-      </FinCard>
+            ) : (
+              <div className="truncate text-[13px] text-fin-muted">Cashback, refunds, money paid back</div>
+            )}
+          </button>
+          <button onClick={onReceived} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-fin-savings/15 text-fin-savings transition hover:bg-fin-savings/25" title="Add money received (R)" aria-label="Add money received">
+            <Icon name="plus" size={16} stroke={2.6} />
+          </button>
+        </div>
+      </section>
       {/* Last month leftover */}
       {last.salary > 0 && (
         <FinCard title="Last month leftover" delay={160}>
