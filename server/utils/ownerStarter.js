@@ -7,6 +7,7 @@ import User from "../models/User.js";
 import TechSettings from "../models/TechSettings.js";
 import TechSkill from "../models/TechSkill.js";
 import TechProject from "../models/TechProject.js";
+import { MINI_ATE_PLAN, MINI_ATE_STAGES } from "./plans/miniAte.js";
 
 // [name, area, level, target] — levels are a starting guess; edit them on the skill map.
 const SKILLS = [
@@ -65,7 +66,40 @@ const PROJECTS_2 = [
   },
   { name: "Embedded project", summary: "To plan — details to come.", status: "idea", stages: [], skills: [] },
 ];
-const LATEST = 2;
+// Batch 3 (Oct 2026): the embedded project becomes the Mini-ATE, with its full plan.
+const MINI_ATE = {
+  name: "Mini-ATE: tester-on-a-board",
+  summary: "A small chip tester built from scratch on an STM32: timed test patterns, strobe and compare, DC tests (PMU), a Python test flow with bins and STDF datalogs, and shmoo plots.",
+  status: "planned",
+  skills: ["Embedded C", "Microcontrollers (STM32)", "ATE test programs", "Electronics fundamentals", "Python", "Test data analysis (STDF, yield)", "PCB design"],
+};
+async function addMiniAte(userId) {
+  const now = Date.now();
+  const skills = await TechSkill.find({ userId });
+  const skillId = Object.fromEntries(skills.map((s) => [s.name.toLowerCase(), String(s._id)]));
+  const ids = MINI_ATE.skills.map((n) => skillId[n.toLowerCase()]).filter(Boolean);
+  const stages = MINI_ATE_STAGES.map((title, i) => ({ id: `${now.toString(36)}m${i}`, title, done: false }));
+  // Already there (by its new name)? Only fill what's empty.
+  const have = await TechProject.findOne({ userId, name: MINI_ATE.name });
+  if (have) {
+    const fill = {};
+    if (!have.plan) fill.plan = MINI_ATE_PLAN;
+    if (!have.stages?.length) fill.stages = stages;
+    if (!have.skills?.length) fill.skills = ids;
+    if (Object.keys(fill).length) await TechProject.updateOne({ userId, _id: have._id }, { $set: { ...fill, updatedAt: now } });
+    return { addedSkills: 0, addedProjects: 0, linked: Object.keys(fill).length ? 1 : 0 };
+  }
+  // The "Embedded project" placeholder (still untouched) turns into it.
+  const ph = await TechProject.findOne({ userId, name: "Embedded project", status: "idea" });
+  const doc = { ...MINI_ATE, skills: ids, stages, plan: MINI_ATE_PLAN, updatedAt: now };
+  if (ph) {
+    await TechProject.updateOne({ userId, _id: ph._id }, { $set: doc });
+    return { addedSkills: 0, addedProjects: 0, linked: 1 };
+  }
+  await TechProject.create({ userId, ...doc, createdAt: now });
+  return { addedSkills: 0, addedProjects: 1, linked: 0 };
+}
+const LATEST = 3;
 
 async function addMissing(userId, SKILLS, PROJECTS) {
   const now = Date.now();
@@ -118,6 +152,7 @@ export async function addOwnerStarter({ log = console.log } = {}) {
   const add = (x) => Object.keys(r).forEach((k) => (r[k] += x[k]));
   if (done < 1) add(await addMissing(userId, SKILLS, PROJECTS));
   if (done < 2) add(await addMissing(userId, SKILLS_2, PROJECTS_2));
+  if (done < 3) add(await addMiniAte(userId));
   const now = Date.now();
 
   if (settings) await TechSettings.updateOne({ userId, _id: settings._id }, { $set: { starterAdded: true, starterVersion: LATEST, githubUser: settings.githubUser || "Darkknight5527", updatedAt: now } });

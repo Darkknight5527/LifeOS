@@ -101,10 +101,12 @@ try {
 
   // ---------- 3b. owner's one-time Tech & Learning starter ----------
   const op = await call("GET", "/tech-projects", OWNER);
-  ok(["ATE log parser", "VX-01", "LifeOS", "DDC drone design 2025", "Embedded project"].every((n) => op.data.some((p) => p.name === n)), `owner gets starter projects (${op.data.map((p) => p.name).join(", ")})`);
+  ok(["ATE log parser", "VX-01", "LifeOS", "DDC drone design 2025", "Mini-ATE: tester-on-a-board"].every((n) => op.data.some((p) => p.name === n)), `owner gets starter projects (${op.data.map((p) => p.name).join(", ")})`);
   const osk = await call("GET", "/tech-skills", OWNER);
   ok(osk.data.length === 11 && op.data.find((p) => p.name === "VX-01").skills.length === 4, "starter skills added and linked");
   ok(logs.join("").includes("[starter]"), "starter ran once at start-up");
+  const ate = op.data.find((p) => p.name === "Mini-ATE: tester-on-a-board");
+  ok(ate && ate.plan.includes("## Phases") && ate.stages.length === 12 && ate.skills.length === 7 && !op.data.some((p) => p.name === "Embedded project"), "embedded placeholder became the Mini-ATE with its plan");
 
   // ---------- 4. sign-up needs an invite ----------
   let r = await call("POST", "/auth/register", null, { email: "rahul@x.com", password: "friend-password-1", name: "Rahul" });

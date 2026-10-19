@@ -14,6 +14,7 @@ const TechProjectSchema = new mongoose.Schema({
   skills: { type: [String], default: [] }, // TechSkill ids it uses / needs
   showcase: { type: mongoose.Schema.Types.Mixed, default: {} }, // { readme, demo, bullet, pinned }: booleans
   bullet: { type: String, default: "", maxlength: 500 }, // resume line
+  plan: { type: String, default: "", maxlength: 30000 }, // the full write-up (Plan page)
   order: { type: Number, default: 0 },
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },

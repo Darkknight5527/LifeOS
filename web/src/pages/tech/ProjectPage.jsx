@@ -9,7 +9,7 @@ import { haptic } from "../../lib/inApp.js";
 import { useTech } from "./TechContext.jsx";
 import { STATUS, hours, isGap, newId, prettyDate, safeUrl, showcaseScore } from "./lib";
 import { LevelDots, SkillPicker, useElapsed, useNav } from "./ui.jsx";
-import { Icon, Ring, ThemeContext } from "../finances/fin-ui.jsx";
+import { Icon, Ring, Sheet, ThemeContext } from "../finances/fin-ui.jsx";
 
 const PIPE = ["idea", "planned", "building", "shipped"];
 const TILES = [
@@ -114,6 +114,7 @@ function TopBar({ p, save, onClose }) {
           </button>
         </div>
         <div className="order-4 flex w-full items-center gap-1.5 sm:order-none sm:w-auto">
+          <PlanButton p={p} save={save} />
           <LinkButton icon="code" label="GitHub repo" value={p.repo} onSave={(repo) => save({ repo })} />
           <LinkButton icon="external" label="Live link" value={p.live} onSave={(live) => save({ live })} />
           <span className="flex-1 sm:hidden" />
@@ -495,5 +496,98 @@ function LogStrip({ p }) {
         )}
       </div>
     </section>
+  );
+}
+
+// ============================== the plan (full write-up) ==============================
+// Light formatting: "## " heading, "- " bullet, "**bold**", blank line = gap.
+function inline(text) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => (part.startsWith("**") && part.endsWith("**") ? <b key={i} className="font-semibold text-white">{part.slice(2, -2)}</b> : part));
+}
+function PlanText({ text }) {
+  const blocks = [];
+  let list = null;
+  text.split("\n").forEach((raw, i) => {
+    const line = raw.trimEnd();
+    if (line.startsWith("- ")) {
+      if (!list) blocks.push((list = { type: "ul", items: [], key: i }));
+      list.items.push(line.slice(2));
+      return;
+    }
+    list = null;
+    if (line.startsWith("## ")) blocks.push({ type: "h", text: line.slice(3), key: i });
+    else if (line.trim()) blocks.push({ type: "p", text: line, key: i });
+  });
+  return (
+    <div className="space-y-3 pb-4 text-[15px] leading-relaxed text-white/80">
+      {blocks.map((b) =>
+        b.type === "h" ? (
+          <h3 key={b.key} className="pt-3 text-[18px] font-bold text-white first:pt-0">{b.text}</h3>
+        ) : b.type === "ul" ? (
+          <ul key={b.key} className="space-y-1.5">
+            {b.items.map((it, j) => (
+              <li key={j} className="flex gap-2.5"><span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-fin-accent" /><span>{inline(it)}</span></li>
+            ))}
+          </ul>
+        ) : (
+          <p key={b.key}>{inline(b.text)}</p>
+        )
+      )}
+    </div>
+  );
+}
+
+function PlanButton({ p, save }) {
+  const [open, setOpen] = useState(false);
+  const [edit, setEdit] = useState(false);
+  const [v, setV] = useState(p.plan || "");
+  useEffect(() => setV(p.plan || ""), [p.plan]);
+  const has = Boolean(p.plan?.trim());
+  const close = () => {
+    if (edit && v !== (p.plan || "")) save({ plan: v }, "Plan saved");
+    setEdit(false);
+    setOpen(false);
+  };
+  return (
+    <>
+      <button
+        onClick={() => (setOpen(true), setEdit(!has))}
+        className={`flex h-10 items-center gap-1.5 rounded-xl px-3 text-[13px] font-semibold transition ${has ? "bg-fin-card text-white hover:bg-fin-tile" : "border border-dashed border-white/15 text-fin-muted hover:text-white"}`}
+        aria-label={has ? "Open the plan" : "Write a plan"}
+      >
+        <Icon name="list" size={15} /> <span className="hidden sm:inline">{has ? "Plan" : "+ Plan"}</span>
+      </button>
+      <Sheet
+        open={open}
+        onClose={close}
+        wide
+        title={`Plan · ${p.name}`}
+        titleExtra={
+          <button onClick={() => (edit && v !== (p.plan || "") && save({ plan: v }, "Plan saved"), setEdit((x) => !x))} className="ml-2 rounded-lg bg-fin-tile px-2.5 py-1 text-[12.5px] font-semibold text-white/80 hover:text-white">
+            {edit ? "Done" : "Edit"}
+          </button>
+        }
+      >
+        {edit ? (
+          <div>
+            <textarea
+              autoFocus
+              value={v}
+              onChange={(e) => setV(e.target.value)}
+              rows={22}
+              maxLength={30000}
+              placeholder={"## Goal\nWhat you're building and why.\n\n## Parts\n- …\n\n## Steps\n- …"}
+              className="w-full resize-y rounded-2xl bg-fin-input px-4 py-3 font-mono text-[13.5px] leading-relaxed text-white outline-none ring-fin-accent/40 focus:ring-2"
+              aria-label="Plan"
+            />
+            <div className="mt-2 text-[12px] text-fin-faint">"## " makes a heading, "- " a bullet, **text** bold. Saves when you tap Done or close.</div>
+          </div>
+        ) : has ? (
+          <PlanText text={p.plan} />
+        ) : (
+          <div className="py-8 text-center text-[14px] text-fin-muted">No plan yet. Tap Edit to write one.</div>
+        )}
+      </Sheet>
+    </>
   );
 }
