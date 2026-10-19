@@ -6,7 +6,7 @@ const FinanceSettingsSchema = new mongoose.Schema({
   ratioNeeds: { type: Number, default: 50 },
   ratioWants: { type: Number, default: 30 },
   ratioSavings: { type: Number, default: 20 },
-  // Credit card: { name, billDay (1–28), payDays (days after the bill to pay), limit, paid: { "YYYY-MM-DD" bill date: true } }
+  // Credit card: { name, billDay (1–28), payDays (days after the bill to pay), limit }
   card: { type: mongoose.Schema.Types.Mixed, default: {} },
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },

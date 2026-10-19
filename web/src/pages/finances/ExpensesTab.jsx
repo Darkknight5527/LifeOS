@@ -5,7 +5,7 @@ import { EmptyState, FinCard, Icon, MonthNav, Pill, Segmented } from "./fin-ui.j
 import ExpenseRow from "./ExpenseRow.jsx";
 
 export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
-  const { expenses, transactions, currentMonth } = useFinance();
+  const { expenses, cardExpenses, transactions, currentMonth } = useFinance();
   const [month, setMonth] = useState(currentMonth);
   const [range, setRange] = useState("month");
   const [bucket, setBucket] = useState(initialBucket);
@@ -19,8 +19,8 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
   // Old income entries (from before the rework) still show up, marked as income.
   const all = useMemo(() => {
     const income = transactions.filter((t) => t.type === "income").map((t) => ({ ...t, bucket: t.bucket === "received" ? "received" : "savings" }));
-    return [...expenses, ...income].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
-  }, [expenses, transactions]);
+    return [...expenses, ...income, ...cardExpenses].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
+  }, [expenses, cardExpenses, transactions]);
 
   const filtered = useMemo(() => {
     const today = todayISO();
@@ -32,9 +32,11 @@ export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
       if (activeRange === "month" && (t.date || "").slice(0, 7) !== month) return false;
       if (activeRange === "today" && t.date !== today) return false;
       if (activeRange === "week" && (t.date < ws || t.date > we)) return false;
+      // Card purchases only show under Card — they're not part of your spending until the bill is paid.
       if (bucket === "card") {
         if (!t.card) return false;
-      } else if (bucket !== "all" && (t.type === "income" || t.bucket !== bucket)) return false;
+      } else if (t.card) return false;
+      else if (bucket !== "all" && (t.type === "income" || t.bucket !== bucket)) return false;
       if (q && !`${t.category} ${t.note || ""}`.toLowerCase().includes(q)) return false;
       return true;
     });

@@ -167,7 +167,7 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
         ))}
         {orphan && (
           <Pill active={orphan === activeCategory} color={accent} onClick={() => setCategory(orphan)} title="This subcategory was deleted">
-            {orphan} <span className="text-[12px] font-medium opacity-70">(deleted)</span>
+            {orphan} <span className="text-[12px] font-medium opacity-70">{editing?.cardBill ? "(card bill)" : "(deleted)"}</span>
           </Pill>
         )}
         {newCat === null ? (
@@ -230,7 +230,10 @@ export default function LogExpenseSheet({ open, onClose, editing, initialAmount,
         className={`mt-5 flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${card ? "border-fin-accent bg-fin-accent/10" : "border-transparent bg-fin-input hover:bg-fin-tile"}`}
       >
         <Icon name="card" size={20} className={card ? "text-fin-accent" : "text-fin-muted"} />
-        <span className="flex-1 text-[15px] font-semibold">Paid with credit card</span>
+        <span className="flex-1">
+          <span className="block text-[15px] font-semibold">Paid with credit card</span>
+          <span className="block text-[12.5px] text-fin-muted">Kept apart — not taken from your balance until you pay the bill</span>
+        </span>
         <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${card ? "bg-fin-accent" : "bg-white/15"}`}>
           <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${card ? "left-[22px]" : "left-0.5"}`} />
         </span>

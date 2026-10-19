@@ -186,8 +186,14 @@ export function FinanceProvider({ children }) {
     return (tx) => tx.bucket || map[tx.category] || "wants";
   }, [state.categories]);
 
+  // What counts against your money. Credit card purchases are kept apart in
+  // `cardExpenses` — they only count when you pay the bill (a normal expense).
   const expenses = useMemo(
-    () => state.transactions.filter((t) => t.type !== "income").map((t) => ({ ...t, bucket: bucketOf(t) })),
+    () => state.transactions.filter((t) => t.type !== "income" && !t.card).map((t) => ({ ...t, bucket: bucketOf(t) })),
+    [state.transactions, bucketOf]
+  );
+  const cardExpenses = useMemo(
+    () => state.transactions.filter((t) => t.type !== "income" && t.card).map((t) => ({ ...t, bucket: bucketOf(t) })),
     [state.transactions, bucketOf]
   );
 
@@ -444,6 +450,7 @@ export function FinanceProvider({ children }) {
     ...state,
     ratio,
     expenses,
+    cardExpenses,
     received,
     today,
     currentMonth: today.slice(0, 7),

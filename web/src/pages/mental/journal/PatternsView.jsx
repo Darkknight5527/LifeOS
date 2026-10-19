@@ -33,7 +33,8 @@ export default function PatternsView() {
     ]).then(([gym, cali, cardio, tx, skin]) => {
       if (!alive) return;
       const spend = {};
-      for (const t of tx) if (t.type === "expense") spend[t.date] = (spend[t.date] || 0) + (t.amount || 0);
+      // Card purchases count on the day you bought; the bill payment would count them twice.
+      for (const t of tx) if (t.type === "expense" && !t.cardBill) spend[t.date] = (spend[t.date] || 0) + (t.amount || 0);
       setOther({
         trained: new Set([...gym, ...cali, ...cardio].map((x) => x.date)),
         spend,
