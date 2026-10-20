@@ -6,7 +6,7 @@ import { api } from "../../api";
 import { useToast } from "../../components/Toast.jsx";
 import { BOOKS } from "./facts.js";
 import { GhostButton, Icon, PrimaryButton, Sheet } from "../finances/fin-ui.jsx";
-import { IN_APP, closePdfReader, openPdfReader } from "../../lib/inApp.js";
+import { IN_APP, closePdfReader, openPdfReader, saveFile } from "../../lib/inApp.js";
 
 const CACHE = "lifeos-books-v1";
 const LIST_KEY = "lifeos_books_cache_v1";
@@ -133,6 +133,23 @@ export function BooksSheet({ open, onClose, books, focus, then }) {
     }
   }
 
+  // Save your copy back to this device (Downloads on a laptop; the phone's files in the app).
+  async function download(key) {
+    const have = books.byKey[key];
+    setBusy({ key, p: 0, down: true });
+    try {
+      const blob = await cachedBlob(key, have?.uploadedAt);
+      if (!blob) return showToast("That book isn't uploaded any more", true);
+      const name = (have?.name || `${BOOKS[key].short}.pdf`).replace(/[\\/:*?"<>|]+/g, "-");
+      await saveFile(blob, /\.pdf$/i.test(name) ? name : `${name}.pdf`);
+      showToast(IN_APP ? `${BOOKS[key].short} sent to your phone` : `${BOOKS[key].short} downloaded`);
+    } catch (err) {
+      showToast(err.message || "Download failed", true);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <Sheet
       open={open}
@@ -175,15 +192,26 @@ export function BooksSheet({ open, onClose, books, focus, then }) {
                     e.target.value = "";
                   }}
                 />
+                {have && (
+                  <button
+                    disabled={!!busy}
+                    onClick={() => download(key)}
+                    aria-label={`Download ${b.short}`}
+                    title="Download your copy"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-fin-tile text-white/80 transition hover:bg-[#30303a] hover:text-white disabled:opacity-40"
+                  >
+                    {up && busy.down ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Icon name="download" size={16} />}
+                  </button>
+                )}
                 <button
                   disabled={!!busy}
                   onClick={() => inputs.current[key]?.click()}
                   className={`shrink-0 rounded-xl px-3 py-1.5 text-[13px] font-semibold transition disabled:opacity-40 ${have ? "bg-fin-tile hover:bg-[#30303a]" : "bg-fin-accent text-black hover:brightness-110"}`}
                 >
-                  {up ? `${Math.round(busy.p * 100)}%` : have ? "Replace" : "Upload"}
+                  {up && !busy.down ? `${Math.round(busy.p * 100)}%` : have ? "Replace" : "Upload"}
                 </button>
               </div>
-              {up && (
+              {up && !busy.down && (
                 <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-black/30">
                   <div className="h-full rounded-full bg-fin-accent transition-[width]" style={{ width: `${Math.max(3, busy.p * 100)}%` }} />
                 </div>
