@@ -209,7 +209,9 @@ function AgendaCard({ cal, reminders, today, onOpen, onAdd }) {
 function DayList({ events, rems, date, now, reminders, onOpen, compact = false, empty }) {
   if (!events.length && !rems.length) return <div className="py-1 text-[13.5px] text-fin-muted">{empty}</div>;
   const allDay = events.filter((e) => e.allDay);
-  const timed = events.filter((e) => !e.allDay).map((e) => ({ kind: "event", sort: new Date(e.start).toTimeString().slice(0, 5), e }));
+  // An event that started on an earlier day (an overnight bus, a trip) shows at the top as "until <end>".
+  const startedBefore = (e) => isoDate(new Date(e.start)) < date;
+  const timed = events.filter((e) => !e.allDay).map((e) => ({ kind: "event", sort: startedBefore(e) ? "00:00" : new Date(e.start).toTimeString().slice(0, 5), e }));
   const rows = [...timed, ...rems.map((r) => ({ kind: "rem", sort: r.time || "99:99", r }))].sort((a, b) => a.sort.localeCompare(b.sort));
 
   return (
@@ -232,13 +234,24 @@ function DayList({ events, rems, date, now, reminders, onOpen, compact = false, 
           const live = s <= now && now < en;
           return (
             <div key={e.title + e.start} className={`flex gap-2.5 rounded-xl px-2.5 ${compact ? "py-1.5" : "py-2"} ${live ? "bg-fin-accent/10 ring-1 ring-fin-accent/40" : "bg-fin-input"} ${past ? "opacity-45" : ""}`}>
-              <div className="tabular w-[58px] shrink-0 pt-px text-right text-[12.5px] font-bold">{fmtTime(e.start)}</div>
+              {startedBefore(e) ? (
+                <div className="tabular w-[58px] shrink-0 pt-px text-right leading-tight" title={`Started ${new Date(e.start).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} at ${fmtTime(e.start)}`}>
+                  <div className="text-[10.5px] font-semibold text-fin-muted">until</div>
+                  <div className="text-[12.5px] font-bold">{isoDate(new Date(e.end)) === date ? fmtTime(e.end) : "all day"}</div>
+                </div>
+              ) : (
+                <div className="tabular w-[58px] shrink-0 pt-px text-right text-[12.5px] font-bold">{fmtTime(e.start)}</div>
+              )}
               <div className="min-w-0 flex-1 border-l border-white/10 pl-2.5">
                 <div className="truncate text-[13.5px] font-semibold">
                   {live && <span className="mr-1.5 rounded bg-fin-accent px-1 py-px text-[9.5px] font-bold uppercase text-black">Now</span>}
                   {e.title}
                 </div>
-                {e.location && !compact && <div className="truncate text-[11.5px] text-fin-muted">{e.location}</div>}
+                {startedBefore(e) ? (
+                  <div className="truncate text-[11.5px] text-fin-muted">Continues from {new Date(e.start).toLocaleDateString("en-IN", { weekday: "short" })} {fmtTime(e.start)}</div>
+                ) : (
+                  e.location && !compact && <div className="truncate text-[11.5px] text-fin-muted">{e.location}</div>
+                )}
               </div>
             </div>
           );

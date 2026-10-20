@@ -30,7 +30,7 @@ export default function JournalLock() {
     haptic("heavy");
     setTimeout(() => {
       setShake(false);
-      if (window.matchMedia?.("(pointer: fine)").matches) box.current?.focus(); // ready to retype
+      if (wasTyping.current) box.current?.focus(); // ready to retype, only if you were typing
     }, 400);
   };
 
@@ -79,23 +79,22 @@ export default function JournalLock() {
     enter(pin + k);
   };
 
-  // Type straight in: the PIN box is ready on a laptop (on a phone, tap it for the number keyboard).
+  // The PIN box waits until you ask for it: press Tab (laptop) or tap it (phone).
+  // Until then the keyboard is free for switching tabs, views and domains.
   const box = useRef(null);
-  useEffect(() => {
-    if (window.matchMedia?.("(pointer: fine)").matches && step !== "reset") box.current?.focus();
-  }, [step]);
-
-  // Physical keyboard when the box isn't focused (e.g. after clicking the keypad).
+  const wasTyping = useRef(false);
   useEffect(() => {
     const onKey = (e) => {
-      if (e.target.closest?.("input, textarea")) return;
-      if (/^\d$/.test(e.key)) press(e.key);
-      else if (e.key === "Backspace") press("⌫");
-      else if (e.key === "Enter" && pin.length >= 4) submit(pin);
+      if (e.key !== "Tab" || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (document.activeElement === box.current) return;
+      if (e.target.closest?.("input, textarea, select, [contenteditable]") || document.querySelector('[role="dialog"]')) return;
+      e.preventDefault();
+      box.current?.focus();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, []);
+  const fine = typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches;
 
   const title = {
     new: "Create a journal PIN",
@@ -136,18 +135,27 @@ export default function JournalLock() {
           if (pin.length >= 4 && !(step === "reset" && !password)) submit(pin);
         }}
       >
+        {/* A plain text box drawn as dots, so the browser doesn't offer saved passwords. */}
         <input
           ref={box}
-          type="password"
+          type="text"
+          name="journal-pin"
           inputMode="numeric"
           pattern="[0-9]*"
-          autoComplete="off"
+          autoComplete="one-time-code"
+          data-lpignore="true"
+          data-1p-ignore="true"
+          spellCheck={false}
+          onFocus={() => (wasTyping.current = true)}
+          onBlur={() => (wasTyping.current = false)}
+          onKeyDown={(e) => e.key === "Escape" && e.currentTarget.blur()}
+          style={{ WebkitTextSecurity: "disc" }}
           maxLength={8}
           value={pin}
           onChange={(e) => enter(e.target.value)}
           disabled={busy}
           aria-label={step === "reset" ? "New PIN" : "PIN"}
-          placeholder="Type your PIN"
+          placeholder={fine ? "Press Tab to type your PIN" : "Tap to type your PIN"}
           className="w-full rounded-2xl bg-fin-input px-4 py-3.5 text-center text-[26px] font-bold tracking-[0.5em] text-white caret-fin-accent outline-none transition placeholder:text-[15px] placeholder:font-medium placeholder:tracking-normal placeholder:text-fin-faint focus:ring-2 focus:ring-fin-accent/50"
         />
       </form>
