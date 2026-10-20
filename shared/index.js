@@ -147,6 +147,8 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
     books: () => request("/books"),
     deleteBook: (key) => request(`/books/${encodeURIComponent(key)}`, { method: "DELETE" }),
     // Raw download — returns the fetch Response so the caller can stream/cache it.
+    // A 10-minute private link the phone's browser can download from directly.
+    bookDownloadUrl: async (key) => baseUrl + (await request(`/books/${encodeURIComponent(key)}/link`, { method: "POST" })).path,
     bookFile: (key) => {
       const token = getToken();
       return fetch(`${baseUrl}/books/${encodeURIComponent(key)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });

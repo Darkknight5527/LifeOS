@@ -4,6 +4,7 @@
 import { Router } from "express";
 import express from "express";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 const KEY = /^[a-z0-9-]{1,40}$/;
@@ -25,6 +26,46 @@ router.get("/", async (req, res, next) => {
     next(err);
   }
 });
+
+// A private download link that works for 10 minutes without logging in, so
+// the phone's own browser can save a big PDF (the app can't take large files
+// from the page). Signed with the server secret and only good for this book.
+router.post("/:key/link", async (req, res, next) => {
+  try {
+    if (!KEY.test(req.params.key)) return res.status(400).json({ error: "Bad book key" });
+    const [file] = await findBook(req.userId, req.params.key);
+    if (!file) return res.status(404).json({ error: "Book not uploaded yet" });
+    const token = jwt.sign({ bk: req.params.key, bu: String(req.userId) }, process.env.JWT_SECRET, { algorithm: "HS256", expiresIn: "10m", audience: "book-download" });
+    res.json({ path: `/book-file/${token}` });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Public route (mounted before login is required): GET /book-file/:token */
+export async function bookDownload(req, res, next) {
+  try {
+    let p;
+    try {
+      p = jwt.verify(req.params.token, process.env.JWT_SECRET, { algorithms: ["HS256"], audience: "book-download" });
+    } catch {
+      return res.status(403).type("text/plain").send("This download link has expired. Tap Download again in LifeOS.");
+    }
+    if (!KEY.test(p.bk || "") || !mongoose.isValidObjectId(p.bu)) return res.status(403).type("text/plain").send("Invalid link.");
+    const [file] = await findBook(p.bu, p.bk);
+    if (!file) return res.status(404).type("text/plain").send("Book not found.");
+    const name = String(file.filename || `${p.bk}.pdf`).replace(/[^\w .()-]+/g, "_");
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Length": String(file.length),
+      "Content-Disposition": `attachment; filename="${name}"`,
+      "Cache-Control": "private, no-store",
+    });
+    bucket().openDownloadStream(file._id).on("error", next).pipe(res);
+  } catch (err) {
+    next(err);
+  }
+}
 
 // Download a book (streamed).
 router.get("/:key", async (req, res, next) => {

@@ -42,8 +42,8 @@ export async function saveFile(blob, name) {
 
 /** Show a PDF in the built-in reader (used inside the app). `blob` may be a
  *  promise, so the reader can open straight away with a spinner. */
-export function openPdfReader(blob, { page = 1, title = "", onPage } = {}) {
-  window.dispatchEvent(new CustomEvent("lifeos:pdf", { detail: { blob, page, title, onPage, id: Date.now() } }));
+export function openPdfReader(blob, { page = 1, title = "", onPage, onDownload } = {}) {
+  window.dispatchEvent(new CustomEvent("lifeos:pdf", { detail: { blob, page, title, onPage, onDownload, id: Date.now() } }));
 }
 export function closePdfReader() {
   window.dispatchEvent(new CustomEvent("lifeos:pdf", { detail: null }));

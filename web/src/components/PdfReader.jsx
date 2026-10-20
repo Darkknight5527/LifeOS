@@ -26,7 +26,7 @@ export function PdfReaderHost() {
   return <PdfReader key={doc.id} {...doc} onClose={() => setDoc(null)} />;
 }
 
-function PdfReader({ blob, page: startPage, title, onClose, onPage }) {
+function PdfReader({ blob, page: startPage, title, onClose, onPage, onDownload }) {
   const [pdf, setPdf] = useState(null);
   const [error, setError] = useState("");
   const [page, setPage] = useState(startPage || 1);
@@ -139,6 +139,11 @@ function PdfReader({ blob, page: startPage, title, onClose, onPage }) {
       <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
         <button onClick={onClose} className={btn} aria-label="Close">✕</button>
         <div className="min-w-0 flex-1 truncate text-[15px] font-semibold">{title}</div>
+        {onDownload && (
+          <button onClick={onDownload} className={btn} aria-label="Download this book" title="Download">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5M5 20h14" /></svg>
+          </button>
+        )}
         <button onClick={() => setZoom((z) => Math.max(1, +(z - 0.5).toFixed(1)))} disabled={zoom <= 1} className={btn} aria-label="Zoom out">−</button>
         <button onClick={() => setZoom((z) => Math.min(3, +(z + 0.5).toFixed(1)))} disabled={zoom >= 3} className={btn} aria-label="Zoom in">+</button>
       </div>

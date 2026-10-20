@@ -67,6 +67,25 @@ export async function cachedBlob(key, version) {
 }
 
 /**
+ * Save your copy of a book to this device. Laptop: saved straight from the
+ * browser. Phone app: the phone's browser downloads it from a 10-minute
+ * private link (the app can't take big files from the page).
+ */
+export async function downloadBook(key, have) {
+  const book = BOOKS[key];
+  if (IN_APP) {
+    const url = await api.bookDownloadUrl(key);
+    window.open(url, "_blank");
+    return "opened";
+  }
+  const blob = await cachedBlob(key, have?.uploadedAt);
+  if (!blob) throw new Error("That book isn't uploaded any more");
+  const name = (have?.name || `${book?.short || "book"}.pdf`).replace(/[\\/:*?"<>|]+/g, "-");
+  await saveFile(blob, /\.pdf$/i.test(name) ? name : `${name}.pdf`);
+  return "saved";
+}
+
+/**
  * Open a book at a printed page. Must be called straight from a click
  * (the tab is opened immediately so the browser doesn't block it).
  * Returns "missing" if the book hasn't been uploaded yet.
@@ -77,7 +96,7 @@ export async function openBook(key, printedPage, version) {
   if (IN_APP) {
     // The app's WebView has no PDF viewer — use our own reader.
     const pending = cachedBlob(key, version);
-    openPdfReader(pending, { page: pdfPage, title: `${book?.short || "Book"} · page ${printedPage}` });
+    openPdfReader(pending, { page: pdfPage, title: `${book?.short || "Book"} · page ${printedPage}`, onDownload: () => downloadBook(key).catch(() => {}) });
     try {
       if (!(await pending)) {
         closePdfReader();
@@ -133,23 +152,18 @@ export function BooksSheet({ open, onClose, books, focus, then }) {
     }
   }
 
-  // Save your copy back to this device (Downloads on a laptop; the phone's files in the app).
   async function download(key) {
     const have = books.byKey[key];
     setBusy({ key, p: 0, down: true });
     try {
-      const blob = await cachedBlob(key, have?.uploadedAt);
-      if (!blob) return showToast("That book isn't uploaded any more", true);
-      const name = (have?.name || `${BOOKS[key].short}.pdf`).replace(/[\\/:*?"<>|]+/g, "-");
-      await saveFile(blob, /\.pdf$/i.test(name) ? name : `${name}.pdf`);
-      showToast(IN_APP ? `${BOOKS[key].short} sent to your phone` : `${BOOKS[key].short} downloaded`);
+      const how = await downloadBook(key, have);
+      showToast(how === "opened" ? `${BOOKS[key].short}: downloading in your phone's browser` : `${BOOKS[key].short} downloaded`);
     } catch (err) {
       showToast(err.message || "Download failed", true);
     } finally {
       setBusy(null);
     }
   }
-
   return (
     <Sheet
       open={open}

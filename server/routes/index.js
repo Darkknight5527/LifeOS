@@ -49,7 +49,7 @@ import TechSettings from "../models/TechSettings.js";
 import techRoutes from "./tech.js";
 import mealScanRoutes from "./mealScans.js";
 import progressPhotoRoutes from "./progressPhotos.js";
-import booksRoutes from "./books.js";
+import booksRoutes, { bookDownload } from "./books.js";
 import skinScanRoutes from "./skinScans.js";
 import adminRoutes from "./admin.js";
 import journalRoutes, { requireJournalKey } from "./journal.js";
@@ -69,6 +69,9 @@ const router = Router();
 router.use("/auth", authRoutes);
 
 // Everything below requires a valid JWT
+// Short-lived signed book download links (the token is the permission).
+router.get("/book-file/:token", bookDownload);
+
 router.use(requireAuth);
 
 router.use("/mood-logs", createCrudRouter(MoodLog, { sortField: "date", sortOrder: -1 }));

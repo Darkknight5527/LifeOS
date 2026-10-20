@@ -184,6 +184,15 @@ try {
   ok((await call("GET", "/books", FRIEND)).data.length === 0, "friend sees no books");
   ok((await fetch(`${API}/books/owner-book`, { headers: { Authorization: `Bearer ${FRIEND}` } })).status === 404, "friend can't download owner's book");
 
+  // ---------- 7b. book download links ----------
+  const lk = await call("POST", "/books/owner-book/link", OWNER);
+  ok(lk.status === 200 && lk.data.path.startsWith("/book-file/"), "owner gets a download link");
+  const dl = await fetch(API + lk.data.path);
+  ok(dl.status === 200 && dl.headers.get("content-disposition")?.startsWith("attachment") && (await dl.text()).startsWith("%PDF"), "link downloads the PDF without logging in");
+  ok((await call("POST", "/books/owner-book/link", FRIEND)).status === 404, "friend can't get a link to owner's book");
+  ok((await fetch(API + "/book-file/not-a-token")).status === 403, "made-up link refused");
+  ok((await call("GET", "/auth/me", lk.data.path.split("/").pop())).status === 401, "a download link can't be used as a login");
+
   // ---------- 8. calendar + admin are owner-only ----------
   const cal = await call("GET", `/paper/calendar?from=2026-10-01T00:00:00Z&to=2026-10-03T00:00:00Z&days=2026-10-01`, FRIEND);
   ok(cal.data.ownerOnly === true && cal.data.events.length === 0, "friend gets no calendar");
