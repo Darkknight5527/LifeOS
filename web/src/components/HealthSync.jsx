@@ -77,6 +77,16 @@ export async function saveReadings(readings) {
   return { added: create.length, updated };
 }
 
+// Tell the server when the phone last synced, so the website can show it.
+async function recordSync(info) {
+  try {
+    const [s] = await api.list("fit-settings");
+    if (s) await api.update("fit-settings", s._id, { scaleSync: { at: Date.now(), ...info } });
+  } catch {
+    /* only a status note — ignore */
+  }
+}
+
 export function HealthSyncHost() {
   const showToast = useToast();
   useEffect(() => {
@@ -91,6 +101,7 @@ export function HealthSyncHost() {
         // Nothing new in Health Connect: still a successful sync, so say so.
         sendToApp("health-saved");
         set({ busy: false, lastSync: Date.now(), lastResult: { added: 0, updated: 0 } });
+        recordSync({ sources: state.sources || [], added: 0, updated: 0 });
         if (manual) showToast("Synced — no new weigh-ins in Health Connect yet");
         manual = false;
         return;
@@ -100,6 +111,7 @@ export function HealthSyncHost() {
         const { added, updated } = await saveReadings(m.readings);
         sendToApp("health-saved");
         set({ busy: false, lastSync: Date.now(), lastResult: { added, updated } });
+        recordSync({ sources: [...new Set(m.readings.map((r) => appName(r.source)))], added, updated });
         if (added || updated) {
           const from = [...new Set(m.readings.map((r) => appName(r.source)))].join(", ");
           showToast(`Scale: ${added ? `${added} new weigh-in${added === 1 ? "" : "s"}` : ""}${added && updated ? ", " : ""}${updated ? `${updated} updated` : ""} from ${from}`);

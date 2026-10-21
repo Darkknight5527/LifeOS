@@ -14,6 +14,7 @@ const FitSettingsSchema = new mongoose.Schema({
   goals: { type: mongoose.Schema.Types.Mixed, default: {} }, // { [exercise]: { weight, reps } }
   plates: { type: mongoose.Schema.Types.Mixed, default: {} }, // { bar, available: [..] }
   mealRefs: { type: mongoose.Schema.Types.Mixed, default: {} }, // meal photos: { plateCm, katoriMl } — your own dish sizes
+  scaleSync: { type: mongoose.Schema.Types.Mixed, default: {} }, // last phone Health Connect sync: { at, sources, added, updated }
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });

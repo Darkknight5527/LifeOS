@@ -59,8 +59,10 @@ export function FitProvider({ children }) {
       }
       setD({ settings, sessions: sessions.sort(byDateDesc), cardio: cardio.sort(byDateDesc), food, custom, body, cali: cali.sort(byDateDesc), checkins });
       setStatus({ loading: false, syncing: false, error: null });
+      return { settings, body };
     } catch (err) {
       setStatus({ loading: false, syncing: false, error: err.message || "Failed to load" });
+      return null;
     }
   }, []);
 

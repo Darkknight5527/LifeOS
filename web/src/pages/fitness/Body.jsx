@@ -107,7 +107,7 @@ export function BodyView() {
           </div>
           <PrimaryButton className="mt-3 w-full" onClick={save}>{log ? "Update today" : "Save weigh-in"}</PrimaryButton>
         </FinCard>
-        {IN_APP && <SmartScaleCard />}
+        {IN_APP ? <SmartScaleCard /> : <WebScaleCard />}
       </div>
 
       <FinCard
@@ -200,6 +200,53 @@ const ago = (t) => {
   const m = Math.round((Date.now() - t) / 60000);
   return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
 };
+
+// On the website: Health Connect lives on the phone, so the phone app does the
+// reading (every time it's opened) and the website shows the result. Sync here
+// pulls the newest weigh-ins the phone has sent.
+function WebScaleCard() {
+  const fit = useFit();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const s = fit.settings?.scaleSync || {};
+  const latest = useMemo(() => [...fit.body].filter((b) => b.weight).sort((a, b) => (a.date < b.date ? 1 : -1))[0], [fit.body]);
+  const sync = async () => {
+    setBusy(true);
+    setNote("");
+    const before = latest ? `${latest.date}:${latest.weight}` : "";
+    try {
+      const fresh = await fit.reload();
+      if (!fresh) throw new Error("offline");
+      const top = [...(fresh?.body || [])].filter((b) => b.weight).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+      setNote(top && `${top.date}:${top.weight}` !== before ? `New weigh-in: ${top.weight} kg (${prettyDate(top.date)})` : "Up to date — nothing new from your phone yet.");
+    } catch {
+      setNote("Couldn't reach LifeOS. Check your connection.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <FinCard title={<span className="flex items-center gap-2"><Icon name="trend" size={15} /> Smart scale</span>}>
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-[14.5px] font-semibold">
+            <span className={`h-2.5 w-2.5 rounded-full ${s.at ? "bg-emerald-400" : "bg-white/25"}`} />
+            {s.at ? `Phone synced ${ago(s.at)}` : "Not synced from your phone yet"}
+          </div>
+          <div className="mt-0.5 text-[12.5px] leading-snug text-fin-muted">
+            {latest ? `Latest weigh-in ${latest.weight} kg · ${prettyDate(latest.date)}` : "No weigh-ins yet"}
+            {s.sources?.length ? ` · from ${s.sources.join(", ")}` : ""}
+          </div>
+        </div>
+        <button onClick={sync} disabled={busy} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-fin-accent/15 px-3 py-2 text-[13.5px] font-semibold text-fin-accent hover:bg-fin-accent/25 disabled:opacity-50">
+          <Icon name="refresh" size={14} className={busy ? "animate-spin" : ""} /> {busy ? "Syncing…" : "Sync"}
+        </button>
+      </div>
+      {note && <div className="mt-2 text-[12.5px] text-white/80" role="status">{note}</div>}
+      <div className="mt-2 text-[12px] leading-relaxed text-fin-faint">Health Connect is on your phone, so the LifeOS app reads the scale each time you open it. Weigh in, open the app once, then tap Sync here.</div>
+    </FinCard>
+  );
+}
 
 function SmartScaleCard() {
   const h = useHealthState();
