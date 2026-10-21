@@ -16,6 +16,8 @@ export const DEFAULT_NOTIFY = {
   checkin: { on: true, time: "21:00" },
   mind: { on: false, time: "07:30" },
   journal: { on: false, time: "22:15" },
+  meds: { on: true },
+  visits: { on: true, time: "19:00" }, // the evening before a check-up
 };
 
 // The journal is PIN-locked, so "written today" is remembered on this device.
@@ -60,13 +62,16 @@ export function saveNotify(config, { ask = true } = {}) {
 // ---------- today's status ----------
 async function todayStatus() {
   const today = todayISO();
-  const [steps, skinLogs, food, fitSettings, tx, mind] = await Promise.all([
+  const [steps, skinLogs, food, fitSettings, tx, mind, meds, medLogs, visits] = await Promise.all([
     api.list("skincare-steps").catch(() => []),
     api.list("skin-logs").catch(() => []),
     api.list("food-logs").catch(() => []),
     api.list("fit-settings").catch(() => []),
     api.list("finance-transactions").catch(() => []),
     api.list("mind-sessions").catch(() => []),
+    api.list("medicines").catch(() => []),
+    api.list("med-logs").catch(() => []),
+    api.list("health-visits").catch(() => []),
   ]);
   const latest = (list) => list.filter((x) => x.date === today).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
   const skinLog = latest(skinLogs);
@@ -115,6 +120,17 @@ async function todayStatus() {
     checkinPath: path,
     mindDone: mind.some((s) => s.date === today),
     journalDone: journalDoneToday(),
+    // Health: the phone works out each day's doses; ones ticked today are skipped.
+    meds: meds
+      .filter((m) => m.active && m.times?.length && !(m.end && m.end < today))
+      .slice(0, 20)
+      .map((m) => ({ id: m._id, name: m.name, dose: m.dose || "", food: m.food || "", times: m.times, days: m.days || [], start: m.start || "", end: m.end || "" })),
+    medsDone: Object.keys(medLogs.find((l) => l.date === today)?.doses || {}),
+    visits: visits
+      .filter((v) => v.status === "planned" && v.date >= today)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 10)
+      .map((v) => ({ date: v.date, time: v.time || "", title: v.title || "Check-up", doctor: v.doctor || "", place: v.place || "" })),
   };
 }
 

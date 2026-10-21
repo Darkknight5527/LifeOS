@@ -12,6 +12,12 @@ import { BodyView } from "./fitness/Body.jsx";
 import { PhotosView } from "./fitness/Photos.jsx";
 import { CheckinView } from "./fitness/Checkin.jsx";
 import { checkinDue, weekLabel } from "./fitness/checkin.js";
+import { HealthGate, HealthProvider } from "./fitness/health/HealthContext.jsx";
+import { HealthToday } from "./fitness/health/Today.jsx";
+import { IssuesView } from "./fitness/health/Issues.jsx";
+import { MedsView } from "./fitness/health/Meds.jsx";
+import { VisitsView } from "./fitness/health/Visits.jsx";
+import { LabsView } from "./fitness/health/Labs.jsx";
 import { CaliGuides, CaliProvider, CaliTraining, CaliTree, CaliTutorials } from "./fitness/cali/Cali.jsx";
 
 const TABS = [
@@ -19,6 +25,7 @@ const TABS = [
   { id: "cali", label: "Calisthenics", icon: "figure" },
   { id: "nutrition", label: "Nutrition", icon: "flame" },
   { id: "body", label: "Body", icon: "chart" },
+  { id: "health", label: "Health", icon: "pulse" },
 ];
 const VIEWS = {
   train: [
@@ -43,13 +50,20 @@ const VIEWS = {
     { value: "photos", label: "Photos" },
     { value: "checkin", label: "Check-in" },
   ],
+  health: [
+    { value: "today", label: "Today" },
+    { value: "issues", label: "Issues" },
+    { value: "meds", label: "Meds" },
+    { value: "visits", label: "Check-ups" },
+    { value: "labs", label: "Labs" },
+  ],
 };
 const RANGES = [
   { value: 7, label: "7 days" },
   { value: 30, label: "30 days" },
 ];
 const KEY = "lifeos_fit_view";
-const FRESH = { tab: "train", views: { train: "today", cali: "tree", nutrition: "today", body: "weight" } };
+const FRESH = { tab: "train", views: { train: "today", cali: "tree", nutrition: "today", body: "weight", health: "today" } };
 let restored = false;
 
 // Train › Today when you come in; after a refresh, wherever you were.
@@ -89,6 +103,16 @@ function FitnessShell() {
   // A view saved by an older version may no longer exist: fall back to the tab's first.
   const view = VIEWS[tab].some((v) => v.value === state.views[tab]) ? state.views[tab] : FRESH.views[tab];
   const setView = (v) => setState((s) => ({ ...s, views: { ...s.views, [s.tab]: v } }));
+  // Health › Today can open a view with one visit / issue already open.
+  const [focus, setFocus] = useState(null);
+  useEffect(() => {
+    if (focus && (focus.view !== view || tab !== "health")) setFocus(null);
+  }, [view, tab]); // eslint-disable-line react-hooks/exhaustive-deps
+  const go = (v, item = null) => {
+    setFocus(item ? { view: v, item } : null);
+    setView(v);
+    window.scrollTo({ top: 0 });
+  };
   useViewKeys(VIEWS[tab], view, setView); // 1–4 / Shift+← → switch views
   const due = fit.hasData ? checkinDue(fit.checkins) : null;
 
@@ -157,6 +181,7 @@ function FitnessShell() {
           <button onClick={fit.reload} className="mt-5 rounded-2xl bg-fin-tile px-5 py-2.5 font-semibold">Try again</button>
         </div>
       ) : (
+        <HealthProvider active={tab === "health"}>
         <CaliProvider>
         <div key={`${tab}-${view}`} className="animate-fade-in">
           {tab === "train" && view === "today" && <TrainToday />}
@@ -173,8 +198,18 @@ function FitnessShell() {
           {tab === "body" && view === "weight" && <BodyView />}
           {tab === "body" && view === "photos" && <PhotosView />}
           {tab === "body" && view === "checkin" && <CheckinView />}
+          {tab === "health" && (
+            <HealthGate fallback={<Loading />}>
+          {view === "today" && <HealthToday go={go} />}
+          {view === "issues" && <IssuesView openIssue={focus?.view === "issues" ? focus.item : null} />}
+          {view === "meds" && <MedsView />}
+          {view === "visits" && <VisitsView openVisit={focus?.view === "visits" ? focus.item : null} />}
+          {view === "labs" && <LabsView />}
+            </HealthGate>
+          )}
         </div>
         </CaliProvider>
+        </HealthProvider>
       )}
     </DomainShell>
   );

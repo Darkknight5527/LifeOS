@@ -62,6 +62,12 @@ import HobbySession from "../models/HobbySession.js";
 import LibraryBook from "../models/LibraryBook.js";
 import ReadingLog from "../models/ReadingLog.js";
 import ReadingGoal from "../models/ReadingGoal.js";
+import HealthIssue from "../models/HealthIssue.js";
+import Medicine from "../models/Medicine.js";
+import MedLog from "../models/MedLog.js";
+import HealthVisit from "../models/HealthVisit.js";
+import LabReport from "../models/LabReport.js";
+import HealthPlan from "../models/HealthPlan.js";
 
 const router = Router();
 
@@ -110,6 +116,13 @@ router.use("/body-logs", createCrudRouter(BodyLog, { sortField: "date", sortOrde
 router.use("/cali-logs", createCrudRouter(CaliLog, { sortField: "date", sortOrder: -1 }));
 router.use("/weekly-checkins", createCrudRouter(WeeklyCheckin, { sortField: "week", sortOrder: -1 }));
 router.use("/meal-scans", mealScanRoutes);
+// Health (medical): never sent to the AI
+router.use("/health-issues", createCrudRouter(HealthIssue, { sortField: "updatedAt", sortOrder: -1 }));
+router.use("/medicines", createCrudRouter(Medicine, { sortField: "createdAt", sortOrder: 1 }));
+router.use("/med-logs", createCrudRouter(MedLog, { sortField: "date", sortOrder: -1 }));
+router.use("/health-visits", createCrudRouter(HealthVisit, { sortField: "date", sortOrder: -1 }));
+router.use("/lab-reports", createCrudRouter(LabReport, { sortField: "date", sortOrder: -1 }));
+router.use("/health-plans", createCrudRouter(HealthPlan, { sortField: "createdAt", sortOrder: 1 }));
 router.use("/progress-photos", progressPhotoRoutes);
 // Tech & Learning
 router.use("/tech-projects", createCrudRouter(TechProject, { sortField: "order", sortOrder: 1 }));

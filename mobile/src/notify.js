@@ -75,6 +75,32 @@ function plan(config, status, now = new Date()) {
     if (config.journal?.on && !(isToday && st.journalDone)) {
       add("journal", at(day, config.journal.time), "Journal 📝", "How was today? A few lines before bed.", "/mental#journal");
     }
+    // Medicines: each scheduled dose, unless already ticked (taken or skipped) today.
+    if (config.meds?.on !== false && Array.isArray(status?.meds) && i < 7) { // a week ahead (keeps under Android's alarm limit)
+      const done = new Set(isToday ? st.medsDone || [] : []);
+      for (const m of status.meds) {
+        if ((m.start && iso < m.start) || (m.end && iso > m.end)) continue;
+        if (m.days?.length && !m.days.includes(day.getDay())) continue;
+        for (const t of m.times || []) {
+          if (done.has(`${m.id}@${t}`)) continue;
+          const food = m.food ? ` (${m.food} food)` : "";
+          add(`med-${m.id}-${t}`, at(day, t), `💊 ${m.name}${m.dose ? ` ${m.dose}` : ""}`, `Time for your dose${food}. Tap to tick it off.`, "/fitness#health");
+        }
+      }
+    }
+    // Check-ups: the evening before, and two hours before (or 8 AM on the day).
+    if (config.visits?.on !== false && Array.isArray(status?.visits)) {
+      const next = isoOf(new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1));
+      status.visits.forEach((v, n) => {
+        const where = [v.doctor, v.place].filter(Boolean).join(", ");
+        const when = v.time ? ` at ${v.time}` : "";
+        if (v.date === next) add(`visit-eve-${n}`, at(day, config.visits?.time || "19:00"), `Tomorrow: ${v.title}`, `${where ? `${where}${when}` : `Tomorrow${when}`}. Anything to take or ask?`, "/fitness#health");
+        if (v.date === iso) {
+          const t = v.time ? Math.max(0, minutes(v.time) - 120) : 8 * 60;
+          add(`visit-day-${n}`, at(day, `${Math.floor(t / 60)}:${t % 60}`), `Today: ${v.title}${when}`, where || "Your check-up is today.", "/fitness#health");
+        }
+      });
+    }
     if (config.water?.on && !(isToday && st.waterDone)) {
       const from = minutes(config.water.from || "09:00");
       const to = minutes(config.water.to || "21:00");
@@ -102,7 +128,8 @@ export async function applyNotifications({ config, status, askPermission = false
 
   await Notifications.cancelAllScheduledNotificationsAsync();
   const cfg = next.notifyConfig;
-  const anyOn = cfg && ["skinAm", "skinPm", "checkin", "water", "mind", "journal"].some((k) => cfg[k]?.on);
+  const st = next.notifyStatus || {};
+  const anyOn = cfg && (["skinAm", "skinPm", "checkin", "water", "mind", "journal"].some((k) => cfg[k]?.on) || (cfg.meds?.on !== false && st.meds?.length) || (cfg.visits?.on !== false && st.visits?.length));
   if (!anyOn) return { permission: await permissionState(), scheduled: 0 };
 
   let perm = await permissionState();

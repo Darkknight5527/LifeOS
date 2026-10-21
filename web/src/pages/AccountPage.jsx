@@ -279,7 +279,9 @@ function Notifications() {
           ["checkin", "📝", "Evening check-in", "Lists what's not logged yet: expenses, food, skin"],
           ["mind", "🧘", "Mind", "A nudge to breathe or meditate — skipped once you've done a session", "1.7.0"],
           ["journal", "📔", "Journal", "Skipped once you've written in today's journal", "1.7.0"],
-        ].map(([k, icon, title, sub, needs]) => needs && appVersionBelow(needs) ? (
+          ["meds", "💊", "Medicines", "At each dose time from Health › Meds — skipped once ticked", "1.9.0", true],
+          ["visits", "🩺", "Check-ups", "The evening before a planned visit, and 2 hours before it", "1.9.0"],
+        ].map(([k, icon, title, sub, needs, noTime]) => needs && appVersionBelow(needs) ? (
           <div key={k} className={`${row} opacity-60`}>
             <span className="text-[20px]">{icon}</span>
             <div className="min-w-0 flex-1">
@@ -295,9 +297,9 @@ function Notifications() {
               <div className="text-[12.5px] text-fin-muted">{sub}</div>
             </div>
             <Toggle on={cfg[k].on} label={title} onChange={(on) => set(k, { on })} />
-            {cfg[k].on && (
+            {cfg[k].on && !noTime && (
               <div className="flex w-full items-center gap-2 pl-9 text-[13.5px] text-fin-muted">
-                at <TimeInput value={cfg[k].time} label={`${title} time`} onChange={(time) => set(k, { time })} />
+                {k === "visits" ? "evening before at" : "at"} <TimeInput value={cfg[k].time} label={`${title} time`} onChange={(time) => set(k, { time })} />
               </div>
             )}
           </div>
