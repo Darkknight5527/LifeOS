@@ -161,7 +161,25 @@ export function HealthProvider({ children, active = true }) {
     [fail, update, showToast]
   );
 
-  const value = { ...d, ...status, reload: load, create, update, remove, setDose, takeExtra };
+  // Remove one as-needed dose (by when it was logged); puts it back in stock.
+  const dropExtra = useCallback(
+    (date, med, at) => {
+      const run = async () => {
+        const log = ref.current.logs.find((l) => l.date === date);
+        if (!log) return;
+        const extra = (log.extra || []).filter((x) => !(x.medId === med._id && x.at === at));
+        const cur = ref.current.meds.find((m) => m._id === med._id);
+        if (cur?.stock != null) update("meds", med._id, { stock: cur.stock + 1 });
+        setD((x) => ({ ...x, logs: x.logs.map((l) => (l._id === log._id ? { ...l, extra } : l)) }));
+        await api.update(C.logs, log._id, { extra });
+      };
+      chain.current = chain.current.then(run).catch(fail);
+      return chain.current;
+    },
+    [fail, update]
+  );
+
+  const value = { ...d, ...status, reload: load, create, update, remove, setDose, takeExtra, dropExtra };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

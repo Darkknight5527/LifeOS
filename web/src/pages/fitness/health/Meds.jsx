@@ -10,9 +10,9 @@ import { AddButton, Area, Chips, DeleteButton, Field, Input, Select, shortDate }
 const BLANK = { name: "", dose: "", form: "tablet", kind: "medicine", purpose: "", issueId: "", times: ["08:00"], days: [], food: "", start: "", end: "", active: true, stock: null, prescribedBy: "", notes: "" };
 const lowStock = (m) => m.stock != null && m.active && (m.times?.length ? m.stock <= m.times.length * 5 : m.stock <= 3);
 
-export function MedsView() {
+export function MedsView({ openMed }) {
   const h = useHealth();
-  const [edit, setEdit] = useState(null); // medicine doc or BLANK
+  const [edit, setEdit] = useState(openMed || null); // medicine doc or BLANK
   const today = todayISO();
   const current = h.meds.filter((m) => m.active && !(m.end && m.end < today));
   const past = h.meds.filter((m) => !current.includes(m));

@@ -202,7 +202,7 @@ function FitnessShell() {
             <HealthGate fallback={<Loading />}>
           {view === "today" && <HealthToday go={go} />}
           {view === "issues" && <IssuesView openIssue={focus?.view === "issues" ? focus.item : null} />}
-          {view === "meds" && <MedsView />}
+          {view === "meds" && <MedsView openMed={focus?.view === "meds" ? focus.item : null} />}
           {view === "visits" && <VisitsView openVisit={focus?.view === "visits" ? focus.item : null} />}
           {view === "labs" && <LabsView />}
             </HealthGate>

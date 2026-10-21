@@ -1,6 +1,7 @@
 // Health › Today: tick today's medicines, see what's coming up (visits,
 // regular check-ups due) and anything to keep an eye on.
-import { EmptyState, FinCard, Icon } from "../../finances/fin-ui.jsx";
+import { useState } from "react";
+import { EmptyState, FinCard, Icon, PrimaryButton, Sheet } from "../../finances/fin-ui.jsx";
 import { useFit } from "../FitContext.jsx";
 import { useHealth } from "./HealthContext.jsx";
 import { lowStock } from "./Meds.jsx";
@@ -29,6 +30,7 @@ export function HealthToday({ go }) {
   const latest = [...h.reports].sort((a, b) => b.date.localeCompare(a.date))[0];
   const off = (latest?.results || []).filter((x) => ["high", "low"].includes(flagOf(x, sex)));
   const refill = current.filter(lowStock);
+  const [extraFor, setExtraFor] = useState(null); // as-needed medicine being looked at
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -71,13 +73,13 @@ export function HealthToday({ go }) {
             </div>
             {asNeeded.length > 0 && (
               <div className="mt-4">
-                <div className="mb-1.5 text-[12.5px] text-fin-muted">As needed</div>
+                <div className="mb-1.5 text-[12.5px] text-fin-muted">As needed — tap to log or edit</div>
                 <div className="flex flex-wrap gap-1.5">
                   {asNeeded.map((m) => {
                     const n = (log?.extra || []).filter((x) => x.medId === m._id).length;
                     return (
-                      <button key={m._id} onClick={() => h.takeExtra(today, m)} className="rounded-full bg-fin-tile px-3 py-1.5 text-[13px] font-semibold text-white/85 hover:text-white">
-                        + {m.name}{n ? <span className="text-fin-accent"> · {n} today</span> : ""}
+                      <button key={m._id} onClick={() => setExtraFor(m)} className="rounded-full bg-fin-tile px-3 py-1.5 text-[13px] font-semibold text-white/85 hover:text-white">
+                        {m.name}{n ? <span className="text-fin-accent"> · {n} today</span> : ""}
                       </button>
                     );
                   })}
@@ -184,6 +186,40 @@ export function HealthToday({ go }) {
           )}
         </FinCard>
       </div>
+      <ExtraSheet med={extraFor && h.meds.find((m) => m._id === extraFor._id)} log={log} today={today} onClose={() => setExtraFor(null)} onEdit={(m) => (setExtraFor(null), go("meds", m))} />
     </div>
+  );
+}
+
+/** An as-needed medicine: log a dose, see today's, remove one logged by mistake. */
+function ExtraSheet({ med, log, today, onClose, onEdit }) {
+  const h = useHealth();
+  const list = med ? (log?.extra || []).filter((x) => x.medId === med._id).sort((a, b) => b.at - a.at) : [];
+  const clock = (t) => new Date(t).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+  return (
+    <Sheet
+      open={Boolean(med)}
+      onClose={onClose}
+      title={med?.name || ""}
+      footer={
+        <>
+          <button onClick={() => onEdit(med)} className="rounded-2xl px-4 py-3 text-[15px] font-semibold text-fin-muted hover:text-white">Edit medicine</button>
+          <PrimaryButton className="flex-1" onClick={() => h.takeExtra(today, med)}>+ Log a dose now</PrimaryButton>
+        </>
+      }
+    >
+      <div className="text-[13.5px] text-fin-muted">{[med?.dose, med?.stock != null && `${med.stock} left`].filter(Boolean).join(" · ") || "As needed"}</div>
+      <div className="mt-3 text-[12.5px] font-semibold uppercase tracking-[0.08em] text-fin-muted">Today · {list.length} dose{list.length === 1 ? "" : "s"}</div>
+      <div className="mt-2 space-y-1.5">
+        {!list.length && <div className="py-4 text-center text-[13.5px] text-fin-muted">None logged today.</div>}
+        {list.map((x) => (
+          <div key={x.at} className="flex items-center gap-3 rounded-xl bg-fin-input px-3.5 py-2.5">
+            <Icon name="clock" size={15} className="shrink-0 text-fin-muted" />
+            <span className="tabular flex-1 text-[14.5px] font-semibold">{clock(x.at)}</span>
+            <button onClick={() => h.dropExtra(today, med, x.at)} className="rounded-lg px-2.5 py-1 text-[13px] font-semibold text-fin-muted hover:bg-red-500/15 hover:text-fin-danger" aria-label={`Remove the ${clock(x.at)} dose`}>Remove</button>
+          </div>
+        ))}
+      </div>
+    </Sheet>
   );
 }
