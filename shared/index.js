@@ -129,7 +129,8 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
 
     // AI meal photo estimates (the photo isn't stored)
     mealScanAllowance: () => request("/meal-scans/allowance"),
-    mealScan: (photo, hint) => request("/meal-scans", { method: "POST", body: { photo, hint } }),
+    // body: { photos: [base64 ×1–3], hint, reference, plateCm, katoriMl, answers }
+    mealScan: (body) => request("/meal-scans", { method: "POST", body }),
 
     // Tech & Learning: public GitHub activity for your saved username
     techGithub: (fresh = false) => request(`/tech/github${fresh ? "?fresh=1" : ""}`),

@@ -19,20 +19,33 @@ router.get("/allowance", async (req, res, next) => {
   }
 });
 
-// { photo: base64, hint?: "2 chapatis, half katori dal" } → estimate.
+// { photos: [base64, …] (1–3 of the same plate) — or photo: base64 —,
+//   hint?, reference?: [{ name, serving, cal, p, c, f }], plateCm?, katoriMl?,
+//   answers?: [{ question, answer }] } → estimate.
 router.post("/", aiLimit, async (req, res, next) => {
   try {
     const allowance = await aiAllowance(req.userId, "meal");
     if (!allowance.ok) return res.status(429).json({ error: `You've used today's ${allowance.limit} AI meal estimates. You can add food by search or Quick add, and photos work again tomorrow.` });
-    const { photo, hint } = req.body || {};
-    if (typeof photo !== "string" || !photo) return res.status(400).json({ error: "Send a photo of the meal." });
-    const data = Buffer.from(photo, "base64");
-    if (data.length > MAX_PHOTO) return res.status(400).json({ error: "The photo is too large." });
-    const mime = sniffImage(data);
-    if (!mime) return res.status(400).json({ error: "That doesn't look like a photo (JPEG, PNG or WebP)." });
+    const { photo, photos, hint, reference, plateCm, katoriMl, answers } = req.body || {};
+    const raw = Array.isArray(photos) ? photos : photo ? [photo] : [];
+    if (!raw.length || raw.length > 3 || raw.some((x) => typeof x !== "string" || !x)) return res.status(400).json({ error: "Send one to three photos of the meal." });
+    const parsed = [];
+    for (const x of raw) {
+      const data = Buffer.from(x, "base64");
+      if (data.length > MAX_PHOTO) return res.status(400).json({ error: "A photo is too large." });
+      const mime = sniffImage(data);
+      if (!mime) return res.status(400).json({ error: "That doesn't look like a photo (JPEG, PNG or WebP)." });
+      parsed.push({ mime, data });
+    }
     let result;
     try {
-      result = await analyzeMeal({ mime, data }, { hint: typeof hint === "string" ? hint : "" });
+      result = await analyzeMeal(parsed, {
+        hint: typeof hint === "string" ? hint : "",
+        reference: Array.isArray(reference) ? reference : [],
+        plateCm: Number(plateCm) || 0,
+        katoriMl: Number(katoriMl) || 0,
+        answers: Array.isArray(answers) ? answers : [],
+      });
     } catch (err) {
       return res.status(502).json({ error: String(err.message || err).slice(0, 300) });
     }

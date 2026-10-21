@@ -13,6 +13,7 @@ const FitSettingsSchema = new mongoose.Schema({
   customExercises: { type: mongoose.Schema.Types.Mixed, default: [] }, // [{ exercise, group, type }]
   goals: { type: mongoose.Schema.Types.Mixed, default: {} }, // { [exercise]: { weight, reps } }
   plates: { type: mongoose.Schema.Types.Mixed, default: {} }, // { bar, available: [..] }
+  mealRefs: { type: mongoose.Schema.Types.Mixed, default: {} }, // meal photos: { plateCm, katoriMl } — your own dish sizes
   createdAt: { type: Number, default: () => Date.now() },
   updatedAt: { type: Number, default: () => Date.now() },
 });

@@ -19,6 +19,7 @@ export function NutritionToday({ onTargets }) {
   const fit = useFit();
   const [date, setDate] = useState(todayISO());
   const [add, setAdd] = useState(null); // meal id
+  const [addMode, setAddMode] = useState("search");
   const log = fit.foodByDate[date];
   const yesterday = isoDate(addDays(parseISO(date), -1));
   const ylog = fit.foodByDate[yesterday];
@@ -95,7 +96,12 @@ export function NutritionToday({ onTargets }) {
               key={m.id}
               className="flex h-max flex-col"
               title={<span className="flex items-center gap-2"><Icon name={m.icon} size={15} /> {m.label} <span className="tabular normal-case tracking-normal text-fin-faint">{round(kcal)} kcal</span></span>}
-              action={<button onClick={() => setAdd(m.id)} className="flex items-center gap-1 rounded-xl bg-fin-accent/15 px-3 py-1.5 text-[13.5px] font-semibold text-fin-accent hover:bg-fin-accent/25"><Icon name="plus" size={14} stroke={2.6} /> Add</button>}
+              action={
+                <span className="flex items-center gap-1.5">
+                  <button onClick={() => { setAddMode("photo"); setAdd(m.id); }} aria-label={`Add ${m.label} from a photo`} title="Estimate from a photo" className="grid h-8 w-8 place-items-center rounded-xl bg-fin-accent/15 text-fin-accent hover:bg-fin-accent/25"><Icon name="camera" size={16} /></button>
+                  <button onClick={() => { setAddMode("search"); setAdd(m.id); }} className="flex items-center gap-1 rounded-xl bg-fin-accent/15 px-3 py-1.5 text-[13.5px] font-semibold text-fin-accent hover:bg-fin-accent/25"><Icon name="plus" size={14} stroke={2.6} /> Add</button>
+                </span>
+              }
             >
               {list.length ? (
                 <div className="space-y-1.5">
@@ -127,7 +133,7 @@ export function NutritionToday({ onTargets }) {
           );
         })}
       </div>
-      <AddFoodSheet meal={add} date={date} onClose={() => setAdd(null)} />
+      <AddFoodSheet meal={add} startMode={addMode} date={date} onClose={() => setAdd(null)} />
     </div>
   );
 }
@@ -168,7 +174,7 @@ function WaterCard({ date }) {
   );
 }
 
-function AddFoodSheet({ meal, date, onClose }) {
+function AddFoodSheet({ meal, startMode = "search", date, onClose }) {
   const fit = useFit();
   const [mode, setMode] = useState("search");
   const [q, setQ] = useState("");
@@ -177,7 +183,7 @@ function AddFoodSheet({ meal, date, onClose }) {
   const [quick, setQuick] = useState({ name: "", cal: "", p: "", c: "", f: "" });
   useEffect(() => {
     if (meal) {
-      setMode("search");
+      setMode(startMode);
       setQ("");
       setPick(null);
       setQty(1);

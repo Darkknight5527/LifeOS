@@ -42,7 +42,8 @@ await mongoose.disconnect();
 
 // ---------- fake Gemini ----------
 const good = { photoQuality: { usable: true, issues: "" }, scores: { acne: 2, marks: 2, redness: 2, oiliness: 2, dryness: 2, darkCircles: 2, texture: 2, unevenTone: 2 }, overall: 77, headline: "ok", summary: "ok", changes: "", areas: [], tips: [], seeDermatologist: false };
-const meal = { isFood: true, photoQuality: "", items: [{ name: "Chapati", portion: "2 medium", grams: 80, cal: 240, p: 6, c: 40, f: 6 }, { name: "Dal", portion: "1 katori", grams: 150, cal: 180, p: 9, c: 22, f: 6 }], confidence: "medium", notes: "" };
+const meal = { isFood: true, photoQuality: "", items: [{ name: "Chapati", portion: "2 medium", grams: 80, match: "", servings: 0, cal: 240, p: 6, c: 40, f: 6 }, { name: "Dal", portion: "1 katori", grams: 150, match: "", servings: 0, cal: 180, p: 9, c: 22, f: 6 }], questions: [], confidence: "medium", notes: "" };
+const mealMatched = { ...meal, items: [{ name: "Chapati", portion: "3 medium", grams: 120, match: "Chapati / roti", servings: 3, cal: 300, p: 9, c: 50, f: 8 }, { name: "Mystery curry", portion: "1 katori", grams: 150, match: "Chapati / roti", servings: 10, cal: 200, p: 8, c: 10, f: 12 }], questions: [{ question: "How much oil?", options: ["Little", "Normal", "A lot"] }] };
 const gem = http.createServer((req, res) => {
   let body = "";
   req.on("data", (d) => (body += d));
@@ -59,7 +60,7 @@ const gem = http.createServer((req, res) => {
       res.writeHead(req.url.includes("nobody-here") ? 404 : 200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify(ev));
     }
-    const answer = body.includes("calories and macros of a meal") ? meal : good;
+    const answer = body.includes("Reference food list") ? mealMatched : body.includes("calories and macros of a meal") ? meal : good;
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(answer) }] } }] }));
   });
@@ -226,6 +227,13 @@ try {
   ok((await call("GET", "/meal-scans/allowance", FRIEND)).data.ok === false, "meal allowance says none left");
   ok((await call("GET", "/skin-scans/allowance", FRIEND)).data.used === 1, "meal estimates don't use up the skin check");
   for (let i = 0; i < 4; i++) ok((await call("POST", "/meal-scans", OWNER, { photo: jpeg })).status === 200, `owner's meal estimate ${i + 1} isn't limited`);
+
+  const ref = [{ name: "Chapati / roti", serving: "1 medium (40 g)", cal: 110, p: 3, c: 18, f: 3 }];
+  const mm = await call("POST", "/meal-scans", OWNER, { photos: [jpeg, jpeg], reference: ref, plateCm: 26 });
+  ok(mm.status === 200 && mm.data.items[0].source === "list" && mm.data.items[0].cal === 330 && mm.data.items[0].p === 9, `matched item takes the food-list numbers ×3 (${JSON.stringify(mm.data.items?.[0]).slice(0, 90)})`);
+  ok(mm.data.items[1].source === "estimate" && mm.data.items[1].cal === 200, "a wildly-off match falls back to the AI's own numbers");
+  ok(mm.data.questions.length === 1 && mm.data.questions[0].options.length === 3, "follow-up questions come back");
+  ok((await call("POST", "/meal-scans", OWNER, { photos: [jpeg, jpeg, jpeg, jpeg] })).status === 400, "more than 3 photos refused");
 
   // ---------- 9c. progress photos are private ----------
   const pp = await call("POST", "/progress-photos", OWNER, { date: "2026-10-12", pose: "front", data: jpeg });
