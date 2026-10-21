@@ -218,11 +218,12 @@ function WebScaleCard() {
       const fresh = await fit.reload();
       if (!fresh) throw new Error("offline");
       const top = [...(fresh?.body || [])].filter((b) => b.weight).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
-      setNote(top && `${top.date}:${top.weight}` !== before ? `New weigh-in: ${top.weight} kg (${prettyDate(top.date)})` : "Up to date — nothing new from your phone yet.");
+      setNote(top && `${top.date}:${top.weight}` !== before ? `New: ${top.weight} kg` : "Up to date");
     } catch {
-      setNote("Couldn't reach LifeOS. Check your connection.");
+      setNote("No connection");
     } finally {
       setBusy(false);
+      setTimeout(() => setNote(""), 4000);
     }
   };
   return (
@@ -231,7 +232,7 @@ function WebScaleCard() {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-[14.5px] font-semibold">
             <span className={`h-2.5 w-2.5 rounded-full ${s.at ? "bg-emerald-400" : "bg-white/25"}`} />
-            {s.at ? `Phone synced ${ago(s.at)}` : "Not synced from your phone yet"}
+            {s.at ? `Phone synced ${ago(s.at)}` : "Open the phone app to sync"}
           </div>
           <div className="mt-0.5 text-[12.5px] leading-snug text-fin-muted">
             {latest ? `Latest weigh-in ${latest.weight} kg · ${prettyDate(latest.date)}` : "No weigh-ins yet"}
@@ -239,11 +240,10 @@ function WebScaleCard() {
           </div>
         </div>
         <button onClick={sync} disabled={busy} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-fin-accent/15 px-3 py-2 text-[13.5px] font-semibold text-fin-accent hover:bg-fin-accent/25 disabled:opacity-50">
-          <Icon name="refresh" size={14} className={busy ? "animate-spin" : ""} /> {busy ? "Syncing…" : "Sync"}
+          <Icon name="refresh" size={14} className={busy ? "animate-spin" : ""} /> {busy ? "Syncing…" : note || "Sync"}
         </button>
       </div>
-      {note && <div className="mt-2 text-[12.5px] text-white/80" role="status">{note}</div>}
-      <div className="mt-2 text-[12px] leading-relaxed text-fin-faint">Health Connect is on your phone, so the LifeOS app reads the scale each time you open it. Weigh in, open the app once, then tap Sync here.</div>
+      <span className="sr-only" role="status">{note}</span>
     </FinCard>
   );
 }
@@ -379,10 +379,7 @@ function CompositionCard() {
                 : "Most of what you've lost is fat — exactly what you want."}
           </div>
         </div>
-      ) : (
-        <div className="mt-3 text-[12.5px] text-fin-faint">After a few weeks of weigh-ins, this shows how much of the change is fat and how much is fat-free mass.</div>
-      )}
-      <div className="mt-2 text-[11.5px] leading-snug text-fin-faint">Scales estimate these from a small current through your feet, so they swing with how much water you drank. Watch the change over weeks, not single days.</div>
+      ) : null}
     </FinCard>
   );
 }
