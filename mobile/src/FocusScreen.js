@@ -41,8 +41,18 @@ const left = (ms) => {
   return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`;
 };
 
+// The free server can take up to a minute to wake up; never wait forever.
 async function post(url, body) {
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 90_000);
+  let res;
+  try {
+    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
+  } catch {
+    throw new Error("Couldn't reach LifeOS — check your internet and try again.");
+  } finally {
+    clearTimeout(t);
+  }
   let data = {};
   try {
     data = await res.json();
@@ -166,6 +176,7 @@ export function FocusOverlay({ onChange }) {
                 <Pressable onPress={() => setExit(null)} style={[s.btn, s.btnGhost]}><Text style={s.btnText}>Stay focused</Text></Pressable>
                 <Pressable onPress={askCode} disabled={exit.busy} style={[s.btn, s.btnMain]}>{exit.busy ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>Email me a code</Text>}</Pressable>
               </View>
+              {exit.busy && <Text style={s.hint}>If LifeOS was asleep this can take up to a minute.</Text>}
             </>
           ) : (
             <>
@@ -230,4 +241,5 @@ const s = StyleSheet.create({
   btnMain: { backgroundColor: "#7c5cf2" },
   btnText: { color: "#fff", fontWeight: "800", fontSize: 14.5 },
   error: { color: "#f87171", fontSize: 13.5, marginTop: 12 },
+  hint: { color: "#7c7c86", fontSize: 12.5, marginTop: 10, textAlign: "center" },
 });

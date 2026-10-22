@@ -61,6 +61,7 @@ class FocusService : AccessibilityService() {
   override fun onServiceConnected() {
     super.onServiceConnected()
     instance = this
+    FocusState.reapply(this)
     scheduleEnd()
   }
 

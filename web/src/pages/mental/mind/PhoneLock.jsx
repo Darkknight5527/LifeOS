@@ -72,7 +72,7 @@ export function PhoneLock() {
       ) : old || (phone && !phone.supported) ? (
         <div className="mt-3 rounded-2xl bg-amber-400/10 px-3.5 py-3 text-[13.5px] text-amber-200">Needs the latest LifeOS app ({NEEDS}) from the download link.</div>
       ) : hist && !hist.emailReady ? (
-        <div className="mt-3 rounded-2xl bg-amber-400/10 px-3.5 py-3 text-[13.5px] text-amber-200">Email isn't set up on the server yet, so an emergency code couldn't be sent. Set it up first (SMTP settings on Render).</div>
+        <div className="mt-3 rounded-2xl bg-amber-400/10 px-3.5 py-3 text-[13.5px] text-amber-200">Email isn't set up on the server yet, so an emergency code couldn't be sent. Set it up first (RESEND_API_KEY on Render).</div>
       ) : !phone ? (
         <div className="mt-3 h-10 animate-pulse rounded-2xl bg-fin-input" />
       ) : !ready || (!phone.dnd && !skipDnd) ? (

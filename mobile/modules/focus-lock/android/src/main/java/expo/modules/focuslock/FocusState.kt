@@ -31,6 +31,11 @@ object FocusState {
     FocusService.instance?.scheduleEnd()
   }
 
+  /** After an app update / restart mid-session: re-apply the current Do Not Disturb rules. */
+  fun reapply(ctx: Context) {
+    if (isActive(ctx)) quiet(ctx)
+  }
+
   fun stop(ctx: Context) {
     prefs(ctx).edit().putBoolean("active", false).apply()
     restore(ctx)
@@ -40,7 +45,7 @@ object FocusState {
 
   fun dndAllowed(ctx: Context): Boolean = try { nm(ctx).isNotificationPolicyAccessGranted } catch (e: Exception) { false }
 
-  /** Do Not Disturb: only calls (anyone, and repeat callers) and alarms ring; nothing else shows. */
+  /** Do Not Disturb: calls (anyone, and repeat callers), alarms and music play; no other notification sounds or shows. */
   private fun quiet(ctx: Context) {
     val nm = nm(ctx)
     if (!dndAllowed(ctx)) return
@@ -59,7 +64,8 @@ object FocusState {
         e.apply()
       }
       var cats = NotificationManager.Policy.PRIORITY_CATEGORY_CALLS or NotificationManager.Policy.PRIORITY_CATEGORY_REPEAT_CALLERS
-      if (Build.VERSION.SDK_INT >= 28) cats = cats or NotificationManager.Policy.PRIORITY_CATEGORY_ALARMS
+      // Alarms and media (Spotify) keep their sound; only notifications are silenced.
+      if (Build.VERSION.SDK_INT >= 28) cats = cats or NotificationManager.Policy.PRIORITY_CATEGORY_ALARMS or NotificationManager.Policy.PRIORITY_CATEGORY_MEDIA
       val visual = if (Build.VERSION.SDK_INT >= 28) {
         NotificationManager.Policy.SUPPRESSED_EFFECT_PEEK or
           NotificationManager.Policy.SUPPRESSED_EFFECT_STATUS_BAR or
