@@ -1,7 +1,7 @@
 // Registers the service worker (public/sw.js) that keeps the site on the
 // device for instant, offline-friendly opening. When a new version of the
-// site is out, it switches over quietly the next time you leave the page,
-// so nothing reloads under your finger.
+// site is out, it switches over quietly the next time you leave the tab or move
+// to another page in LifeOS, so nothing reloads under your finger.
 let updateWaiting = false;
 
 export function registerServiceWorker() {
@@ -12,6 +12,16 @@ export function registerServiceWorker() {
   navigator.serviceWorker.addEventListener("message", (e) => {
     if (e.data?.type === "lifeos-update") updateWaiting = true;
   });
+  // …or as soon as you move to another page inside LifeOS (the new page simply
+  // opens on the new version).
+  const push = history.pushState.bind(history);
+  history.pushState = (...args) => {
+    push(...args);
+    if (updateWaiting) {
+      updateWaiting = false;
+      setTimeout(() => window.location.reload(), 0);
+    }
+  };
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden" && updateWaiting) {
       updateWaiting = false;
