@@ -13,7 +13,6 @@ export const DOMAINS = [
   { id: "grooming", label: "Grooming", color: "#2dd4bf" },
   { id: "fitness", label: "Fitness", color: "#60a5fa" },
   { id: "mental", label: "Mental", color: "#c084fc" },
-  { id: "goals", label: "Goals", color: "#f472b6" },
   { id: "technical", label: "Technical", color: "#94a3b8" },
   { id: "learning", label: "Learning", color: "#a3e635" },
 ];

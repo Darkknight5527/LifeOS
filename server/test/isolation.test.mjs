@@ -106,6 +106,7 @@ try {
   const osk = await call("GET", "/tech-skills", OWNER);
   ok(osk.data.length === 11 && op.data.find((p) => p.name === "VX-01").skills.length === 4, "starter skills added and linked");
   ok(logs.join("").includes("[starter]"), "starter ran once at start-up");
+  ok(!op.data.find((p) => p.name === "LifeOS").stages.some((x) => /goals/i.test(x.title)), "LifeOS project has no Goals stage");
   const ate = op.data.find((p) => p.name === "Mini-ATE: tester-on-a-board");
   ok(ate && ate.plan.includes("## Phases") && ate.stages.length === 12 && ate.skills.length === 7 && !op.data.some((p) => p.name === "Embedded project"), "embedded placeholder became the Mini-ATE with its plan");
 

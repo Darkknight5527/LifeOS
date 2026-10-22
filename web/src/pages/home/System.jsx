@@ -18,22 +18,20 @@ const TRACES = [
   { d: `M${chan(4)} 50 V${chan(2)} H97.5`, color: DOMAIN.fitness.color, dur: 4.8 },
   { d: `M${chan(2)} 50 V${chan(4)} H2.5`, color: DOMAIN.grooming.color, dur: 3.9 },
   { d: `M${chan(4)} 50 V${chan(4)} H97.5`, color: DOMAIN.fitness.color, dur: 5.4 },
-  { d: `M${chan(2)} ${chan(4)} V97.5`, color: DOMAIN.goals.color, dur: 3.6 },
-  { d: `M${chan(4)} ${chan(4)} V97.5`, color: DOMAIN.mental.color, dur: 6.2, dim: true },
-  { d: `M${chan(4)} ${chan(4)} H${chan(5)} V97.5`, color: DOMAIN.technical.color, dur: 6.8, dim: true },
+  { d: `M${chan(2)} ${chan(4)} V97.5`, color: DOMAIN.mental.color, dur: 3.6 },
+  { d: `M${chan(4)} ${chan(4)} V97.5`, color: "#4ade80", dur: 6.2, dim: true },
 ];
-const CHANNELS = [`M2.5 ${chan(2)} H97.5`, `M2.5 ${chan(4)} H97.5`, `M50 2.5 V${chan(2)}`, `M${chan(2)} ${chan(2)} V97.5`, `M${chan(4)} ${chan(2)} V97.5`, `M${chan(5)} ${chan(4)} V97.5`];
-const AREAS = `"fin fin fin pap pap pap" "fin fin fin pap pap pap" "gro gro core core fit fit" "gro gro core core fit fit" "goa goa men men tec lea" "goa goa men men tec lea"`;
+const CHANNELS = [`M2.5 ${chan(2)} H97.5`, `M2.5 ${chan(4)} H97.5`, `M50 2.5 V${chan(2)}`, `M${chan(2)} ${chan(2)} V97.5`, `M${chan(4)} ${chan(2)} V97.5`];
+const AREAS = `"fin fin fin pap pap pap" "fin fin fin pap pap pap" "gro gro core core fit fit" "gro gro core core fit fit" "men men tec tec lea lea" "men men tec tec lea lea"`;
 
 const BLOCKS = [
   { id: "fin", to: "/finances", name: "Finances", color: DOMAIN.finances.color, icon: "wallet", kind: "sram", big: "Wealth, with intent", why: "Freedom to choose my path, instead of having it chosen for me." },
   { id: "pap", to: "/paper", name: "Morning Paper", color: "#f2c14e", icon: "news", kind: "cells", big: "Learn daily", why: "Start every day a little wiser than the last." },
   { id: "gro", to: "/grooming", name: "Grooming", color: DOMAIN.grooming.color, icon: "drop", kind: "cells", big: "Look the part", why: "Taking care of myself is the first promise I keep." },
   { id: "fit", to: "/fitness", name: "Fitness", color: DOMAIN.fitness.color, icon: "dumbbell", kind: "cells", big: "Strong body", why: "A body strong enough to carry the ambition." },
-  { id: "goa", to: "/goals", name: "Goals", color: DOMAIN.goals.color, icon: "target", kind: "sram", off: true, why: "Dreams, broken into steps I can actually take. Being built." },
   { id: "men", to: "/mental", name: "Mental & Psych", color: DOMAIN.mental.color, icon: "sparkle", kind: "cells", big: "Calm mind", why: "Calm under pressure." },
-  { id: "tec", to: "/tech", name: "Technical", color: "#4ade80", icon: "code", small: true, why: "Building things that prove what I know." },
-  { id: "lea", to: "/tech#learn", name: "Learning", color: "#4ade80", icon: "book", small: true, why: "Learning the skills my projects need next." },
+  { id: "tec", to: "/tech", name: "Technical", color: "#4ade80", icon: "code", kind: "sram", big: "Build things", why: "Building things that prove what I know." },
+  { id: "lea", to: "/tech#learn", name: "Learning", color: "#4ade80", icon: "book", kind: "cells", big: "Keep learning", why: "Learning the skills my projects need next." },
 ];
 
 export default function System({ go }) {

@@ -49,7 +49,7 @@ const PROJECTS = [
     status: "building",
     repo: "github.com/Darkknight5527/LifeOS",
     live: "lifeos-web-qjrj.onrender.com",
-    stages: stages(["Core domains (Finances, Mind, Grooming, Fitness, Paper)", "Tech & Learning", "Goals", "Polish & document"], 1),
+    stages: stages(["Core domains (Finances, Mind, Grooming, Fitness & Health, Paper)", "Tech & Learning", "Polish & document"], 1),
     skills: ["JavaScript / React", "Node.js / Express", "Git & GitHub"],
   },
 ];
@@ -99,7 +99,27 @@ async function addMiniAte(userId) {
   await TechProject.create({ userId, ...doc, createdAt: now });
   return { addedSkills: 0, addedProjects: 1, linked: 0 };
 }
-const LATEST = 3;
+// Batch 4 (Oct 2026): Goals was dropped from LifeOS — take its stage off the
+// LifeOS project, and Fitness now includes Health. Ticks and other stages stay.
+async function lifeosNoGoals(userId) {
+  const p = await TechProject.findOne({ userId, name: /^lifeos$/i });
+  if (!p) return { addedSkills: 0, addedProjects: 0, linked: 0 };
+  let changed = false;
+  const list = (p.stages || []).filter((x) => {
+    const drop = /^goals$/i.test(x.title.trim());
+    if (drop) changed = true;
+    return !drop;
+  }).map((x) => {
+    if (x.title === "Core domains (Finances, Mind, Grooming, Fitness, Paper)") {
+      changed = true;
+      return { id: x.id, title: "Core domains (Finances, Mind, Grooming, Fitness & Health, Paper)", done: x.done };
+    }
+    return { id: x.id, title: x.title, done: x.done };
+  });
+  if (changed) await TechProject.updateOne({ userId, _id: p._id }, { $set: { stages: list, updatedAt: Date.now() } });
+  return { addedSkills: 0, addedProjects: 0, linked: changed ? 1 : 0 };
+}
+const LATEST = 4;
 
 async function addMissing(userId, SKILLS, PROJECTS) {
   const now = Date.now();
@@ -153,6 +173,7 @@ export async function addOwnerStarter({ log = console.log } = {}) {
   if (done < 1) add(await addMissing(userId, SKILLS, PROJECTS));
   if (done < 2) add(await addMissing(userId, SKILLS_2, PROJECTS_2));
   if (done < 3) add(await addMiniAte(userId));
+  if (done < 4) add(await lifeosNoGoals(userId));
   const now = Date.now();
 
   if (settings) await TechSettings.updateOne({ userId, _id: settings._id }, { $set: { starterAdded: true, starterVersion: LATEST, githubUser: settings.githubUser || "Darkknight5527", updatedAt: now } });

@@ -9,7 +9,6 @@ export const DOMAINS = [
   { to: "/grooming", label: "Grooming", short: "Grooming", icon: "drop", color: "#2dd4bf", ready: true },
   { to: "/fitness", label: "Fitness & Nutrition", short: "Fitness", icon: "dumbbell", color: "#60a5fa", ready: true },
   { to: "/finances", label: "Finances", short: "Money", icon: "wallet", color: "#fb8a3c", ready: true },
-  { to: "/goals", label: "Goals", short: "Goals", icon: "target", color: "#fb7185" },
   { to: "/tech", label: "Tech & Learning", short: "Tech", icon: "code", color: "#4ade80", ready: true },
 ];
 
