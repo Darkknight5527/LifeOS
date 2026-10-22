@@ -5,6 +5,7 @@
 // It seeds an old single-user database, starts the real server (which
 // migrates it), then checks every data route as the owner and as a friend.
 import { spawn } from "node:child_process";
+import os from "node:os";
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -12,6 +13,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
 const SERVER = path.resolve(import.meta.dirname, "..");
+const MAIL_FILE = path.join(os.tmpdir(), `lifeos-mail-${Date.now()}.jsonl`);
 const DB = process.env.TEST_MONGO_URI || `mongodb://127.0.0.1:27017/lifeos_test_${Date.now()}`;
 const PORT = 4287;
 const API = `http://127.0.0.1:${PORT}/api`;
@@ -70,7 +72,7 @@ const gem = http.createServer((req, res) => {
 const logs = [];
 const srv = spawn("node", ["index.js"], {
   cwd: SERVER,
-  env: { ...process.env, MONGO_URI: DB, JWT_SECRET: "test-secret-0123456789", PORT: String(PORT), CLIENT_ORIGIN: "http://localhost", GEMINI_API_KEY: "fake", GEMINI_API_URL: "http://127.0.0.1:4288/models", GITHUB_API_URL: "http://127.0.0.1:4288", CALENDAR_ICS_URL: "" },
+  env: { ...process.env, MONGO_URI: DB, JWT_SECRET: "test-secret-0123456789", PORT: String(PORT), CLIENT_ORIGIN: "http://localhost", GEMINI_API_KEY: "fake", GEMINI_API_URL: "http://127.0.0.1:4288/models", GITHUB_API_URL: "http://127.0.0.1:4288", CALENDAR_ICS_URL: "", MAIL_FILE },
 });
 srv.stdout.on("data", (d) => logs.push(String(d)));
 srv.stderr.on("data", (d) => logs.push(String(d)));
@@ -165,6 +167,30 @@ try {
     ok(bulk.status === 201 && String(bulk.data[0].userId) === friendId, `${ep}: bulk import lands in friend's account`);
   }
   console.log(`  checked ${crud.length} collections`);
+
+  // ---------- 5b. focus mode: start, emailed exit code, ticket can't be misused ----------
+  {
+    let r = await call("POST", "/focus", OWNER, { minutes: 60 });
+    ok(r.status === 201 && r.data.ticket && r.data.endsAt > Date.now(), "focus session starts");
+    const { id, ticket } = r.data;
+    ok((await call("POST", "/focus", OWNER, { minutes: 2 })).status === 400, "too-short focus refused");
+    ok((await call("GET", "/auth/me", ticket)).status === 401, "focus ticket can't be used as a login");
+    ok((await call("POST", `/focus-exit/${id}/code`, null, { ticket: "junk" })).status === 401, "bad ticket refused");
+    r = await call("POST", `/focus-exit/${id}/code`, null, { ticket });
+    ok(r.status === 200 && /@/.test(r.data.sentTo), `exit code emailed (${r.data.sentTo})`);
+    const mail = fs.readFileSync(MAIL_FILE, "utf8").trim().split("\n").map((l) => JSON.parse(l)).pop();
+    const code = mail.subject.match(/(\d{6})/)[1];
+    ok(mail.to === "akhil@x.com" || /@/.test(mail.to), "code sent to the account email");
+    ok((await call("POST", `/focus-exit/${id}/code`, null, { ticket })).status === 429, "second code within a minute refused");
+    const wrong = code === "000000" ? "111111" : "000000";
+    ok((await call("POST", `/focus-exit/${id}/verify`, null, { ticket, code: wrong })).status === 400, "wrong code refused");
+    const fr = await call("POST", "/focus", FRIEND, { minutes: 30 });
+    ok((await call("POST", `/focus-exit/${id}/verify`, null, { ticket: fr.data.ticket, code })).status === 401, "friend's ticket can't end owner's session");
+    r = await call("POST", `/focus-exit/${id}/verify`, null, { ticket, code });
+    ok(r.status === 200 && r.data.ok, "right code ends the session");
+    const list = await call("GET", "/focus", OWNER);
+    ok(list.data.sessions.some((x) => String(x._id) === String(id) && x.endedBy === "code") && !list.data.sessions.some((x) => String(x._id) === String(fr.data.id)), "history shows it, only own sessions");
+  }
 
   // ---------- 6. finances: backup / reset / restore points ----------
   const fb = await call("GET", "/finance/backup", FRIEND);

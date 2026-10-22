@@ -47,6 +47,11 @@ class FocusService : AccessibilityService() {
       "com.android.permissioncontroller",
       "com.google.android.permissioncontroller"
     )
+
+    // Phone makers name their call / contacts / messages / clock apps
+    // differently (e.g. com.oplus.incallui, com.miui.contacts…): match by name
+    // too, so a call screen is never pushed away.
+    val LIKE = listOf("incallui", "dialer", "telecom", "contacts", "messaging", ".mms", "deskclock", "clockpackage", "alarm")
   }
 
   private val handler = Handler(Looper.getMainLooper())
@@ -94,6 +99,7 @@ class FocusService : AccessibilityService() {
   private fun allowed(pkg: String): Boolean {
     if (pkg == packageName || pkg in ALWAYS) return true
     if (pkg in FocusState.extraAllowed(this)) return true
+    if (LIKE.any { pkg.contains(it) }) return true
     try {
       val tm = getSystemService(TELECOM_SERVICE) as TelecomManager
       if (tm.defaultDialerPackage == pkg) return true
