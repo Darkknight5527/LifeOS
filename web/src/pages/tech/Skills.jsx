@@ -257,7 +257,7 @@ export function SkillSheet({ id }) {
                   return (
                     <button key={c._id} onClick={() => nav.open("course", c._id)} className="flex w-full items-center gap-2 rounded-xl bg-fin-input px-3 py-2 text-left hover:bg-fin-tile">
                       <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">{c.title}</span>
-                      <span className="tabular text-[12px] text-fin-muted">{c.modules?.length ? `${done}/${c.modules.length}` : c.status}</span>
+                      <span className="tabular text-[12px] text-fin-muted">{c.modules?.length ? `${done}/${c.modules.length}` : c.progress != null ? `${c.progress}%` : c.status}</span>
                     </button>
                   );
                 })}

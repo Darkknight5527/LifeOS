@@ -11,6 +11,7 @@ const TechCourseSchema = new mongoose.Schema({
   status: { type: String, enum: ["active", "planned", "done", "paused"], default: "active" },
   skills: { type: [String], default: [] },
   modules: { type: [CheckSchema], default: [] },
+  progress: { type: Number, default: null, min: 0, max: 100 }, // % for courses without a module list (e.g. from a portal)
   targetDate: { type: String, default: "" },
   certUrl: { type: String, default: "", maxlength: 300 },
   createdAt: { type: Number, default: () => Date.now() },

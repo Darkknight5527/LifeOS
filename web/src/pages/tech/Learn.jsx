@@ -10,6 +10,9 @@ import { isDue } from "../mental/skills/SkillsContext.jsx";
 import { EmptyState, FinCard, GhostButton, Icon, PrimaryButton, Ring, Sheet, TextField } from "../finances/fin-ui.jsx";
 import { Chips } from "../mental/mind/MindViews.jsx";
 
+/** % done: from the module ticks, or the typed-in progress if there's no module list. */
+const coursePct = (c) => (c.modules?.length ? Math.round((c.modules.filter((m) => m.done).length / c.modules.length) * 100) : c.progress != null ? c.progress : null);
+
 const pdfKey = (r) => `res-${r._id}`;
 const COURSE_STATUS = [
   { value: "active", label: "Doing" },
@@ -143,8 +146,8 @@ export function LearnToday() {
                 return (
                   <div key={c._id} className="rounded-2xl bg-fin-input px-3.5 py-3">
                     <button onClick={() => nav.open("course", c._id)} className="block w-full text-left">
-                      <div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-[14.5px] font-semibold">{c.title}</span><span className="tabular text-[12px] text-fin-muted">{mods.length ? `${done}/${mods.length}` : ""}</span></div>
-                      {mods.length > 0 && <div className="mt-1.5 h-1.5 rounded-full bg-black/30"><div className="h-full rounded-full bg-fin-accent" style={{ width: `${(done / mods.length) * 100}%` }} /></div>}
+                      <div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-[14.5px] font-semibold">{c.title}</span><span className="tabular text-[12px] text-fin-muted">{mods.length ? `${done}/${mods.length}` : c.progress != null ? `${c.progress}%` : ""}</span></div>
+                      {coursePct(c) != null && <div className="mt-1.5 h-1.5 rounded-full bg-black/30"><div className="h-full rounded-full bg-fin-accent" style={{ width: `${coursePct(c)}%` }} /></div>}
                     </button>
                     {nextMod && (
                       <button onClick={() => t.patch("courses", c, { modules: mods.map((m) => (m.id === nextMod.id ? { ...m, done: true } : m)) }, "Module done")} className="mt-2 flex w-full items-center gap-2 text-left text-[13px] text-white/80 hover:text-white">
@@ -227,10 +230,10 @@ export function CoursesView() {
                   {c.provider && <span className="truncate text-[12px] text-fin-faint">{c.provider}</span>}
                 </div>
                 <div className="mt-2 text-[16px] font-bold leading-snug">{c.title}</div>
-                {mods.length > 0 && (
+                {coursePct(c) != null && (
                   <div className="mt-3">
-                    <div className="tabular flex justify-between text-[12px] text-fin-muted"><span>{done} of {mods.length} modules</span><span>{Math.round((done / mods.length) * 100)}%</span></div>
-                    <div className="mt-1 h-1.5 rounded-full bg-black/30"><div className="h-full rounded-full bg-fin-accent" style={{ width: `${(done / mods.length) * 100}%` }} /></div>
+                    <div className="tabular flex justify-between text-[12px] text-fin-muted"><span>{mods.length ? `${done} of ${mods.length} modules` : "Progress"}</span><span>{coursePct(c)}%</span></div>
+                    <div className="mt-1 h-1.5 rounded-full bg-black/30"><div className="h-full rounded-full bg-fin-accent" style={{ width: `${coursePct(c)}%` }} /></div>
                   </div>
                 )}
                 <div className="mt-auto flex flex-wrap items-center gap-1 pt-3">
@@ -354,6 +357,27 @@ export function CourseSheet({ id }) {
               <Icon name={running ? "pause" : "play"} size={14} stroke={2.4} /> {running ? "Stop & save" : "Study"}
             </button>
           </div>
+          {!mods.length && (
+            <div className="rounded-2xl bg-fin-input px-4 py-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] text-fin-muted">Progress (no module list)</span>
+                <span className="tabular text-[15px] font-bold">{c.progress ?? 0}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                defaultValue={c.progress ?? 0}
+                key={`${c._id}-${c.progress}`}
+                onPointerUp={(e) => save({ progress: Number(e.currentTarget.value), ...(Number(e.currentTarget.value) === 100 && c.status !== "done" ? { status: "done" } : {}) })}
+                onKeyUp={(e) => save({ progress: Number(e.currentTarget.value) })}
+                className="mt-2 w-full accent-[rgb(var(--fin-accent))]"
+                aria-label="Course progress percent"
+              />
+              <div className="mt-1 text-[11.5px] text-fin-faint">Or add modules below to track it step by step.</div>
+            </div>
+          )}
           <div>
             <div className={kicker}>Modules · {done}/{mods.length}</div>
             <CheckList items={mods} onChange={(modules) => save({ modules })} placeholder="Add a module" label="Modules" />

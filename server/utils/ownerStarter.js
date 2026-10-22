@@ -7,6 +7,7 @@ import User from "../models/User.js";
 import TechSettings from "../models/TechSettings.js";
 import TechSkill from "../models/TechSkill.js";
 import TechProject from "../models/TechProject.js";
+import TechCourse from "../models/TechCourse.js";
 import { MINI_ATE_PLAN, MINI_ATE_STAGES } from "./plans/miniAte.js";
 
 // [name, area, level, target] — levels are a starting guess; edit them on the skill map.
@@ -119,7 +120,37 @@ async function lifeosNoGoals(userId) {
   if (changed) await TechProject.updateOne({ userId, _id: p._id }, { $set: { stages: list, updatedAt: Date.now() } });
   return { addedSkills: 0, addedProjects: 0, linked: changed ? 1 : 0 };
 }
-const LATEST = 4;
+// Batch 5 (Oct 2026): the courses on the Anora training portal, with the
+// progress shown there. Skips any course already added by the same name.
+const ANORA = [
+  ["101. Introduction to semiconductor test", 100, ["ATE test programs"]],
+  ["105. Introduction to ATE", 100, ["ATE test programs"]],
+  ["106. Basic Digital Testing", 10, ["ATE test programs", "Electronics fundamentals"]],
+  ["110. Version Control", 100, ["Git & GitHub"]],
+  ["112. Programming fundamentals", 97, []],
+  ["114. C Programming", 100, ["Embedded C"]],
+  ["116. PCB Hardware basics for design, test and validation engineers", 88, ["PCB design", "Electronics fundamentals"]],
+  ["117. PCB level device to device communication protocols", 100, ["Microcontrollers (STM32)", "Embedded C", "Electronics fundamentals"]],
+  ["207. Advantest V93000 SMT8 Basics", 81, ["ATE test programs", "Test data analysis (STDF, yield)"]],
+  ["Antidiscrimination Policy", 0, []],
+  ["ESD Training", 100, ["Electronics fundamentals"]],
+  ["Reference Material: Basics of Electricity and Electronics", 100, ["Electronics fundamentals"]],
+];
+async function addAnoraCourses(userId) {
+  const now = Date.now();
+  const skills = await TechSkill.find({ userId });
+  const skillId = Object.fromEntries(skills.map((s) => [s.name.toLowerCase(), String(s._id)]));
+  const have = new Set((await TechCourse.find({ userId })).map((c) => c.title.trim().toLowerCase()));
+  let added = 0;
+  for (const [title, progress, sk] of ANORA) {
+    if (have.has(title.toLowerCase())) continue;
+    const status = progress >= 100 ? "done" : progress > 0 ? "active" : "planned";
+    await TechCourse.create({ userId, title, provider: "Anora portal", status, progress, skills: sk.map((n) => skillId[n.toLowerCase()]).filter(Boolean), modules: [], createdAt: now + added, updatedAt: now });
+    added++;
+  }
+  return { addedSkills: 0, addedProjects: 0, linked: added };
+}
+const LATEST = 5;
 
 async function addMissing(userId, SKILLS, PROJECTS) {
   const now = Date.now();
@@ -174,6 +205,7 @@ export async function addOwnerStarter({ log = console.log } = {}) {
   if (done < 2) add(await addMissing(userId, SKILLS_2, PROJECTS_2));
   if (done < 3) add(await addMiniAte(userId));
   if (done < 4) add(await lifeosNoGoals(userId));
+  if (done < 5) add(await addAnoraCourses(userId));
   const now = Date.now();
 
   if (settings) await TechSettings.updateOne({ userId, _id: settings._id }, { $set: { starterAdded: true, starterVersion: LATEST, githubUser: settings.githubUser || "Darkknight5527", updatedAt: now } });
