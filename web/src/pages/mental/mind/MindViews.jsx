@@ -9,6 +9,7 @@ import { COL } from "../journal/TodayView.jsx";
 import { SOUNDS, isPlaying, setSound, stopAll } from "./audio.js";
 import { GUIDED, PATTERNS, WIND_DOWN, guidedById, suggestion } from "./content.js";
 import { useMind } from "./MindContext.jsx";
+import { PhoneLock } from "./PhoneLock.jsx";
 import { clock, minutesText } from "./Sessions.jsx";
 import { ACCENTS, CAN_SPEAK, NEEDS_UPDATE, keepAwake } from "./voice.js";
 
@@ -571,15 +572,9 @@ export function MindFocus() {
       <div className={`${COL} lg:col-span-2`}>
         <Mixer />
       </div>
-      <div className={COL}>
+      <div className={`${COL} order-first lg:order-none`}>
         <FocusTimer />
-        <FinCard title="Deep work tips">
-          <ul className="space-y-2 text-[13.5px] leading-relaxed text-white/75">
-            <li>📵 Phone face down, notifications off for one block.</li>
-            <li>🎯 Write the one thing this block is for before you start.</li>
-            <li>🚶 On breaks, move and look into the distance — not at another screen.</li>
-          </ul>
-        </FinCard>
+        <PhoneLock />
       </div>
     </div>
   );

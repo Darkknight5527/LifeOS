@@ -132,6 +132,10 @@ export function createApiClient(baseUrl, getToken, { onUnauthorized } = {}) {
     // body: { photos: [base64 ×1–3], hint, reference, plateCm, katoriMl, answers }
     mealScan: (body) => request("/meal-scans", { method: "POST", body }),
 
+    // Focus mode (phone lock): history, and start a session the phone then enforces
+    focusSessions: () => request("/focus"),
+    focusStart: (minutes) => request("/focus", { method: "POST", body: { minutes } }),
+
     // Tech & Learning: public GitHub activity for your saved username
     techGithub: (fresh = false) => request(`/tech/github${fresh ? "?fresh=1" : ""}`),
 

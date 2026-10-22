@@ -62,6 +62,7 @@ import HobbySession from "../models/HobbySession.js";
 import LibraryBook from "../models/LibraryBook.js";
 import ReadingLog from "../models/ReadingLog.js";
 import ReadingGoal from "../models/ReadingGoal.js";
+import { focusRoutes, focusTicketRoutes } from "./focus.js";
 import HealthIssue from "../models/HealthIssue.js";
 import Medicine from "../models/Medicine.js";
 import MedLog from "../models/MedLog.js";
@@ -77,6 +78,8 @@ router.use("/auth", authRoutes);
 // Everything below requires a valid JWT
 // Short-lived signed book download links (the token is the permission).
 router.get("/book-file/:token", bookDownload);
+// Focus mode: the phone asks for / checks the emergency exit code with its session ticket.
+router.use("/focus-exit", focusTicketRoutes);
 
 router.use(requireAuth);
 
@@ -116,6 +119,7 @@ router.use("/body-logs", createCrudRouter(BodyLog, { sortField: "date", sortOrde
 router.use("/cali-logs", createCrudRouter(CaliLog, { sortField: "date", sortOrder: -1 }));
 router.use("/weekly-checkins", createCrudRouter(WeeklyCheckin, { sortField: "week", sortOrder: -1 }));
 router.use("/meal-scans", mealScanRoutes);
+router.use("/focus", focusRoutes);
 // Health (medical): never sent to the AI
 router.use("/health-issues", createCrudRouter(HealthIssue, { sortField: "updatedAt", sortOrder: -1 }));
 router.use("/medicines", createCrudRouter(Medicine, { sortField: "createdAt", sortOrder: 1 }));

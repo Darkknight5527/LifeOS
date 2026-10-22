@@ -13,6 +13,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { saveIncomingFile } from "./src/saveFile";
 import { commitSync, healthStatus, openHealthSettings, readWeighIns } from "./src/health";
 import { applyNotifications, onNotificationTap, permissionState, refreshNotifications } from "./src/notify";
+import { FocusOverlay, focusSetup, focusStatus, startFocus } from "./src/FocusScreen";
 
 const SITE = Constants.expoConfig?.extra?.webUrl || "https://lifeos-web-qjrj.onrender.com";
 const hostOf = (url) => (String(url).match(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i) || [])[1] || "";
@@ -72,6 +73,12 @@ function Shell() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [key, setKey] = useState(0);
+
+  // Coming back to the app (e.g. after allowing accessibility) refreshes the website's Focus setup view.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (st) => st === "active" && pageReady.current && toWeb("focus-state", focusStatus()));
+    return () => sub.remove();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(DARK).catch(() => {});
@@ -263,6 +270,10 @@ function Shell() {
                   commitSync(pendingSync.current);
                   pendingSync.current = null;
                 }
+                // Focus mode: setup, status and starting a session the website created.
+                else if (m.type === "focus-status") toWeb("focus-state", focusStatus());
+                else if (m.type === "focus-setup" && typeof m.what === "string") focusSetup(m.what);
+                else if (m.type === "focus-start" && m.id && m.ticket && Number(m.endsAt) > Date.now()) toWeb("focus-state", startFocus(m, API));
                 else if (m.top && m.bottom) setBars({ top: m.top, bottom: m.bottom });
               } catch {
                 /* ignore */
@@ -276,6 +287,7 @@ function Shell() {
             <ActivityIndicator color="#ff7a1a" style={{ marginTop: 22 }} />
           </Animated.View>
         )}
+        <FocusOverlay onChange={(st, how) => toWeb("focus-state", { ...st, ended: how })} />
         {failed && (
           <View style={[StyleSheet.absoluteFill, s.center, { backgroundColor: DARK, padding: 28 }]}>
             <Logo />
