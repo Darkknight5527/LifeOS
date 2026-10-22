@@ -111,9 +111,8 @@ export default function App() {
   }, [authed]);
 
   // ↑ / ↓ move to the previous / next domain. Ignored while typing, in popups,
-  // or when a control already uses the arrows (sliders etc.). On North Star the
-  // arrows scroll the story; ↑ at the very top or ↓ at the very bottom (or
-  // Shift+↑ / ↓ anywhere) switches domain.
+  // or when a control already uses the arrows (sliders etc.). Not on North Star,
+  // where the arrows just scroll the page.
   const [hint, setHint] = useState(null);
   const hintTimer = useRef(null);
   useEffect(() => {
@@ -122,11 +121,7 @@ export default function App() {
       if (!getToken() || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.target.closest?.('input, textarea, select, [contenteditable], [role="slider"], [role="listbox"]')) return;
       if (document.querySelector('[role="dialog"]')) return;
-      if (location.pathname === "/" && !e.shiftKey) {
-        const atTop = window.scrollY <= 2;
-        const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-        if (!(e.key === "ArrowUp" && atTop) && !(e.key === "ArrowDown" && atBottom)) return; // let it scroll
-      }
+      if (location.pathname === "/") return; // North Star: arrows only scroll the page
       const i = Math.max(0, READY.findIndex((n) => n.to === location.pathname));
       const next = (i + (e.key === "ArrowDown" ? 1 : -1) + READY.length) % READY.length;
       e.preventDefault();
