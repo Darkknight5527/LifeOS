@@ -20,6 +20,7 @@ export function NutritionToday({ onTargets }) {
   const [date, setDate] = useState(todayISO());
   const [add, setAdd] = useState(null); // meal id
   const [addMode, setAddMode] = useState("search");
+  const [editing, setEditing] = useState(null); // a logged food being edited
   const log = fit.foodByDate[date];
   const yesterday = isoDate(addDays(parseISO(date), -1));
   const ylog = fit.foodByDate[yesterday];
@@ -106,14 +107,14 @@ export function NutritionToday({ onTargets }) {
               {list.length ? (
                 <div className="space-y-1.5">
                   {list.map((e) => (
-                    <div key={e.id} className="flex items-center gap-2 rounded-2xl bg-fin-input px-3 py-2">
-                      <div className="min-w-0 flex-1">
+                    <div key={e.id} className="flex items-center gap-2 rounded-2xl bg-fin-input px-3 py-2 transition hover:bg-fin-tile">
+                      <button onClick={() => setEditing(e)} className="min-w-0 flex-1 text-left" aria-label={`Edit ${e.name}`}>
                         <div className="truncate text-[14.5px] font-semibold">{e.name}</div>
                         <div className="tabular truncate text-[12px] text-fin-muted">
                           {e.qty !== 1 ? `${e.qty} × ` : ""}{e.unit} · P {round(e.p)} · C {round(e.c)} · F {round(e.f)}
                         </div>
-                      </div>
-                      <span className="tabular shrink-0 text-[14px] font-bold">{round(e.cal)}</span>
+                      </button>
+                      <button onClick={() => setEditing(e)} className="tabular shrink-0 text-[14px] font-bold" tabIndex={-1}>{round(e.cal)}</button>
                       <IconButton icon="close" label={`Remove ${e.name}`} onClick={() => setEntries(entries.filter((x) => x.id !== e.id))} className="!h-7 !w-7" size={14} />
                     </div>
                   ))}
@@ -134,6 +135,18 @@ export function NutritionToday({ onTargets }) {
         })}
       </div>
       <AddFoodSheet meal={add} startMode={addMode} date={date} onClose={() => setAdd(null)} />
+      <EditFoodSheet
+        entry={editing}
+        onClose={() => setEditing(null)}
+        onSave={(next) => {
+          setEntries(entries.map((x) => (x.id === next.id ? next : x)));
+          setEditing(null);
+        }}
+        onDelete={(id) => {
+          setEntries(entries.filter((x) => x.id !== id));
+          setEditing(null);
+        }}
+      />
     </div>
   );
 }
@@ -548,6 +561,72 @@ function CustomFoodSheet({ food, onClose }) {
           ))}
         </div>
         <p className="text-[12.5px] text-fin-faint">Per one serving. Check the pack label or an app like HealthifyMe for values.</p>
+      </div>
+    </Sheet>
+  );
+}
+
+// Edit something already logged: amount (rescales calories and macros), meal,
+// name, or the numbers themselves.
+function EditFoodSheet({ entry, onClose, onSave, onDelete }) {
+  const [f, setF] = useState(null);
+  useEffect(() => {
+    if (entry) setF({ ...entry, qty: entry.qty || 1 });
+  }, [entry]);
+  if (!entry || !f) return null;
+  const setQty = (q) => {
+    const qty = Math.max(0.25, Math.min(50, Math.round(q * 100) / 100));
+    const k = qty / (f.qty || 1);
+    setF({ ...f, qty, cal: Math.round((Number(f.cal) || 0) * k), p: r1((Number(f.p) || 0) * k), c: r1((Number(f.c) || 0) * k), f: r1((Number(f.f) || 0) * k) });
+  };
+  const num = (key) => (v) => setF({ ...f, [key]: v === "" ? "" : Math.max(0, Number(v) || 0) });
+  const n = (v) => Number(v) || 0;
+  const save = () => onSave({ ...f, name: f.name.trim() || entry.name, cal: Math.round(n(f.cal)), p: r1(n(f.p)), c: r1(n(f.c)), f: r1(n(f.f)) });
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="Edit food"
+      footer={
+        <>
+          <GhostButton className="!px-4 text-fin-danger" onClick={() => onDelete(entry.id)}>Delete</GhostButton>
+          <PrimaryButton className="flex-1" onClick={save}>Save · {round(Number(f.cal) || 0)} kcal</PrimaryButton>
+        </>
+      }
+    >
+      <label className="block">
+        <div className="mb-1 text-[12.5px] text-fin-muted">Name</div>
+        <TextField value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={80} />
+      </label>
+      <div className="mt-4">
+        <div className="mb-1 text-[12.5px] text-fin-muted">Amount · {f.unit}</div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setQty(f.qty - (f.qty > 1 ? 0.5 : 0.25))} className="grid h-11 w-11 place-items-center rounded-xl bg-fin-tile text-[20px] font-bold" aria-label="Less">−</button>
+          <div className="tabular flex-1 rounded-xl bg-fin-input py-2.5 text-center text-[20px] font-extrabold">{f.qty} ×</div>
+          <button onClick={() => setQty(f.qty + (f.qty >= 1 ? 0.5 : 0.25))} className="grid h-11 w-11 place-items-center rounded-xl bg-fin-tile text-[20px] font-bold" aria-label="More">+</button>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {[0.5, 1, 1.5, 2, 3].map((q) => (
+            <button key={q} onClick={() => setQty(q)} className={`tabular rounded-full px-3 py-1 text-[13px] font-semibold ${f.qty === q ? "bg-fin-accent text-white" : "bg-fin-input text-white/75 hover:bg-fin-tile"}`}>{q} ×</button>
+          ))}
+        </div>
+        <div className="mt-1.5 text-[12px] text-fin-faint">Changing the amount scales the calories and macros below.</div>
+      </div>
+      <div className="mt-4">
+        <div className="mb-1.5 text-[12.5px] text-fin-muted">Meal</div>
+        <div className="flex flex-wrap gap-1.5">
+          {MEALS.map((m) => (
+            <Pill key={m.id} active={f.meal === m.id} onClick={() => setF({ ...f, meal: m.id })} className="!min-h-[34px] !px-3 !py-1 !text-[13px]">{m.label}</Pill>
+          ))}
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        {[["cal", "kcal", 1], ["p", "Protein g", 0.1], ["c", "Carbs g", 0.1], ["f", "Fat g", 0.1]].map(([k, l, step]) => (
+          <label key={k}>
+            <div className="mb-1 truncate text-[12px] text-fin-muted">{l}</div>
+            <NumberBox value={f[k]} step={step} onChange={num(k)} className="!py-2" label={l} />
+          </label>
+        ))}
       </div>
     </Sheet>
   );
