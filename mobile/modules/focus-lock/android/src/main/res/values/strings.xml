@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="focus_service_description">Used only while a LifeOS Focus session is running: if you open an app other than Phone, Messages, Spotify, alarms or the keyboard, it takes you back to the Focus screen. It doesn\'t read what\'s on your screen, and it does nothing when Focus mode is off.</string>
+  <string name="focus_service_description">Used only while a LifeOS Focus session is running: if you open an app other than Phone, Messages, WhatsApp, Spotify, alarms or the keyboard, it takes you back to the Focus screen. It doesn\'t read what\'s on your screen, and it does nothing when Focus mode is off.</string>
 </resources>

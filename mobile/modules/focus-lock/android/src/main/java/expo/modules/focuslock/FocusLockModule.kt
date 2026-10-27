@@ -50,7 +50,8 @@ class FocusLockModule : Module() {
       "endsAt" to FocusState.endsAt(c).toDouble(),
       "accessibility" to serviceOn(),
       "dnd" to FocusState.dndAllowed(c),
-      "spotify" to (c.packageManager.getLaunchIntentForPackage("com.spotify.music") != null)
+      "spotify" to (c.packageManager.getLaunchIntentForPackage("com.spotify.music") != null),
+      "whatsapp" to (c.packageManager.getLaunchIntentForPackage("com.whatsapp") != null || c.packageManager.getLaunchIntentForPackage("com.whatsapp.w4b") != null)
     )
   }
 
@@ -70,6 +71,8 @@ class FocusLockModule : Module() {
         (pkg?.let { c.packageManager.getLaunchIntentForPackage(it) }) ?: Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:"))
       }
       "spotify" -> c.packageManager.getLaunchIntentForPackage("com.spotify.music") ?: return false
+      "whatsapp" -> c.packageManager.getLaunchIntentForPackage("com.whatsapp")
+        ?: c.packageManager.getLaunchIntentForPackage("com.whatsapp.w4b") ?: return false
       else -> return false
     }
     return open(i)

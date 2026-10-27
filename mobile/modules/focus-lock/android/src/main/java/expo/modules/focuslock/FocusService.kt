@@ -20,7 +20,7 @@ class FocusService : AccessibilityService() {
     @Volatile
     var instance: FocusService? = null
 
-    // Calls, contacts, messages, Spotify, alarms, emergency, and the system UI
+    // Calls, contacts, messages, WhatsApp, Spotify, alarms, emergency, and the system UI
     // (status bar, lock screen, incoming-call screens).
     val ALWAYS = setOf(
       "android",
@@ -39,6 +39,8 @@ class FocusService : AccessibilityService() {
       "com.google.android.apps.messaging",
       "com.samsung.android.messaging",
       "com.spotify.music",
+      "com.whatsapp",
+      "com.whatsapp.w4b",
       "com.android.deskclock",
       "com.google.android.deskclock",
       "com.sec.android.app.clockpackage",

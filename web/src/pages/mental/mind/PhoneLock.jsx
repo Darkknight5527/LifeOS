@@ -65,7 +65,7 @@ export function PhoneLock() {
 
   return (
     <FinCard title={<span className="flex items-center gap-2"><Icon name="lock" size={15} /> Phone lock</span>}>
-      <p className="text-[13.5px] leading-relaxed text-fin-muted">Locks your phone for a set time: only calls, messages and Spotify work, and only calls ring. Leaving early needs a code sent to your email.</p>
+      <p className="text-[13.5px] leading-relaxed text-fin-muted">Locks your phone for a set time: only calls, messages, WhatsApp and Spotify work, and only calls ring. Leaving early needs a code sent to your email.</p>
 
       {!IN_APP ? (
         <div className="mt-3 rounded-2xl bg-fin-input px-3.5 py-3 text-[13.5px] text-white/80">Start it from the LifeOS app on your phone (Mind › Focus).</div>

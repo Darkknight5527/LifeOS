@@ -1,5 +1,5 @@
 // Focus mode, phone side. While a session runs this screen covers LifeOS:
-// a countdown, shortcuts to Phone, Messages and Spotify, and an emergency
+// a countdown, shortcuts to Phone, Messages, WhatsApp and Spotify, and an emergency
 // exit that needs a code emailed to you. The native FocusLock part sends you
 // back here from any other app and keeps Do Not Disturb on (calls only).
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -159,6 +159,7 @@ export function FocusOverlay({ onChange }) {
           <View style={s.row}>
             <Big label="Phone" sub="Call" onPress={() => FocusLock.launch("dialer")} />
             <Big label="Messages" sub="SMS" onPress={() => FocusLock.launch("sms")} />
+            {st.whatsapp && <Big label="WhatsApp" sub="Chat" onPress={() => FocusLock.launch("whatsapp")} />}
             {st.spotify && <Big label="Spotify" sub="Music" onPress={() => FocusLock.launch("spotify")} />}
           </View>
           <Text style={s.note}>Everything else is paused. Put the phone down — you've got this.</Text>
@@ -224,7 +225,7 @@ const s = StyleSheet.create({
   kicker: { color: "#a78bfa", fontSize: 13, fontWeight: "800", letterSpacing: 2 },
   time: { color: "#fff", fontSize: 64, fontWeight: "800", marginTop: 8, fontVariant: ["tabular-nums"] },
   sub: { color: "#9b9ba5", fontSize: 14, marginTop: 4 },
-  row: { flexDirection: "row", gap: 12, marginTop: 40 },
+  row: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 12, marginTop: 40, maxWidth: 220 },
   big: { width: 96, height: 96, borderRadius: 24, backgroundColor: "#1c1c22", alignItems: "center", justifyContent: "center" },
   bigLabel: { color: "#fff", fontSize: 15, fontWeight: "800" },
   bigSub: { color: "#9b9ba5", fontSize: 12, marginTop: 3 },

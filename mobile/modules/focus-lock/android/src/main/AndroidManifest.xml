@@ -2,9 +2,11 @@
   <!-- Do Not Disturb (calls only) during Focus mode. -->
   <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
-  <!-- Apps the Focus screen opens: the dialer, the SMS app and Spotify. -->
+  <!-- Apps the Focus screen opens: the dialer, the SMS app, WhatsApp and Spotify. -->
   <queries>
     <package android:name="com.spotify.music" />
+    <package android:name="com.whatsapp" />
+    <package android:name="com.whatsapp.w4b" />
     <intent>
       <action android:name="android.intent.action.DIAL" />
     </intent>
