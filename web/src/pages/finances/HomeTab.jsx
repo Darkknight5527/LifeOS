@@ -54,14 +54,14 @@ export default function HomeTab({ month: viewMonth, onMonth, onEdit, onGoTo, onR
           <div className="text-[16px] font-semibold text-white/90">{past ? `${monthLabel(currentMonth)} · past month` : greeting()}</div>
           {past && hasSalary ? (
             <>
-              <div className="mt-1 text-[15px] text-white/85">{stats.left < 0 ? "Overspent by" : "Left at month end"}</div>
+              <div className="mt-1 text-[15px] text-white/85">In your bank from {monthLabel(currentMonth, { short: true })}</div>
               <div className="text-[40px] font-extrabold leading-tight tracking-tight sm:text-[46px]">
-                <Money value={Math.abs(stats.left)} />
+                {stats.left < 0 ? "−" : ""}<Money value={Math.abs(stats.left)} />
               </div>
               <div className="mt-1 text-[15px] text-white/90">
-                Spent {formatMoney(stats.total)} of {formatMoney(stats.salary)}
-                {stats.received > 0 && <> + {formatMoney(stats.received)} received</>}
+                {formatMoney(stats.salary)} salary{stats.received > 0 && <> + {formatMoney(stats.received)} received</>} − {formatMoney(stats.total)} paid out
               </div>
+              {stats.left < 0 && <div className="mt-1 text-[13.5px] text-white/80">The extra {formatMoney(-stats.left)} came from money you already had.</div>}
               <button onClick={() => onMonth?.(thisMonth)} className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/15 px-3.5 py-1.5 text-[14px] font-semibold backdrop-blur-sm hover:bg-black/25">
                 Back to {monthLabel(thisMonth, { short: true })} <Icon name="right" size={15} stroke={2.4} />
               </button>
@@ -245,7 +245,7 @@ export default function HomeTab({ month: viewMonth, onMonth, onEdit, onGoTo, onR
       </FinCard>
       {/* Last month leftover */}
       {last.salary > 0 && (
-        <FinCard title="Last month leftover" delay={160}>
+        <FinCard title="In bank from last month" delay={160}>
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="text-[14px] text-fin-muted">{monthLabel(last.rec.month)}</div>
@@ -254,8 +254,8 @@ export default function HomeTab({ month: viewMonth, onMonth, onEdit, onGoTo, onR
               </div>
             </div>
             <div className="text-right text-[14px] text-fin-muted">
-              Spent {formatMoney(last.total)}
-              <br />of {formatMoney(last.salary)}
+              {formatMoney(last.salary + last.received)} in
+              <br />− {formatMoney(last.total)} paid out
             </div>
           </div>
         </FinCard>
