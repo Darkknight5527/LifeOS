@@ -7,8 +7,12 @@ import ExpenseRow from "./ExpenseRow.jsx";
 import SalarySheet from "./SalarySheet.jsx";
 import CreditCard from "./CreditCard.jsx";
 
-export default function HomeTab({ onEdit, onGoTo, onReceived }) {
-  const { currentMonth, previousRecord, setSalary, ratio, expenses, prevMonthKey } = useFinance();
+export default function HomeTab({ month: viewMonth, onMonth, onEdit, onGoTo, onReceived }) {
+  const { currentMonth: thisMonth, previousRecord, setSalary, ratio, expenses: allExpenses, prevMonthKey } = useFinance();
+  // The month on show: this month, or an earlier one picked in the header.
+  const currentMonth = viewMonth || thisMonth;
+  const past = currentMonth < thisMonth;
+  const expenses = past ? allExpenses.filter((t) => (t.date || "").slice(0, 7) === currentMonth) : allExpenses;
   const stats = useMonthStats(currentMonth);
   const last = useMonthStats(prevMonthKey(currentMonth));
   const now = useNowTotals();
@@ -47,8 +51,30 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
         <div className="pointer-events-none absolute -right-14 -top-16 h-56 w-56 rounded-full bg-white/10" />
         <div className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-white/[0.06]" />
         <div className="relative">
-          <div className="text-[16px] font-semibold text-white/90">{greeting()}</div>
-          {hasSalary ? (
+          <div className="text-[16px] font-semibold text-white/90">{past ? `${monthLabel(currentMonth)} · past month` : greeting()}</div>
+          {past && hasSalary ? (
+            <>
+              <div className="mt-1 text-[15px] text-white/85">{stats.left < 0 ? "Overspent by" : "Left at month end"}</div>
+              <div className="text-[40px] font-extrabold leading-tight tracking-tight sm:text-[46px]">
+                <Money value={Math.abs(stats.left)} />
+              </div>
+              <div className="mt-1 text-[15px] text-white/90">
+                Spent {formatMoney(stats.total)} of {formatMoney(stats.salary)}
+                {stats.received > 0 && <> + {formatMoney(stats.received)} received</>}
+              </div>
+              <button onClick={() => onMonth?.(thisMonth)} className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/15 px-3.5 py-1.5 text-[14px] font-semibold backdrop-blur-sm hover:bg-black/25">
+                Back to {monthLabel(thisMonth, { short: true })} <Icon name="right" size={15} stroke={2.4} />
+              </button>
+            </>
+          ) : past ? (
+            <>
+              <div className="mt-1 text-[30px] font-extrabold leading-tight sm:text-[34px]">No salary set</div>
+              <div className="mt-2 text-[16px] text-white/90">Set {monthLabel(currentMonth, { short: true })}'s salary below to see what was left.</div>
+              <button onClick={() => onMonth?.(thisMonth)} className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/15 px-3.5 py-1.5 text-[14px] font-semibold backdrop-blur-sm hover:bg-black/25">
+                Back to {monthLabel(thisMonth, { short: true })} <Icon name="right" size={15} stroke={2.4} />
+              </button>
+            </>
+          ) : hasSalary ? (
             <>
               <div className="mt-1 text-[15px] text-white/85">Left this month</div>
               <div className="text-[40px] font-extrabold leading-tight tracking-tight sm:text-[46px]">
@@ -122,7 +148,7 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
       <div className="space-y-5 lg:space-y-4">
       {/* Remaining per bucket */}
       {hasSalary && (
-        <FinCard title="Remaining · this month" delay={80}>
+        <FinCard title={past ? `Remaining · ${monthLabel(currentMonth, { short: true })}` : "Remaining · this month"} delay={80}>
           <div className="space-y-2">
             {BUCKETS.map((b) => {
               const alloc = stats.alloc[b.id];
@@ -130,7 +156,7 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
               const left = Math.round((alloc - spent) * 100) / 100;
               const pct = alloc > 0 ? Math.round((spent / alloc) * 100) : 0;
               return (
-                <button key={b.id} onClick={() => onGoTo("expenses", { bucket: b.id })} className="w-full rounded-2xl p-2 text-left transition hover:bg-fin-tile/60">
+                <button key={b.id} onClick={() => onGoTo("expenses", { bucket: b.id, ...(past ? { month: currentMonth } : {}) })} className="w-full rounded-2xl p-2 text-left transition hover:bg-fin-tile/60">
                   <div className="flex items-center gap-3">
                     <BucketBadge bucket={b} size={42} />
                     <div className="min-w-0 flex-1">
@@ -157,11 +183,18 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
       {/* Spending */}
       <FinCard title="Spending" delay={120}>
         <div className="grid grid-cols-3 gap-3">
-          {[
-            ["Today", now.today],
-            ["This week", now.week],
-            ["This month", now.month],
-          ].map(([label, v]) => (
+          {(past
+            ? [
+                ["Needs", stats.spent.needs],
+                ["Wants", stats.spent.wants],
+                [monthLabel(currentMonth, { short: true }), stats.total],
+              ]
+            : [
+                ["Today", now.today],
+                ["This week", now.week],
+                ["This month", now.month],
+              ]
+          ).map(([label, v]) => (
             <Tile key={label} className="flex flex-col text-center lg:!px-2">
               {/* label grows so the amounts line up even when a label wraps */}
               <div className="flex flex-1 items-center justify-center text-[12px] font-semibold uppercase tracking-[0.06em] text-fin-muted sm:text-[13px]">{label}</div>
@@ -169,7 +202,9 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
             </Tile>
           ))}
         </div>
-        <div className="mt-3 text-[14px] text-fin-muted">This week: {weekRangeLabel(now.weekStart)}</div>
+        <div className="mt-3 text-[14px] text-fin-muted">
+          {past ? `${stats.list.length} expense${stats.list.length === 1 ? "" : "s"} · about ${formatMoney(Math.round(stats.total / daysInMonth(currentMonth)))}/day` : `This week: ${weekRangeLabel(now.weekStart)}`}
+        </div>
       </FinCard>
 
       </div>
@@ -189,7 +224,7 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
           <>
             <div className="-mt-1 flex items-baseline justify-between gap-3">
               <span className="tabular text-[24px] font-extrabold text-fin-savings">+<Money value={stats.received} /></span>
-              <span className="text-[12.5px] text-fin-muted">this month · {stats.receivedList.length} entr{stats.receivedList.length === 1 ? "y" : "ies"}</span>
+              <span className="text-[12.5px] text-fin-muted">{past ? monthLabel(currentMonth, { short: true }) : "this month"} · {stats.receivedList.length} entr{stats.receivedList.length === 1 ? "y" : "ies"}</span>
             </div>
             <div className="mt-1.5 space-y-0.5">
               {stats.receivedList.slice(0, 2).map((t) => (
@@ -226,25 +261,25 @@ export default function HomeTab({ onEdit, onGoTo, onReceived }) {
         </FinCard>
       )}
 
-      <CreditCard onGoTo={onGoTo} delay={180} />
+      {!past && <CreditCard onGoTo={onGoTo} delay={180} />}
 
       {/* Recent */}
       <FinCard
-        title="Recent expenses"
+        title={past ? `Expenses · ${monthLabel(currentMonth, { short: true })}` : "Recent expenses"}
         delay={200}
         className="xl:flex xl:min-h-0 xl:flex-1 xl:flex-col"
         action={expenses.length > 0 && (
-          <button onClick={() => onGoTo("expenses")} className="text-[14px] font-semibold text-fin-accent hover:brightness-125">See all</button>
+          <button onClick={() => onGoTo("expenses", past ? { month: currentMonth } : {})} className="text-[14px] font-semibold text-fin-accent hover:brightness-125">See all</button>
         )}
       >
         {expenses.length ? (
           <div className="fin-scroll -mx-2 xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
-            {expenses.slice(0, 5).map((t) => (
+            {(past ? expenses : expenses.slice(0, 5)).map((t) => (
               <ExpenseRow key={t._id} tx={t} onClick={() => onEdit(t)} showDate dateLabel={dayHeading(t.date)} />
             ))}
           </div>
         ) : (
-          <div className="py-4 text-center text-[15px] text-fin-muted">No expenses yet. Tap + to log your first one.</div>
+          <div className="py-4 text-center text-[15px] text-fin-muted">{past ? `Nothing logged in ${monthLabel(currentMonth, { short: true })}. Tap + to add — it's dated ${monthLabel(currentMonth, { short: true })} for you.` : "No expenses yet. Tap + to log your first one."}</div>
         )}
       </FinCard>
 

@@ -8,7 +8,7 @@ import { GhostButton, Icon, Pill, PrimaryButton, Sheet, TextField, cleanMoneyInp
 export const SOURCES = ["Cashback", "Refund", "Loan repaid", "Gift", "Interest", "Reimbursement", "Other"];
 const QUICK = [50, 100, 500, 1000];
 
-export default function ReceivedSheet({ open, onClose, editing, onSwitchToExpense }) {
+export default function ReceivedSheet({ open, onClose, editing, defaultDate, onSwitchToExpense }) {
   const { addExpense, updateExpense, removeExpense } = useFinance();
   const [amount, setAmount] = useState("");
   const [source, setSource] = useState("Cashback");
@@ -22,7 +22,7 @@ export default function ReceivedSheet({ open, onClose, editing, onSwitchToExpens
     setAmount(editing ? String(editing.amount) : "");
     setSource(editing?.category || "Cashback");
     setNote(editing?.note || "");
-    setDate(editing?.date || todayISO());
+    setDate(editing?.date || defaultDate || todayISO());
     setTimeout(() => amountRef.current?.focus(), 250);
   }, [open, editing]);
 

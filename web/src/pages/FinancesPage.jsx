@@ -3,7 +3,7 @@ import { useBackSteps } from "../lib/backSteps.js";
 import { useSwipeTabs } from "../components/useSwipeTabs.js";
 import { useViewKeys } from "../components/useViewKeys.js";
 import { FinanceProvider, useFinance } from "./finances/FinanceContext.jsx";
-import { monthLabel } from "./finances/lib";
+import { daysInMonth, monthLabel, shiftMonth } from "./finances/lib";
 import { Icon, LogoMark, PrimaryButton } from "./finances/fin-ui.jsx";
 import HomeTab from "./finances/HomeTab.jsx";
 import ExpensesTab from "./finances/ExpensesTab.jsx";
@@ -64,7 +64,14 @@ function FinanceShell() {
       /* storage unavailable */
     }
   }, [tab]);
-  const [expenseFilter, setExpenseFilter] = useState({ bucket: "all", n: 0 });
+  const [expenseFilter, setExpenseFilter] = useState({ bucket: "all", n: 0, month: null });
+  // Home can look at an earlier month (to fill in or fix it); new entries then default to that month.
+  const [homeMonth, setHomeMonth] = useState(currentMonth);
+  useEffect(() => {
+    if (homeMonth > currentMonth) setHomeMonth(currentMonth);
+  }, [currentMonth]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pastMonth = tab === "home" && homeMonth < currentMonth;
+  const lastDay = `${homeMonth}-${String(daysInMonth(homeMonth)).padStart(2, "0")}`;
   const [sheet, setSheet] = useState({ open: false, editing: null, amount: null });
   const [calcOpen, setCalcOpen] = useState(false);
   const [recv, setRecv] = useState({ open: false, editing: null });
@@ -72,7 +79,7 @@ function FinanceShell() {
 
   const goTo = useCallback((id, opts = {}) => {
     setTab(id);
-    if (id === "expenses") setExpenseFilter((f) => ({ bucket: opts.bucket || "all", n: f.n + 1 }));
+    if (id === "expenses") setExpenseFilter((f) => ({ bucket: opts.bucket || "all", n: f.n + 1, month: opts.month || null }));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -134,7 +141,19 @@ function FinanceShell() {
           <LogoMark size={40} />
           <div className="min-w-0">
             <div className="text-[22px] font-extrabold leading-tight tracking-tight lg:text-[20px]">Finances</div>
-            <div className="truncate text-[14px] text-fin-muted">{monthLabel(currentMonth)}<span className="lg:hidden"> · week starts Monday</span></div>
+            {tab === "home" ? (
+              <div className="flex items-center gap-0.5 text-[14px] text-fin-muted">
+                <button onClick={() => setHomeMonth((m) => shiftMonth(m, -1))} className="-ml-1 grid h-6 w-6 place-items-center rounded-md hover:bg-white/10 hover:text-white" aria-label="Previous month" title="Previous month">
+                  <Icon name="left" size={15} stroke={2.4} />
+                </button>
+                <span className={`truncate ${pastMonth ? "font-semibold text-fin-accent" : ""}`}>{monthLabel(homeMonth)}</span>
+                <button onClick={() => setHomeMonth((m) => shiftMonth(m, 1))} disabled={!pastMonth} className="grid h-6 w-6 place-items-center rounded-md hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-25" aria-label="Next month" title="Next month">
+                  <Icon name="right" size={15} stroke={2.4} />
+                </button>
+              </div>
+            ) : (
+              <div className="truncate text-[14px] text-fin-muted">{monthLabel(currentMonth)}<span className="lg:hidden"> · week starts Monday</span></div>
+            )}
           </div>
           <SyncStatus syncing={syncing && hasData} failed={Boolean(error) && hasData} onRetry={reload} />
           {/* Tabs live in the header on computers; phones use the bottom bar */}
@@ -188,8 +207,8 @@ function FinanceShell() {
           </div>
         ) : (
           <div key={tab}>
-            {tab === "home" && <HomeTab onEdit={openEdit} onGoTo={goTo} onReceived={openReceived} />}
-            {tab === "expenses" && <ExpensesTab key={expenseFilter.n} onEdit={openEdit} initialBucket={expenseFilter.bucket} />}
+            {tab === "home" && <HomeTab month={homeMonth} onMonth={setHomeMonth} onEdit={openEdit} onGoTo={goTo} onReceived={openReceived} />}
+            {tab === "expenses" && <ExpensesTab key={expenseFilter.n} onEdit={openEdit} initialBucket={expenseFilter.bucket} initialMonth={expenseFilter.month} />}
             {tab === "insights" && <InsightsTab />}
             {tab === "wealth" && <WealthTab />}
             {tab === "settings" && <SettingsTab />}
@@ -215,6 +234,7 @@ function FinanceShell() {
         open={sheet.open}
         editing={sheet.editing}
         initialAmount={sheet.amount}
+        defaultDate={pastMonth ? lastDay : null}
         onClose={close}
         onSwitchToReceived={() => {
           close();
@@ -224,6 +244,7 @@ function FinanceShell() {
       <ReceivedSheet
         open={recv.open}
         editing={recv.editing}
+        defaultDate={pastMonth ? lastDay : null}
         onClose={() => setRecv((r) => ({ ...r, open: false }))}
         onSwitchToExpense={() => {
           setRecv((r) => ({ ...r, open: false }));

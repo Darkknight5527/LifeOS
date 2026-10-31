@@ -4,9 +4,9 @@ import { BUCKETS, addDays, dayHeading, formatMoney, isoDate, monthLabel, shiftMo
 import { EmptyState, FinCard, Icon, MonthNav, Pill, Segmented } from "./fin-ui.jsx";
 import ExpenseRow from "./ExpenseRow.jsx";
 
-export default function ExpensesTab({ onEdit, initialBucket = "all" }) {
+export default function ExpensesTab({ onEdit, initialBucket = "all", initialMonth }) {
   const { expenses, cardExpenses, transactions, currentMonth } = useFinance();
-  const [month, setMonth] = useState(currentMonth);
+  const [month, setMonth] = useState(initialMonth && initialMonth <= currentMonth ? initialMonth : currentMonth);
   const [range, setRange] = useState("month");
   const [bucket, setBucket] = useState(initialBucket);
   const [query, setQuery] = useState("");
