@@ -69,6 +69,12 @@ import MedLog from "../models/MedLog.js";
 import HealthVisit from "../models/HealthVisit.js";
 import LabReport from "../models/LabReport.js";
 import HealthPlan from "../models/HealthPlan.js";
+import LearnSettings from "../models/LearnSettings.js";
+import LearnProgress from "../models/LearnProgress.js";
+import LearnSession from "../models/LearnSession.js";
+import LearnWeak from "../models/LearnWeak.js";
+import LearnQuiz from "../models/LearnQuiz.js";
+import LearnCheckpoint from "../models/LearnCheckpoint.js";
 
 const router = Router();
 
@@ -127,6 +133,13 @@ router.use("/med-logs", createCrudRouter(MedLog, { sortField: "date", sortOrder:
 router.use("/health-visits", createCrudRouter(HealthVisit, { sortField: "date", sortOrder: -1 }));
 router.use("/lab-reports", createCrudRouter(LabReport, { sortField: "date", sortOrder: -1 }));
 router.use("/health-plans", createCrudRouter(HealthPlan, { sortField: "createdAt", sortOrder: 1 }));
+// Learning (the L4 mastery plan)
+router.use("/learn-settings", createCrudRouter(LearnSettings, { sortField: "createdAt", sortOrder: 1 }));
+router.use("/learn-progress", createCrudRouter(LearnProgress, { sortField: "createdAt", sortOrder: 1 }));
+router.use("/learn-sessions", createCrudRouter(LearnSession, { sortField: "date", sortOrder: -1 }));
+router.use("/learn-weak", createCrudRouter(LearnWeak, { sortField: "createdAt", sortOrder: -1 }));
+router.use("/learn-quizzes", createCrudRouter(LearnQuiz, { sortField: "week", sortOrder: 1 }));
+router.use("/learn-checkpoints", createCrudRouter(LearnCheckpoint, { sortField: "part", sortOrder: 1 }));
 router.use("/progress-photos", progressPhotoRoutes);
 // Tech & Learning
 router.use("/tech-projects", createCrudRouter(TechProject, { sortField: "order", sortOrder: 1 }));

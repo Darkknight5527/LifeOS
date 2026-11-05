@@ -48,6 +48,12 @@ body {
   --fin-grad-to: #15803d;
   --fin-glow: rgba(74, 222, 128, 0.38);
 }
+.theme-pink {
+  --fin-accent: 244 114 182;
+  --fin-grad-from: #f9a8d4;
+  --fin-grad-to: #db2777;
+  --fin-glow: rgba(244, 114, 182, 0.38);
+}
 
 .theme-gold {
   --fin-accent: 242 193 78;

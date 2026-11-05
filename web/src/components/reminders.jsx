@@ -13,8 +13,8 @@ export const DOMAINS = [
   { id: "grooming", label: "Grooming", color: "#2dd4bf" },
   { id: "fitness", label: "Fitness", color: "#60a5fa" },
   { id: "mental", label: "Mental", color: "#c084fc" },
-  { id: "technical", label: "Technical", color: "#94a3b8" },
-  { id: "learning", label: "Learning", color: "#a3e635" },
+  { id: "technical", label: "Technical", color: "#94a3b8", hidden: true }, // old reminders only
+  { id: "learning", label: "Learning", color: "#f472b6" },
 ];
 export const DOMAIN = Object.fromEntries(DOMAINS.map((d) => [d.id, d]));
 const REPEATS = [
@@ -256,7 +256,7 @@ export function ReminderSheet({ open, onClose, reminder, defaults = {}, api: rem
 
       <Label>Area</Label>
       <div className="flex flex-wrap gap-1.5">
-        {DOMAINS.map((d) => (
+        {DOMAINS.filter((d) => !d.hidden || d.id === f.domain).map((d) => (
           <Pill key={d.id} active={f.domain === d.id} color={d.color} onClick={() => set("domain")(d.id)} className="!px-3 !py-1.5 !text-[13px]">
             <span className="h-2 w-2 rounded-full" style={{ background: d.color }} />
             {d.label}
